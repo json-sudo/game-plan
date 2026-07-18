@@ -1,11 +1,20 @@
-import './App.css'
+import { BoardProvider } from './board/BoardContext';
+import { DragProvider } from './board/DragContext';
+import { Bench } from './components/Bench';
+import { Pitch } from './components/Pitch';
+import './App.scss';
 
-function App() {
+export default function App() {
   return (
-    <>
-     
-    </>
-  )
+    <BoardProvider>
+      <DragProvider>
+        <main className="app">
+          <div className="app__pitch-area">
+            <Pitch />
+          </div>
+          <Bench />
+        </main>
+      </DragProvider>
+    </BoardProvider>
+  );
 }
-
-export default App

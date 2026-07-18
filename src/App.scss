@@ -1,0 +1,48 @@
+@use './shared/styles/variables';
+
+:root {
+    @include variables.light-theme;
+    @include variables.board-colors;
+}
+
+html[data-theme='light'] {
+    @include variables.light-theme;
+}
+
+html[data-theme='dark'] {
+    @include variables.dark-theme;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+        @include variables.dark-theme;
+    }
+}
+
+body {
+    background: var(--body-bg);
+    color: var(--text-color);
+    font-family: 'SF Mono', ui-monospace, 'Cascadia Mono', monospace;
+}
+
+.app {
+    display: grid;
+    grid-template-columns: 1fr 17rem;
+    gap: 1rem;
+    min-height: 100vh;
+    padding: 1rem;
+
+    @media (max-width: 900px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.app__pitch-area {
+    align-self: start;
+    position: sticky;
+    top: 1rem;
+
+    @media (max-width: 900px) {
+        position: static;
+    }
+}

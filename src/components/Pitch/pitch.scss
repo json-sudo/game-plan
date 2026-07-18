@@ -1,0 +1,24 @@
+.pitch {
+    display: block;
+    // width: min(100%, #{calc((100vh - 2rem) / 2)});
+    width: 600px;
+    height: 700px;
+    margin-inline: auto;
+    // aspect-ratio: 1 / 2;
+    border-radius: 0.5rem;
+    touch-action: none;
+}
+
+.pitch__piece {
+    cursor: grab;
+}
+
+.pitch__label {
+    fill: #FFFFFF;
+    font-size: 1.1px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+    user-select: none;
+}

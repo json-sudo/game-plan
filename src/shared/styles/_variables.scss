@@ -1,0 +1,45 @@
+$team-mine: #1C3D6E;
+$team-mine-keeper: #C5882A;
+$team-opponent: #7A1C2E;
+$team-opponent-keeper: #4A2F7A;
+$ball: #FFFFFF;
+$pitch: #3D7A50;
+$pitch-stripe: #428556;
+
+@mixin board-colors {
+    --team-mine: #{$team-mine};
+    --team-mine-keeper: #{$team-mine-keeper};
+    --team-opponent: #{$team-opponent};
+    --team-opponent-keeper: #{$team-opponent-keeper};
+    --ball: #{$ball};
+    --pitch: #{$pitch};
+    --pitch-stripe: #{$pitch-stripe};
+    --pitch-line: color-mix(in srgb, #FFFFFF 72%, transparent);
+    --ball-sheen: color-mix(in srgb, #FFFFFF 30%, transparent); // radial gradient edge on the ball token
+}
+
+@mixin light-theme {
+    --text-color: #1C1B17;
+    --muted-text: #706E65;
+    --body-bg: #F5F4EF;
+    --panel-bg: #ECEAE4;
+    --border-color: #E0DDD6;
+    --token-ring: color-mix(in srgb, #1C1B17 10%, transparent);
+    --control-bg: #1A1108;
+    --control-text: #FFFFFF;
+    --control-idle-bg: color-mix(in srgb, #1C1B17 10%, transparent);
+    --drag-shadow: 0 4px 12px rgba(0, 0, 0, 0.20), 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
+@mixin dark-theme {
+    --text-color: #EDF0EE;
+    --muted-text: #8A9E9F;
+    --body-bg: #0B1A1B;
+    --panel-bg: #122425;
+    --border-color: #1F3435;
+    --token-ring: color-mix(in srgb, #FFFFFF 18%, transparent);
+    --control-bg: #EDF0EE;
+    --control-text: #1A1108;
+    --control-idle-bg: color-mix(in srgb, #FFFFFF 8%, transparent);
+    --drag-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
+}
