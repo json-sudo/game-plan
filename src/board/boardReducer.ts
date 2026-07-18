@@ -47,10 +47,8 @@ function makeSubs(team: Team, from: number, to: number): Piece[] {
 }
 
 export function createInitialBoard(): BoardState {
-  const teamPieces = (team: Team): Piece[] => [
-    makePlayer(team, `${team}-gk`, 'GK', true),
-    ...STARTER_LABELS.map((label, i) => makePlayer(team, `${team}-${i + 1}`, label)),
-  ];
+  const teamPieces = (team: Team): Piece[] =>
+    STARTER_LABELS.map((label, i) => makePlayer(team, `${team}-${i + 1}`, label));
   return {
     pieces: [
       ...teamPieces('mine'),
@@ -64,7 +62,7 @@ export function createInitialBoard(): BoardState {
       },
     ],
     squad: { mine: 11, opponent: 11 },
-    keeper: { mine: true, opponent: true },
+    keeper: { mine: false, opponent: false },
   };
 }
 

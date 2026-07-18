@@ -19,6 +19,12 @@ html[data-theme='dark'] {
     }
 }
 
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
     background: var(--body-bg);
     color: var(--text-color);
@@ -30,7 +36,6 @@ body {
     grid-template-columns: 1fr 17rem;
     gap: 1rem;
     min-height: 100vh;
-    padding: 1rem;
 
     @media (max-width: 900px) {
         grid-template-columns: 1fr;

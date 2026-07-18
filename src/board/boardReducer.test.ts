@@ -37,14 +37,16 @@ describe('PLACE_PIECE / BENCH_PIECE', () => {
 });
 
 describe('SET_SQUAD', () => {
-  it('growing 11→18 appends S1…S7', () => {
+  it('growing 11→20 appends S1…S9', () => {
     const next = boardReducer(createInitialBoard(), { type: 'SET_SQUAD', team: 'mine', size: 20 });
-    expect(subLabels(next, 'mine')).toEqual(['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7']);
-    expect(next.squad.mine).toBe(18);
+    expect(subLabels(next, 'mine')).toEqual(
+      Array.from({ length: 9 }, (_, i) => `S${i + 1}`),
+    );
+    expect(next.squad.mine).toBe(20);
     expect(subLabels(next, 'opponent')).toEqual([]);
   });
 
-  it('growing again 18→26 continues at S8', () => {
+  it('growing again 20→26 continues at S10', () => {
     let state = boardReducer(createInitialBoard(), { type: 'SET_SQUAD', team: 'mine', size: 20 });
     state = boardReducer(state, { type: 'SET_SQUAD', team: 'mine', size: 26 });
     expect(subLabels(state, 'mine')).toEqual(
@@ -52,46 +54,55 @@ describe('SET_SQUAD', () => {
     );
   });
 
-  it('shrinking removes highest-numbered subs first and never touches the starting 11', () => {
+  it('shrinking removes highest-numbered subs first and never touches the starters', () => {
     let state = boardReducer(createInitialBoard(), { type: 'SET_SQUAD', team: 'mine', size: 26 });
     state = boardReducer(state, { type: 'SET_SQUAD', team: 'mine', size: 20 });
-    expect(subLabels(state, 'mine')).toEqual(['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7']);
+    expect(subLabels(state, 'mine')).toEqual(
+      Array.from({ length: 9 }, (_, i) => `S${i + 1}`),
+    );
     state = boardReducer(state, { type: 'SET_SQUAD', team: 'mine', size: 11 });
     expect(subLabels(state, 'mine')).toEqual([]);
     expect(teamPieces(state, 'mine').map((p) => p.label)).toEqual([
-      'GK', 'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'LW', 'RW', 'ST', 'DM',
+      'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'LW', 'RW', 'ST', 'DM',
     ]);
   });
 
   it('shrinking removes benched subs before placed ones', () => {
     let state = boardReducer(createInitialBoard(), { type: 'SET_SQUAD', team: 'mine', size: 26 });
+    // Place the two highest subs; shrinking to 20 must remove 6 pieces,
+    // preferring the 13 benched subs (highest first) over the placed S14/S15.
     state = boardReducer(state, { type: 'PLACE_PIECE', id: 'mine-s15', position: { x: 10, y: 10 } });
     state = boardReducer(state, { type: 'PLACE_PIECE', id: 'mine-s14', position: { x: 20, y: 10 } });
     state = boardReducer(state, { type: 'SET_SQUAD', team: 'mine', size: 20 });
-    expect(subLabels(state, 'mine')).toEqual(['S1', 'S2', 'S3', 'S4', 'S5', 'S14', 'S15']);
+    expect(subLabels(state, 'mine')).toEqual([
+      'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S14', 'S15',
+    ]);
   });
 });
 
 describe('SET_KEEPER', () => {
-  it('off removes the GK even when placed', () => {
-    let state = boardReducer(createInitialBoard(), {
-      type: 'PLACE_PIECE',
-      id: 'mine-gk',
-      position: { x: 5, y: 25 },
-    });
-    state = boardReducer(state, { type: 'SET_KEEPER', team: 'mine', on: false });
-    expect(state.pieces.find((p) => p.team === 'mine' && p.isKeeper)).toBeUndefined();
-    expect(state.keeper.mine).toBe(false);
+  it('defaults to off — the initial board has no keepers', () => {
+    const state = createInitialBoard();
+    expect(state.keeper).toEqual({ mine: false, opponent: false });
+    expect(state.pieces.some((p) => p.isKeeper)).toBe(false);
     expect(teamPieces(state, 'mine')).toHaveLength(10);
-    expect(state.pieces.find((p) => p.team === 'opponent' && p.isKeeper)).toBeDefined();
   });
 
-  it('on restores a benched GK', () => {
-    let state = boardReducer(createInitialBoard(), { type: 'SET_KEEPER', team: 'mine', on: false });
-    state = boardReducer(state, { type: 'SET_KEEPER', team: 'mine', on: true });
+  it('on adds a benched GK', () => {
+    const state = boardReducer(createInitialBoard(), { type: 'SET_KEEPER', team: 'mine', on: true });
     const gk = state.pieces.find((p) => p.team === 'mine' && p.isKeeper)!;
     expect(gk.label).toBe('GK');
     expect(gk.position).toBeUndefined();
     expect(teamPieces(state, 'mine')).toHaveLength(11);
+    expect(teamPieces(state, 'opponent')).toHaveLength(10);
+  });
+
+  it('off removes the GK even when placed', () => {
+    let state = boardReducer(createInitialBoard(), { type: 'SET_KEEPER', team: 'mine', on: true });
+    state = boardReducer(state, { type: 'PLACE_PIECE', id: 'mine-gk', position: { x: 5, y: 25 } });
+    state = boardReducer(state, { type: 'SET_KEEPER', team: 'mine', on: false });
+    expect(state.pieces.find((p) => p.team === 'mine' && p.isKeeper)).toBeUndefined();
+    expect(state.keeper.mine).toBe(false);
+    expect(teamPieces(state, 'mine')).toHaveLength(10);
   });
 });

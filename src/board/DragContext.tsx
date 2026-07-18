@@ -11,6 +11,7 @@ import {
 import type { Piece } from './types';
 import { useBoardDispatch } from './BoardContext';
 import { PieceToken } from '../components/PieceToken';
+import { PITCH_W, PITCH_H } from '../components/Pitch';
 
 interface DragApi {
   pitchRef: RefObject<SVGSVGElement | null>;
@@ -69,8 +70,8 @@ export function DragProvider({ children }: { children: ReactNode }) {
           type: 'PLACE_PIECE',
           id: current.piece.id,
           position: {
-            x: ((e.clientX - rect.left) / rect.width) * 50,
-            y: ((e.clientY - rect.top) / rect.height) * 100,
+            x: ((e.clientX - rect.left) / rect.width) * PITCH_W,
+            y: ((e.clientY - rect.top) / rect.height) * PITCH_H,
           },
         });
       } else if (current.piece.position) {

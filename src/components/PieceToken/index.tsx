@@ -29,7 +29,9 @@ export function PieceToken({ piece, lifted, onPointerDown }: Props) {
   return (
     <span
       className={classes}
-      style={isBenchedSub ? { borderColor: color, color } : { background: color }}
+      style={
+        isBall ? undefined : isBenchedSub ? { borderColor: color, color } : { background: color }
+      }
       data-piece-id={piece.id}
       onPointerDown={onPointerDown}
       aria-label={isBall ? 'ball' : `${piece.team === 'mine' ? 'my team' : 'opponent'} ${piece.label}`}

@@ -22,7 +22,7 @@
 }
 
 .token--ball {
-    background: radial-gradient(circle at 35% 30%, var(--ball) 55%, var(--ball-sheen));
+    background: url('../../assets/ball.png') center / cover no-repeat;
     border: 1px solid var(--border-color);
     box-shadow: none;
 }

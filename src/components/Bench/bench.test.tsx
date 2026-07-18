@@ -31,12 +31,13 @@ function renderBench() {
 const pool = (name: string) => within(screen.getByRole('region', { name }));
 
 describe('Bench', () => {
-  it('renders both pools with all 11 benched tokens and 0/11 counters', () => {
+  it('renders both pools with 10 benched tokens (keeper off by default) and 0/10 counters', () => {
     renderBench();
-    expect(pool('My Team').getByText('0/11')).toBeInTheDocument();
-    expect(pool('Opponent').getByText('0/11')).toBeInTheDocument();
-    expect(pool('My Team').getAllByLabelText(/^my team /)).toHaveLength(11);
-    expect(pool('Opponent').getAllByLabelText(/^opponent /)).toHaveLength(11);
+    expect(pool('My Team').getByText('0/10')).toBeInTheDocument();
+    expect(pool('Opponent').getByText('0/10')).toBeInTheDocument();
+    expect(pool('My Team').getAllByLabelText(/^my team /)).toHaveLength(10);
+    expect(pool('Opponent').getAllByLabelText(/^opponent /)).toHaveLength(10);
+    expect(pool('My Team').queryByLabelText('my team GK')).not.toBeInTheDocument();
     expect(screen.getByLabelText('ball')).toBeInTheDocument();
     expect(screen.getByText('drag to pitch')).toBeInTheDocument();
   });
@@ -45,27 +46,27 @@ describe('Bench', () => {
     renderBench();
     expect(pool('My Team').getAllByLabelText('my team CB')).toHaveLength(2);
     await userEvent.click(screen.getByRole('button', { name: 'place CB' }));
-    expect(pool('My Team').getByText('1/11')).toBeInTheDocument();
+    expect(pool('My Team').getByText('1/10')).toBeInTheDocument();
     expect(pool('My Team').getAllByLabelText('my team CB')).toHaveLength(1);
-    expect(pool('Opponent').getByText('0/11')).toBeInTheDocument();
+    expect(pool('Opponent').getByText('0/10')).toBeInTheDocument();
   });
 
   it('squad size control adds dashed sub tokens and updates the total', async () => {
     renderBench();
     await userEvent.click(pool('My Team').getByRole('button', { name: '26' }));
-    expect(pool('My Team').getByText('0/26')).toBeInTheDocument();
+    expect(pool('My Team').getByText('0/25')).toBeInTheDocument();
     const subs = pool('My Team').getAllByLabelText(/^my team S\d+$/);
     expect(subs).toHaveLength(15);
     for (const sub of subs) expect(sub).toHaveClass('token--sub');
-    expect(pool('Opponent').getByText('0/11')).toBeInTheDocument();
+    expect(pool('Opponent').getByText('0/10')).toBeInTheDocument();
   });
 
-  it('keeper toggle removes the GK token and lowers the total', async () => {
+  it('keeper toggle adds a GK token and raises the total', async () => {
     renderBench();
-    await userEvent.click(pool('My Team').getByRole('button', { name: /Keeper on/ }));
-    expect(pool('My Team').getByRole('button', { name: /Keeper off/ })).toBeInTheDocument();
-    expect(pool('My Team').queryByLabelText('my team GK')).not.toBeInTheDocument();
-    expect(pool('My Team').getByText('0/10')).toBeInTheDocument();
-    expect(pool('Opponent').getByLabelText('opponent GK')).toBeInTheDocument();
+    await userEvent.click(pool('My Team').getByRole('button', { name: /Keeper off/ }));
+    expect(pool('My Team').getByRole('button', { name: /Keeper on/ })).toBeInTheDocument();
+    expect(pool('My Team').getByLabelText('my team GK')).toBeInTheDocument();
+    expect(pool('My Team').getByText('0/11')).toBeInTheDocument();
+    expect(pool('Opponent').queryByLabelText('opponent GK')).not.toBeInTheDocument();
   });
 });
