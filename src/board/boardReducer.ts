@@ -1,4 +1,5 @@
 import type { BoardState, Piece, SquadSize, Team } from './types';
+import { getFormation, mirrorSlot } from './formations';
 
 // Must match the board colors in src/shared/styles/_variables.scss
 export const TEAM_COLORS = {
@@ -15,7 +16,8 @@ export type BoardAction =
   | { type: 'PLACE_PIECE'; id: string; position: { x: number; y: number } }
   | { type: 'BENCH_PIECE'; id: string }
   | { type: 'SET_SQUAD'; team: Team; size: SquadSize }
-  | { type: 'SET_KEEPER'; team: Team; on: boolean };
+  | { type: 'SET_KEEPER'; team: Team; on: boolean }
+  | { type: 'APPLY_FORMATION'; team: Team; name: string };
 
 export function subNumber(piece: Piece): number | null {
   const m = /^S(\d+)$/.exec(piece.label);
@@ -112,6 +114,38 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
         ...state,
         pieces: state.pieces.filter((p) => !removeIds.has(p.id)),
         squad: { ...state.squad, [action.team]: action.size },
+      };
+    }
+
+    case 'APPLY_FORMATION': {
+      const formation = getFormation(action.name);
+      if (!formation) return state;
+
+      const gkSlot = formation.slots.find((s) => s.label === 'GK')!;
+      const outfieldSlots = formation.slots.filter((s) => s !== gkSlot);
+      const place = (slot: { x: number; y: number; label?: string }) =>
+        action.team === 'mine'
+          ? { x: slot.x, y: slot.y }
+          : mirrorSlot({ label: '', x: slot.x, y: slot.y });
+
+      const starters = state.pieces.filter(
+        (p) => p.team === action.team && p.type === 'player' && !p.isKeeper && subNumber(p) === null,
+      );
+      const assignments = new Map<string, { position: { x: number; y: number }; label: string }>();
+      starters.forEach((piece, i) => {
+        const slot = outfieldSlots[i];
+        if (slot) assignments.set(piece.id, { position: place(slot), label: slot.label });
+      });
+      const keeper = state.pieces.find((p) => p.team === action.team && p.isKeeper);
+      if (keeper) assignments.set(keeper.id, { position: place(gkSlot), label: 'GK' });
+
+      return {
+        ...state,
+        pieces: state.pieces.map((p) => {
+          const a = assignments.get(p.id);
+          return a ? { ...p, position: a.position, label: a.label } : p;
+        }),
+        formation: { ...state.formation, [action.team]: action.name },
       };
     }
 

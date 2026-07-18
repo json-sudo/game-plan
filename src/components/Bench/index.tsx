@@ -81,12 +81,12 @@ function TeamPool({ team, title }: { team: Team; title: string }) {
   );
 }
 
-const KEY_ENTRIES: { label: string; color: string; hollow?: boolean }[] = [
+const KEY_ENTRIES: { label: string; color?: string; ball?: boolean }[] = [
   { label: 'My Team', color: TEAM_COLORS.mine },
   { label: 'My Keeper', color: TEAM_COLORS.mineKeeper },
   { label: 'Opponent', color: TEAM_COLORS.opponent },
   { label: 'Opp. Keeper', color: TEAM_COLORS.opponentKeeper },
-  { label: 'Ball', color: TEAM_COLORS.ball, hollow: true },
+  { label: 'Ball', ball: true },
 ];
 
 export function Bench() {
@@ -106,11 +106,11 @@ export function Bench() {
       <section className="bench__key" aria-label="Key">
         <h2>Key</h2>
         <ul>
-          {KEY_ENTRIES.map(({ label, color, hollow }) => (
+          {KEY_ENTRIES.map(({ label, color, ball }) => (
             <li key={label}>
               <span
-                className="bench__dot"
-                style={hollow ? { border: '1px solid var(--border-color)' } : { background: color }}
+                className={ball ? 'bench__dot bench__dot--ball' : 'bench__dot'}
+                style={ball ? undefined : { background: color }}
               />
               {label}
             </li>

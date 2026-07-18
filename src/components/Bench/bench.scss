@@ -50,6 +50,11 @@
     flex-shrink: 0;
 }
 
+.bench__dot--ball {
+    background: url('../../assets/ball.png') center / cover no-repeat;
+    border: 1px solid var(--border-color);
+}
+
 .bench__grid {
     display: flex;
     flex-wrap: wrap;

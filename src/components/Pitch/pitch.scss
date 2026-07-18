@@ -1,9 +1,9 @@
 .pitch {
     display: block;
-    width: min(100%, #{calc((100vh - 2rem) * 16 / 21)});
+    width: min(100%, calc((100vh - 3.9rem) * 16 / 21));
     margin-inline: auto;
     aspect-ratio: 16 / 21;
-    border-radius: 0.5rem;
+    border-radius: 0.2rem;
     touch-action: none;
 }
 

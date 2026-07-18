@@ -1,0 +1,133 @@
+.top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.top-bar__wordmark {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.top-bar__formation {
+    border: 1px solid var(--border-color);
+    border-radius: 0.3rem;
+    padding: 0.5rem 1.4rem;
+    font: inherit;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--panel-bg);
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.formation-modal__backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+}
+
+.formation-modal {
+    width: min(26rem, calc(100vw - 2rem));
+    background: var(--body-bg);
+    border-radius: 0.4rem;
+    box-shadow: var(--drag-shadow);
+}
+
+.formation-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--border-color);
+
+    h2 {
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+
+    button {
+        border: none;
+        background: none;
+        font-size: 1.2rem;
+        color: var(--muted-text);
+        cursor: pointer;
+    }
+}
+
+.formation-modal__teams {
+    padding: 1rem 1.2rem;
+
+    .formation-modal__teams-label {
+        display: block;
+        margin-bottom: 0.6rem;
+        font-size: 0.8rem;
+        color: var(--muted-text);
+    }
+
+    div[role='group'] {
+        display: flex;
+        gap: 0.6rem;
+    }
+
+    button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 1;
+        justify-content: center;
+        border: none;
+        border-radius: 0.3rem;
+        padding: 0.7rem 1rem;
+        font: inherit;
+        font-size: 0.8rem;
+        background: var(--control-idle-bg);
+        color: var(--text-color);
+        cursor: pointer;
+
+        &.is-active {
+            background: var(--control-bg);
+            color: var(--control-text);
+        }
+    }
+}
+
+.formation-modal__dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+}
+
+.formation-modal__list {
+    list-style: none;
+    padding: 0.4rem 0 0.8rem;
+
+    button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: none;
+        padding: 0.7rem 1.4rem;
+        font: inherit;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-color);
+        cursor: pointer;
+
+        &:hover {
+            background: var(--control-idle-bg);
+        }
+    }
+}
