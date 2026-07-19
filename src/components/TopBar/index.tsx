@@ -5,6 +5,9 @@ import { useBoard, useBoardDispatch } from '../../board/BoardContext';
 import { TEAM_COLORS } from '../../board/boardReducer';
 import ClearIcon from '../../assets/clear.icon';
 import ResetIcon from '../../assets/reset.icon';
+import DarkThemeIcon from '../../assets/dark.icon';
+import LightThemeIcon from '../../assets/light-theme.icon';
+import { useTheme } from '../../shared/hooks/useTheme';
 import './top-bar.scss';
 
 type ApplyMode = Team | 'matchup';
@@ -216,6 +219,7 @@ function ResetConfirmModal({ onClose }: { onClose: () => void }) {
 
 export function TopBar() {
   const dispatch = useBoardDispatch();
+  const { theme, toggleTheme } = useTheme();
   const [modalOpen, setModalOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
 
@@ -238,6 +242,14 @@ export function TopBar() {
           </button>
           <button type="button" className="top-bar__formation" onClick={() => setModalOpen(true)}>
             Formation
+          </button>
+          <button
+            type="button"
+            className="top-bar__action"
+            aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+            onClick={toggleTheme}
+          >
+            {theme === 'light' ? <DarkThemeIcon /> : <LightThemeIcon />}
           </button>
         </div>
       </header>

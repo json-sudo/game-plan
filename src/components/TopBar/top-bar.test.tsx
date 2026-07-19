@@ -1,8 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BoardProvider, useBoard } from '../../board/BoardContext';
 import { TopBar } from '.';
+
+function mockMatchMedia(matches: boolean) {
+  window.matchMedia = vi.fn().mockReturnValue({ matches }) as unknown as typeof window.matchMedia;
+}
+
+beforeEach(() => {
+  mockMatchMedia(false);
+});
+
+afterEach(() => {
+  localStorage.clear();
+  delete document.documentElement.dataset.theme;
+});
 
 function PlacedProbe() {
   const board = useBoard();
@@ -140,7 +153,7 @@ describe('Matchup mode', () => {
 describe('Clear and Reset buttons', () => {
   it('render next to Formation with an icon whose strokes inherit currentColor', () => {
     renderTopBar();
-    for (const name of ['Clear', 'Reset']) {
+    for (const name of ['Clear pitch', 'Reset']) {
       const button = screen.getByRole('button', { name });
       const svg = button.querySelector('svg');
       expect(svg).not.toBeNull();
@@ -159,7 +172,7 @@ describe('Clear button', () => {
     await userEvent.click(screen.getByRole('button', { name: '4-3-3' }));
     expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Clear pitch' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByTestId('placed-mine')).toHaveTextContent('0');
     expect(screen.getByTestId('formation-mine')).toHaveTextContent('4-3-3');
@@ -171,7 +184,7 @@ describe('Clear button', () => {
     await userEvent.click(screen.getByRole('button', { name: '4-3-3' }));
     const placedLabels = screen.getByTestId('labels-mine').textContent;
 
-    await userEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Clear pitch' }));
     expect(screen.getByTestId('labels-mine')).toHaveTextContent('');
     await openModal();
     await userEvent.click(screen.getByRole('button', { name: '4-3-3' }));
@@ -224,5 +237,44 @@ describe('Reset button', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
     expect(screen.getByTestId('formation-mine')).toHaveTextContent('4-3-3');
+  });
+});
+
+describe('Theme toggle button', () => {
+  it('renders last in the actions cluster with currentColor icon strokes', () => {
+    renderTopBar();
+    const button = screen.getByRole('button', { name: 'Switch to dark mode' });
+    const actions = button.closest('.top-bar__actions')!;
+    expect(actions.lastElementChild).toBe(button);
+    expect(actions.children[actions.children.length - 2]).toBe(
+      screen.getByRole('button', { name: 'Formation' }),
+    );
+    for (const path of button.querySelectorAll('path')) {
+      expect(path).toHaveAttribute('stroke', 'currentColor');
+    }
+  });
+
+  it('shows the theme you would switch to and swaps icon and label on click', async () => {
+    mockMatchMedia(true);
+    renderTopBar();
+    const button = screen.getByRole('button', { name: 'Switch to light mode' });
+    expect(button.querySelectorAll('path').length).toBeGreaterThan(1);
+
+    await userEvent.click(button);
+    expect(button).toHaveAccessibleName('Switch to dark mode');
+    expect(button.querySelectorAll('path')).toHaveLength(1);
+  });
+
+  it('clicking sets data-theme on the document element and persists the choice', async () => {
+    renderTopBar();
+    expect(document.documentElement.dataset.theme).toBeUndefined();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Switch to dark mode' }));
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(localStorage.getItem('game-plan:theme')).toBe('dark');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Switch to light mode' }));
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(localStorage.getItem('game-plan:theme')).toBe('light');
   });
 });
