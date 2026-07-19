@@ -2,7 +2,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.8rem 1rem;
+    padding: 0.6rem 1rem;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -107,6 +107,69 @@
     width: 0.55rem;
     height: 0.55rem;
     border-radius: 50%;
+}
+
+.formation-modal__matchup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding-bottom: 1.2rem;
+
+    .formation-modal__teams {
+        padding-top: 0;
+    }
+}
+
+.formation-modal__picker {
+    padding: 0.4rem 1.2rem 0;
+
+    .formation-modal__picker-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.8rem;
+        color: var(--muted-text);
+    }
+
+    div[role='group'] {
+        display: flex;
+        gap: 0.4rem;
+    }
+
+    button {
+        flex: 1;
+        border: 1px solid var(--border-color);
+        border-radius: 0.3rem;
+        padding: 0.5rem 0.2rem;
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background: var(--control-idle-bg);
+        color: var(--text-color);
+        cursor: pointer;
+
+        &.is-active {
+            background: var(--control-bg);
+            border-color: var(--control-bg);
+            color: var(--control-text);
+        }
+    }
+}
+
+.formation-modal__apply {
+    margin: 0.8rem 1.2rem 0;
+    border: none;
+    border-radius: 0.3rem;
+    padding: 0.7rem 1rem;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--control-bg);
+    color: var(--control-text);
+    cursor: pointer;
 }
 
 .formation-modal__list {

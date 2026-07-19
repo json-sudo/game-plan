@@ -1,13 +1,54 @@
 import { useEffect, useState } from 'react';
 import type { Team } from '../../board/types';
 import { FORMATIONS } from '../../board/formations';
-import { useBoardDispatch } from '../../board/BoardContext';
+import { useBoard, useBoardDispatch } from '../../board/BoardContext';
 import { TEAM_COLORS } from '../../board/boardReducer';
 import './top-bar.scss';
 
+type ApplyMode = Team | 'matchup';
+
+const TEAM_NAMES: Record<Team, string> = { mine: 'My Team', opponent: 'Opponent' };
+
+function FormationPicker({
+  team,
+  value,
+  onChange,
+}: {
+  team: Team;
+  value: string;
+  onChange: (name: string) => void;
+}) {
+  return (
+    <div className="formation-modal__picker">
+      <span className="formation-modal__picker-label">
+        <span className="formation-modal__dot" style={{ background: TEAM_COLORS[team] }} />
+        {TEAM_NAMES[team]}
+      </span>
+      <div role="group" aria-label={`${TEAM_NAMES[team]} formation`}>
+        {FORMATIONS.map((f) => (
+          <button
+            key={f.name}
+            type="button"
+            className={value === f.name ? 'is-active' : undefined}
+            onClick={() => onChange(f.name)}
+          >
+            {f.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function FormationModal({ onClose }: { onClose: () => void }) {
+  const board = useBoard();
   const dispatch = useBoardDispatch();
-  const [team, setTeam] = useState<Team>('mine');
+  const [mode, setMode] = useState<ApplyMode>('mine');
+  const [attacker, setAttacker] = useState<Team>('mine');
+  const [picks, setPicks] = useState<{ mine: string; opponent: string }>({
+    mine: board.formation?.mine ?? '4-3-3',
+    opponent: board.formation?.opponent ?? '4-3-3',
+  });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -18,7 +59,12 @@ function FormationModal({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   const apply = (name: string) => {
-    dispatch({ type: 'APPLY_FORMATION', team, name });
+    dispatch({ type: 'APPLY_FORMATION', team: mode as Team, name });
+    onClose();
+  };
+
+  const applyMatchup = () => {
+    dispatch({ type: 'APPLY_MATCHUP', attacker, formations: picks });
     onClose();
   };
 
@@ -43,32 +89,76 @@ function FormationModal({ onClose }: { onClose: () => void }) {
           <div role="group" aria-label="Apply to">
             <button
               type="button"
-              className={team === 'mine' ? 'is-active' : undefined}
-              onClick={() => setTeam('mine')}
+              className={mode === 'mine' ? 'is-active' : undefined}
+              onClick={() => setMode('mine')}
             >
               <span className="formation-modal__dot" style={{ background: TEAM_COLORS.mine }} />
               My Team
             </button>
             <button
               type="button"
-              className={team === 'opponent' ? 'is-active' : undefined}
-              onClick={() => setTeam('opponent')}
+              className={mode === 'opponent' ? 'is-active' : undefined}
+              onClick={() => setMode('opponent')}
             >
               <span className="formation-modal__dot" style={{ background: TEAM_COLORS.opponent }} />
               Opponent
             </button>
+            <button
+              type="button"
+              className={mode === 'matchup' ? 'is-active' : undefined}
+              onClick={() => setMode('matchup')}
+            >
+              Matchup
+            </button>
           </div>
         </div>
 
-        <ul className="formation-modal__list">
-          {FORMATIONS.map((f) => (
-            <li key={f.name}>
-              <button type="button" onClick={() => apply(f.name)}>
-                {f.name}
-              </button>
-            </li>
-          ))}
-        </ul>
+        {mode !== 'matchup' ? (
+          <ul className="formation-modal__list">
+            {FORMATIONS.map((f) => (
+              <li key={f.name}>
+                <button type="button" onClick={() => apply(f.name)}>
+                  {f.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="formation-modal__matchup">
+            <div className="formation-modal__teams">
+              <span className="formation-modal__teams-label">Attacker</span>
+              <div role="group" aria-label="Attacker">
+                <button
+                  type="button"
+                  className={attacker === 'mine' ? 'is-active' : undefined}
+                  onClick={() => setAttacker('mine')}
+                >
+                  My Team attacks
+                </button>
+                <button
+                  type="button"
+                  className={attacker === 'opponent' ? 'is-active' : undefined}
+                  onClick={() => setAttacker('opponent')}
+                >
+                  Opponent attacks
+                </button>
+              </div>
+            </div>
+            <FormationPicker
+              team="mine"
+              value={picks.mine}
+              onChange={(name) => setPicks((p) => ({ ...p, mine: name }))}
+            />
+            <FormationPicker
+              team="opponent"
+              value={picks.opponent}
+              onChange={(name) => setPicks((p) => ({ ...p, opponent: name }))}
+            />
+            <button type="button" className="formation-modal__apply" onClick={applyMatchup}>
+              Apply
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

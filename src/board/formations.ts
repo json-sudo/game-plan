@@ -100,6 +100,23 @@ export function mirrorSlot(slot: FormationSlot): { x: number; y: number } {
   return { x: PITCH_W - slot.x, y: PITCH_H - slot.y };
 }
 
+// Engagement offset for matchup placement, tuned by eye against the reference layout.
+export const MATCHUP_OFFSET = 30;
+
+export function standardPlacement(slot: FormationSlot, team: 'mine' | 'opponent') {
+  return team === 'mine' ? { x: slot.x, y: slot.y } : mirrorSlot(slot);
+}
+
+export function matchupAttackerPlacement(
+  slot: FormationSlot,
+  team: 'mine' | 'opponent',
+  isKeeper: boolean,
+): { x: number; y: number } {
+  const base = standardPlacement(slot, team);
+  if (isKeeper) return base;
+  return { x: base.x, y: team === 'mine' ? base.y - MATCHUP_OFFSET : base.y + MATCHUP_OFFSET };
+}
+
 export function getFormation(name: string): Formation | undefined {
   return FORMATIONS.find((f) => f.name === name);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FORMATIONS, getFormation, mirrorSlot } from './formations';
+import { FORMATIONS, MATCHUP_OFFSET, getFormation, mirrorSlot } from './formations';
 import { boardReducer, createInitialBoard, subNumber } from './boardReducer';
 import type { BoardState, Team } from './types';
 
@@ -135,5 +135,108 @@ describe('APPLY_FORMATION', () => {
 
   it('mirrorSlot point-mirrors coordinates', () => {
     expect(mirrorSlot({ label: 'ST', x: 28, y: 55 })).toEqual({ x: 76.19 - 28, y: 45 });
+  });
+});
+
+describe('APPLY_MATCHUP', () => {
+  const matchup = (
+    state: BoardState,
+    attacker: Team,
+    formations: { mine: string; opponent: string },
+  ) => boardReducer(state, { type: 'APPLY_MATCHUP', attacker, formations });
+
+  const withKeepers = () => {
+    let state = boardReducer(createInitialBoard(), { type: 'SET_KEEPER', team: 'mine', on: true });
+    return boardReducer(state, { type: 'SET_KEEPER', team: 'opponent', on: true });
+  };
+
+  it('places the defender identically to a single-team apply', () => {
+    const state = matchup(withKeepers(), 'mine', { mine: '4-3-3', opponent: '3-5-2' });
+    const single = boardReducer(withKeepers(), {
+      type: 'APPLY_FORMATION',
+      team: 'opponent',
+      name: '3-5-2',
+    });
+    const pick = (s: BoardState) =>
+      s.pieces
+        .filter((p) => p.team === 'opponent' && p.type === 'player')
+        .map((p) => ({ id: p.id, label: p.label, position: p.position }));
+    expect(pick(state)).toEqual(pick(single));
+  });
+
+  it('shifts attacking outfield positions by the engagement offset, GK unshifted', () => {
+    const state = matchup(withKeepers(), 'mine', { mine: '4-3-3', opponent: '4-4-2' });
+    const slots = getFormation('4-3-3')!.slots;
+    const placed = placedPlayers(state, 'mine');
+    expect(placed).toHaveLength(11);
+    for (const piece of placed) {
+      if (piece.isKeeper) {
+        expect(piece.position).toEqual({ x: 76.19 / 2, y: 94 });
+      } else {
+        expect(
+          slots.some(
+            (s) => s.x === piece.position!.x && s.y - MATCHUP_OFFSET === piece.position!.y,
+          ),
+        ).toBe(true);
+      }
+    }
+  });
+
+  it('attacker=opponent produces the point-mirror of attacker=mine', () => {
+    const formations = { mine: '4-3-3', opponent: '3-5-2' };
+    const mineAttacks = matchup(withKeepers(), 'mine', formations);
+    const oppAttacks = matchup(withKeepers(), 'opponent', {
+      mine: '3-5-2',
+      opponent: '4-3-3',
+    });
+    for (const team of ['mine', 'opponent'] as const) {
+      const other = team === 'mine' ? 'opponent' : 'mine';
+      const a = placedPlayers(mineAttacks, team).map((p) => p.position!);
+      const b = placedPlayers(oppAttacks, other).map((p) => p.position!);
+      for (const pos of a) {
+        expect(
+          b.some(
+            (m) => Math.abs(76.19 - m.x - pos.x) < 1e-9 && Math.abs(100 - m.y - pos.y) < 1e-9,
+          ),
+        ).toBe(true);
+      }
+    }
+  });
+
+  it.each(
+    FORMATIONS.flatMap((a) => FORMATIONS.map((b) => [a.name, b.name] as const)),
+  )('keeps all positions inside the pitch for %s vs %s', (mine, opponent) => {
+    for (const attacker of ['mine', 'opponent'] as const) {
+      const state = matchup(withKeepers(), attacker, { mine, opponent });
+      for (const team of ['mine', 'opponent'] as const) {
+        for (const piece of placedPlayers(state, team)) {
+          expect(piece.position!.x).toBeGreaterThan(0);
+          expect(piece.position!.x).toBeLessThan(76.19);
+          expect(piece.position!.y).toBeGreaterThan(0);
+          expect(piece.position!.y).toBeLessThan(100);
+        }
+      }
+    }
+  });
+
+  it('leaves subs, the ball, and keeper toggles untouched, and records both formations', () => {
+    let state = boardReducer(createInitialBoard(), { type: 'SET_SQUAD', team: 'mine', size: 20 });
+    state = matchup(state, 'mine', { mine: '4-4-2', opponent: '5-3-2' });
+    const subs = state.pieces.filter((p) => subNumber(p) !== null);
+    expect(subs).toHaveLength(9);
+    expect(subs.every((p) => p.position === undefined)).toBe(true);
+    expect(state.pieces.find((p) => p.type === 'ball')!.position).toBeUndefined();
+    expect(state.keeper).toEqual({ mine: false, opponent: false });
+    expect(state.formation).toEqual({ mine: '4-4-2', opponent: '5-3-2' });
+  });
+
+  it('a later single-team apply returns that team to its own half, leaving the other team', () => {
+    let state = matchup(createInitialBoard(), 'mine', { mine: '4-3-3', opponent: '4-4-2' });
+    const opponentBefore = state.pieces.filter((p) => p.team === 'opponent');
+    state = boardReducer(state, { type: 'APPLY_FORMATION', team: 'mine', name: '4-3-3' });
+    for (const piece of placedPlayers(state, 'mine')) {
+      expect(piece.position!.y).toBeGreaterThan(50);
+    }
+    expect(state.pieces.filter((p) => p.team === 'opponent')).toEqual(opponentBefore);
   });
 });

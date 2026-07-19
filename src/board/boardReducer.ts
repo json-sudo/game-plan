@@ -1,5 +1,10 @@
 import type { BoardState, Piece, SquadSize, Team } from './types';
-import { getFormation, mirrorSlot } from './formations';
+import {
+  getFormation,
+  matchupAttackerPlacement,
+  standardPlacement,
+  type FormationSlot,
+} from './formations';
 
 // Must match the board colors in src/shared/styles/_variables.scss
 export const TEAM_COLORS = {
@@ -17,7 +22,8 @@ export type BoardAction =
   | { type: 'BENCH_PIECE'; id: string }
   | { type: 'SET_SQUAD'; team: Team; size: SquadSize }
   | { type: 'SET_KEEPER'; team: Team; on: boolean }
-  | { type: 'APPLY_FORMATION'; team: Team; name: string };
+  | { type: 'APPLY_FORMATION'; team: Team; name: string }
+  | { type: 'APPLY_MATCHUP'; attacker: Team; formations: { mine: string; opponent: string } };
 
 export function subNumber(piece: Piece): number | null {
   const m = /^S(\d+)$/.exec(piece.label);
@@ -66,6 +72,39 @@ export function createInitialBoard(): BoardState {
     squad: { mine: 11, opponent: 11 },
     keeper: { mine: false, opponent: false },
   };
+}
+
+type Assignments = Map<string, { position: { x: number; y: number }; label: string }>;
+
+function formationAssignments(
+  state: BoardState,
+  team: Team,
+  name: string,
+  place: (slot: FormationSlot, isKeeper: boolean) => { x: number; y: number },
+): Assignments | null {
+  const formation = getFormation(name);
+  if (!formation) return null;
+
+  const gkSlot = formation.slots.find((s) => s.label === 'GK')!;
+  const outfieldSlots = formation.slots.filter((s) => s !== gkSlot);
+  const starters = state.pieces.filter(
+    (p) => p.team === team && p.type === 'player' && !p.isKeeper && subNumber(p) === null,
+  );
+  const assignments: Assignments = new Map();
+  starters.forEach((piece, i) => {
+    const slot = outfieldSlots[i];
+    if (slot) assignments.set(piece.id, { position: place(slot, false), label: slot.label });
+  });
+  const keeper = state.pieces.find((p) => p.team === team && p.isKeeper);
+  if (keeper) assignments.set(keeper.id, { position: place(gkSlot, true), label: 'GK' });
+  return assignments;
+}
+
+function applyAssignments(pieces: Piece[], assignments: Assignments): Piece[] {
+  return pieces.map((p) => {
+    const a = assignments.get(p.id);
+    return a ? { ...p, position: a.position, label: a.label } : p;
+  });
 }
 
 export function boardReducer(state: BoardState, action: BoardAction): BoardState {
@@ -118,34 +157,33 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
     }
 
     case 'APPLY_FORMATION': {
-      const formation = getFormation(action.name);
-      if (!formation) return state;
-
-      const gkSlot = formation.slots.find((s) => s.label === 'GK')!;
-      const outfieldSlots = formation.slots.filter((s) => s !== gkSlot);
-      const place = (slot: { x: number; y: number; label?: string }) =>
-        action.team === 'mine'
-          ? { x: slot.x, y: slot.y }
-          : mirrorSlot({ label: '', x: slot.x, y: slot.y });
-
-      const starters = state.pieces.filter(
-        (p) => p.team === action.team && p.type === 'player' && !p.isKeeper && subNumber(p) === null,
+      const assignments = formationAssignments(state, action.team, action.name, (slot) =>
+        standardPlacement(slot, action.team),
       );
-      const assignments = new Map<string, { position: { x: number; y: number }; label: string }>();
-      starters.forEach((piece, i) => {
-        const slot = outfieldSlots[i];
-        if (slot) assignments.set(piece.id, { position: place(slot), label: slot.label });
-      });
-      const keeper = state.pieces.find((p) => p.team === action.team && p.isKeeper);
-      if (keeper) assignments.set(keeper.id, { position: place(gkSlot), label: 'GK' });
-
+      if (!assignments) return state;
       return {
         ...state,
-        pieces: state.pieces.map((p) => {
-          const a = assignments.get(p.id);
-          return a ? { ...p, position: a.position, label: a.label } : p;
-        }),
+        pieces: applyAssignments(state.pieces, assignments),
         formation: { ...state.formation, [action.team]: action.name },
+      };
+    }
+
+    case 'APPLY_MATCHUP': {
+      const defender: Team = action.attacker === 'mine' ? 'opponent' : 'mine';
+      const defending = formationAssignments(state, defender, action.formations[defender], (slot) =>
+        standardPlacement(slot, defender),
+      );
+      const attacking = formationAssignments(
+        state,
+        action.attacker,
+        action.formations[action.attacker],
+        (slot, isKeeper) => matchupAttackerPlacement(slot, action.attacker, isKeeper),
+      );
+      if (!defending || !attacking) return state;
+      return {
+        ...state,
+        pieces: applyAssignments(state.pieces, new Map([...defending, ...attacking])),
+        formation: { mine: action.formations.mine, opponent: action.formations.opponent },
       };
     }
 
