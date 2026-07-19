@@ -30,7 +30,11 @@ export function PieceToken({ piece, lifted, onPointerDown }: Props) {
     <span
       className={classes}
       style={
-        isBall ? undefined : isBenchedSub ? { borderColor: color, color } : { background: color }
+        isBall
+          ? undefined
+          : isBenchedSub
+            ? ({ '--token-color': color } as React.CSSProperties)
+            : { background: color }
       }
       data-piece-id={piece.id}
       onPointerDown={onPointerDown}

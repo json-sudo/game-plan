@@ -17,7 +17,8 @@
 
 .token--sub {
     background: transparent;
-    border: 1.5px dashed currentColor;
+    border: 1.5px dashed var(--token-color);
+    color: var(--token-color);
     box-shadow: none;
 }
 

@@ -1,5 +1,6 @@
+import type { CSSProperties } from 'react';
 import type { Piece } from '../../board/types';
-import { useBoard } from '../../board/BoardContext';
+import { FORMATION_ANIMATION_MS, useBoard, useBoardAnimating } from '../../board/BoardContext';
 import { useDrag } from '../../board/DragContext';
 import ballImg from '../../assets/ball.png';
 import './pitch.scss';
@@ -17,18 +18,17 @@ function PitchPiece({ piece }: { piece: Piece }) {
   return (
     <g
       className="pitch__piece"
+      transform={`translate(${x} ${y})`}
       opacity={draggingId === piece.id ? 0.3 : 1}
       onPointerDown={(e) => startDrag(piece, e)}
       aria-label={isBall ? 'ball' : `${piece.team === 'mine' ? 'my team' : 'opponent'} ${piece.label}`}
     >
       {isBall ? (
-        <image href={ballImg} x={x - 1.2} y={y - 1.2} width={2.4} height={2.4} />
+        <image href={ballImg} x={-1.2} y={-1.2} width={2.4} height={2.4} />
       ) : (
         <>
-          <circle cx={x} cy={y} r={2.2} fill={color} />
-          <text x={x} y={y} className="pitch__label">
-            {piece.label}
-          </text>
+          <circle r={2.2} fill={color} />
+          <text className="pitch__label">{piece.label}</text>
         </>
       )}
     </g>
@@ -37,6 +37,7 @@ function PitchPiece({ piece }: { piece: Piece }) {
 
 export function Pitch() {
   const board = useBoard();
+  const animating = useBoardAnimating();
   const { pitchRef } = useDrag();
   const placed = board.pieces.filter((p) => p.position !== undefined);
   const cx = PITCH_W / 2;
@@ -44,7 +45,8 @@ export function Pitch() {
   return (
     <svg
       ref={pitchRef}
-      className="pitch"
+      className={animating ? 'pitch pitch--animating' : 'pitch'}
+      style={{ '--formation-anim-duration': `${FORMATION_ANIMATION_MS}ms` } as CSSProperties}
       viewBox={`0 0 ${PITCH_W} ${PITCH_H}`}
       role="img"
       aria-label="pitch"

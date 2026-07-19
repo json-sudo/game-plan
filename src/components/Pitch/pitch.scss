@@ -10,6 +10,16 @@
     cursor: grab;
 }
 
+.pitch--animating .pitch__piece {
+    transition: transform var(--formation-anim-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pitch--animating .pitch__piece {
+        transition: none;
+    }
+}
+
 .pitch__label {
     fill: #FFFFFF;
     font-size: 1.5px;

@@ -29,6 +29,7 @@ body {
     background: var(--body-bg);
     color: var(--text-color);
     font-family: 'DM Mono', monospace;
+    transition: background 0.3s ease-out;
 }
 
 button {
