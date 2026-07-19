@@ -4,11 +4,35 @@
     justify-content: space-between;
     padding: 0.6rem 1rem;
     border-bottom: 1px solid var(--border-color);
+    font-family: 'Figtree', sans-serif;
 }
 
 .top-bar__wordmark {
     font-size: 1rem;
     font-weight: 700;
+}
+
+.top-bar__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.top-bar__action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: none;
+    background: none;
+    padding: 0.5rem 0.4rem;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--action-muted);
+    transition: color 0.3s ease-out;
+
+    &:hover, &:focus {
+        color: var(--text-color);
+    }
 }
 
 .top-bar__formation {
@@ -17,12 +41,18 @@
     padding: 0.5rem 1.4rem;
     font: inherit;
     font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    font-family: 'Barlow Semi Condensed', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.73px;
     text-transform: uppercase;
     background: var(--panel-bg);
     color: var(--text-color);
-    cursor: pointer;
+    transition: color 0.3s ease-out;
+
+    &:hover, &:focus {
+        color: var(--action-muted);
+    }
+    
 }
 
 .formation-modal__backdrop {
@@ -170,6 +200,41 @@
     background: var(--control-bg);
     color: var(--control-text);
     cursor: pointer;
+}
+
+.reset-confirm__message {
+    padding: 1rem 1.2rem;
+    font-size: 0.85rem;
+    color: var(--muted-text);
+}
+
+.reset-confirm__actions {
+    display: flex;
+    gap: 0.6rem;
+    padding: 0 1.2rem 1.2rem;
+
+    button {
+        flex: 1;
+        border: none;
+        border-radius: 0.3rem;
+        padding: 0.7rem 1rem;
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        cursor: pointer;
+    }
+
+    .reset-confirm__cancel {
+        background: var(--control-idle-bg);
+        color: var(--text-color);
+    }
+
+    .reset-confirm__confirm {
+        background: var(--control-bg);
+        color: var(--control-text);
+    }
 }
 
 .formation-modal__list {

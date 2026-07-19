@@ -80,6 +80,46 @@ describe('SET_SQUAD', () => {
   });
 });
 
+describe('CLEAR_PITCH', () => {
+  it('removes position from all pieces and changes nothing else', () => {
+    let state = boardReducer(createInitialBoard(), { type: 'SET_SQUAD', team: 'mine', size: 20 });
+    state = boardReducer(state, { type: 'SET_KEEPER', team: 'opponent', on: true });
+    state = boardReducer(state, { type: 'APPLY_FORMATION', team: 'mine', name: '4-3-3' });
+    state = boardReducer(state, { type: 'APPLY_FORMATION', team: 'opponent', name: '4-4-2' });
+    state = boardReducer(state, { type: 'PLACE_PIECE', id: 'ball', position: { x: 38, y: 50 } });
+
+    const next = boardReducer(state, { type: 'CLEAR_PITCH' });
+    expect(next.pieces.some((p) => 'position' in p)).toBe(false);
+    expect(next.pieces).toEqual(
+      state.pieces.map(({ position: _position, ...rest }) => rest),
+    );
+    expect(next.squad).toEqual(state.squad);
+    expect(next.keeper).toEqual(state.keeper);
+    expect(next.formation).toEqual({ mine: '4-3-3', opponent: '4-4-2' });
+  });
+
+  it('is a no-op on an already-empty pitch', () => {
+    const initial = createInitialBoard();
+    expect(boardReducer(initial, { type: 'CLEAR_PITCH' })).toBe(initial);
+  });
+});
+
+describe('RESET_BOARD', () => {
+  it('returns the initial board from any starting state', () => {
+    let state = boardReducer(createInitialBoard(), { type: 'SET_SQUAD', team: 'mine', size: 26 });
+    state = boardReducer(state, { type: 'SET_SQUAD', team: 'opponent', size: 20 });
+    state = boardReducer(state, { type: 'SET_KEEPER', team: 'mine', on: true });
+    state = boardReducer(state, { type: 'SET_KEEPER', team: 'opponent', on: true });
+    state = boardReducer(state, {
+      type: 'APPLY_MATCHUP',
+      attacker: 'mine',
+      formations: { mine: '4-3-3', opponent: '3-5-2' },
+    });
+
+    expect(boardReducer(state, { type: 'RESET_BOARD' })).toEqual(createInitialBoard());
+  });
+});
+
 describe('SET_KEEPER', () => {
   it('defaults to off — the initial board has no keepers', () => {
     const state = createInitialBoard();

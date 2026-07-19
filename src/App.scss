@@ -28,7 +28,11 @@ html[data-theme='dark'] {
 body {
     background: var(--body-bg);
     color: var(--text-color);
-    font-family: 'SF Mono', ui-monospace, 'Cascadia Mono', monospace;
+    font-family: 'DM Mono', monospace;
+}
+
+button {
+    cursor: pointer;
 }
 
 .app {

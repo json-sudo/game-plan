@@ -15,6 +15,12 @@ function PlacedProbe() {
       <span data-testid="placed-opponent">{placed('opponent')}</span>
       <span data-testid="formation-mine">{board.formation?.mine ?? 'none'}</span>
       <span data-testid="formation-opponent">{board.formation?.opponent ?? 'none'}</span>
+      <span data-testid="labels-mine">
+        {board.pieces
+          .filter((p) => p.team === 'mine' && p.type === 'player' && p.position !== undefined)
+          .map((p) => p.label)
+          .join(',')}
+      </span>
     </div>
   );
 }
@@ -128,5 +134,95 @@ describe('Matchup mode', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
     expect(screen.getByTestId('placed-opponent')).toHaveTextContent('0');
+  });
+});
+
+describe('Clear and Reset buttons', () => {
+  it('render next to Formation with an icon whose strokes inherit currentColor', () => {
+    renderTopBar();
+    for (const name of ['Clear', 'Reset']) {
+      const button = screen.getByRole('button', { name });
+      const svg = button.querySelector('svg');
+      expect(svg).not.toBeNull();
+      for (const path of svg!.querySelectorAll('path')) {
+        expect(path).toHaveAttribute('stroke', 'currentColor');
+      }
+    }
+    expect(screen.getByRole('button', { name: 'Formation' })).toBeInTheDocument();
+  });
+});
+
+describe('Clear button', () => {
+  it('clears placed pieces on one click with no dialog', async () => {
+    renderTopBar();
+    await openModal();
+    await userEvent.click(screen.getByRole('button', { name: '4-3-3' }));
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('0');
+    expect(screen.getByTestId('formation-mine')).toHaveTextContent('4-3-3');
+  });
+
+  it('applying a formation after Clear re-places the same starters with their kept labels', async () => {
+    renderTopBar();
+    await openModal();
+    await userEvent.click(screen.getByRole('button', { name: '4-3-3' }));
+    const placedLabels = screen.getByTestId('labels-mine').textContent;
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(screen.getByTestId('labels-mine')).toHaveTextContent('');
+    await openModal();
+    await userEvent.click(screen.getByRole('button', { name: '4-3-3' }));
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
+    expect(screen.getByTestId('labels-mine').textContent).toBe(placedLabels);
+  });
+});
+
+describe('Reset button', () => {
+  const openResetDialog = async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    return screen.getByRole('dialog', { name: 'Reset board' });
+  };
+
+  it('shows the confirm dialog and confirming resets the board', async () => {
+    renderTopBar();
+    await openModal();
+    await userEvent.click(screen.getByRole('button', { name: '4-3-3' }));
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
+
+    const dialog = await openResetDialog();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Reset' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('0');
+    expect(screen.getByTestId('formation-mine')).toHaveTextContent('none');
+  });
+
+  it('cancel and Escape close the dialog without changing the board', async () => {
+    renderTopBar();
+    await openModal();
+    await userEvent.click(screen.getByRole('button', { name: '4-3-3' }));
+
+    const dialog = await openResetDialog();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
+
+    await openResetDialog();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
+
+    const dialog2 = await openResetDialog();
+    await userEvent.click(within(dialog2).getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
+
+    const dialog3 = await openResetDialog();
+    await userEvent.click(dialog3.parentElement!);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
+    expect(screen.getByTestId('formation-mine')).toHaveTextContent('4-3-3');
   });
 });
