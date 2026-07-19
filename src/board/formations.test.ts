@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { FORMATIONS, MATCHUP_OFFSET, getFormation, mirrorSlot } from './formations';
+import { FORMATIONS, MATCHUP_OFFSET, MIN_SEP, getFormation, mirrorSlot } from './formations';
 import { boardReducer, createInitialBoard, subNumber } from './boardReducer';
 import type { BoardState, Team } from './types';
 
 const EXPECTED_LABELS: Record<string, string[]> = {
-  '4-3-3': ['GK', 'LB', 'CB', 'CB', 'RB', 'CM', 'CM', 'CM', 'LW', 'ST', 'RW'],
+  '4-3-3': ['GK', 'LB', 'CB', 'CB', 'RB', 'CM', 'DM', 'CM', 'LW', 'ST', 'RW'],
   '4-4-2': ['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'RM', 'ST', 'ST'],
   '3-5-2': ['GK', 'CB', 'CB', 'CB', 'LWB', 'CM', 'CM', 'CM', 'RWB', 'ST', 'ST'],
   '4-2-3-1': ['GK', 'LB', 'CB', 'CB', 'RB', 'DM', 'DM', 'LW', 'AM', 'RW', 'ST'],
@@ -164,20 +164,24 @@ describe('APPLY_MATCHUP', () => {
     expect(pick(state)).toEqual(pick(single));
   });
 
-  it('shifts attacking outfield positions by the engagement offset, GK unshifted', () => {
+  it('places un-nudged attackers at slot ± offset exactly, GK unshifted', () => {
     const state = matchup(withKeepers(), 'mine', { mine: '4-3-3', opponent: '4-4-2' });
-    const slots = getFormation('4-3-3')!.slots;
+    const slots = getFormation('4-3-3')!.slots.filter((s) => s.label !== 'GK');
+    const defenderPositions = placedPlayers(state, 'opponent').map((p) => p.position!);
     const placed = placedPlayers(state, 'mine');
     expect(placed).toHaveLength(11);
-    for (const piece of placed) {
-      if (piece.isKeeper) {
-        expect(piece.position).toEqual({ x: 76.19 / 2, y: 94 });
-      } else {
-        expect(
-          slots.some(
-            (s) => s.x === piece.position!.x && s.y - MATCHUP_OFFSET === piece.position!.y,
-          ),
-        ).toBe(true);
+
+    const gk = placed.find((p) => p.isKeeper)!;
+    expect(gk.position).toEqual({ x: 76.19 / 2, y: 94 });
+
+    const placedPositions = placed.filter((p) => !p.isKeeper).map((p) => p.position!);
+    for (const slot of slots) {
+      const expected = { x: slot.x, y: slot.y - MATCHUP_OFFSET };
+      const isFarFromEveryDefender = defenderPositions.every(
+        (d) => Math.hypot(d.x - expected.x, d.y - expected.y) >= MIN_SEP,
+      );
+      if (isFarFromEveryDefender) {
+        expect(placedPositions.some((p) => p.x === expected.x && p.y === expected.y)).toBe(true);
       }
     }
   });
@@ -215,6 +219,28 @@ describe('APPLY_MATCHUP', () => {
           expect(piece.position!.y).toBeGreaterThan(0);
           expect(piece.position!.y).toBeLessThan(100);
         }
+      }
+    }
+  });
+
+  it.each(
+    FORMATIONS.flatMap((a) => FORMATIONS.map((b) => [a.name, b.name] as const)),
+  )('keeps attackers at least MIN_SEP from defenders for %s vs %s', (mine, opponent) => {
+    for (const attacker of ['mine', 'opponent'] as const) {
+      const state = matchup(withKeepers(), attacker, { mine, opponent });
+      const defender = attacker === 'mine' ? 'opponent' : 'mine';
+      const defenderPositions = placedPlayers(state, defender).map((p) => p.position!);
+      const attackerOutfield = placedPlayers(state, attacker).filter((p) => !p.isKeeper);
+      for (const piece of attackerOutfield) {
+        for (const d of defenderPositions) {
+          expect(
+            Math.hypot(d.x - piece.position!.x, d.y - piece.position!.y),
+          ).toBeGreaterThanOrEqual(MIN_SEP - 1e-9);
+        }
+        expect(piece.position!.x).toBeGreaterThan(0);
+        expect(piece.position!.x).toBeLessThan(76.19);
+        expect(piece.position!.y).toBeGreaterThan(0);
+        expect(piece.position!.y).toBeLessThan(100);
       }
     }
   });

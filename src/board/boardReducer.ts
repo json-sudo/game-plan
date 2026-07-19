@@ -2,6 +2,7 @@ import type { BoardState, Piece, SquadSize, Team } from './types';
 import {
   getFormation,
   matchupAttackerPlacement,
+  separateFromDefenders,
   standardPlacement,
   type FormationSlot,
 } from './formations';
@@ -23,7 +24,9 @@ export type BoardAction =
   | { type: 'SET_SQUAD'; team: Team; size: SquadSize }
   | { type: 'SET_KEEPER'; team: Team; on: boolean }
   | { type: 'APPLY_FORMATION'; team: Team; name: string }
-  | { type: 'APPLY_MATCHUP'; attacker: Team; formations: { mine: string; opponent: string } };
+  | { type: 'APPLY_MATCHUP'; attacker: Team; formations: { mine: string; opponent: string } }
+  | { type: 'CLEAR_PITCH' }
+  | { type: 'RESET_BOARD' };
 
 export function subNumber(piece: Piece): number | null {
   const m = /^S(\d+)$/.exec(piece.label);
@@ -180,12 +183,48 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
         (slot, isKeeper) => matchupAttackerPlacement(slot, action.attacker, isKeeper),
       );
       if (!defending || !attacking) return state;
+
+      const defenderPoints = [...defending].map(([id, a]) => ({
+        id,
+        x: a.position.x,
+        y: a.position.y,
+      }));
+      const attackerPoints = [...attacking]
+        .filter(([, a]) => a.label !== 'GK')
+        .map(([id, a]) => ({ id, x: a.position.x, y: a.position.y }));
+      const separated = separateFromDefenders(
+        attackerPoints,
+        defenderPoints,
+        action.attacker === 'mine',
+      );
+      const resolvedAttacking: Assignments = new Map(
+        [...attacking].map(([id, a]) => [
+          id,
+          { ...a, position: separated.get(id) ?? a.position },
+        ]),
+      );
+
       return {
         ...state,
-        pieces: applyAssignments(state.pieces, new Map([...defending, ...attacking])),
+        pieces: applyAssignments(state.pieces, new Map([...defending, ...resolvedAttacking])),
         formation: { mine: action.formations.mine, opponent: action.formations.opponent },
       };
     }
+
+    case 'CLEAR_PITCH': {
+      if (!state.pieces.some((p) => p.position !== undefined)) return state;
+      return {
+        ...state,
+        pieces: state.pieces.map((p) => {
+          if (p.position === undefined) return p;
+          const { position: _position, ...benched } = p;
+          return benched;
+        }),
+      };
+    }
+
+    case 'RESET_BOARD':
+      return createInitialBoard();
 
     case 'SET_KEEPER': {
       if (state.keeper[action.team] === action.on) return state;
