@@ -70,7 +70,11 @@ describe('APPLY_FORMATION', () => {
     expect(placedPlayers(noKeeper, 'mine')).toHaveLength(10);
     expect(noKeeper.keeper.mine).toBe(false);
 
-    let withKeeper = boardReducer(createInitialBoard(), { type: 'SET_KEEPER', team: 'mine', on: true });
+    let withKeeper = boardReducer(createInitialBoard(), {
+      type: 'SET_KEEPER',
+      team: 'mine',
+      on: true,
+    });
     withKeeper = boardReducer(withKeeper, { type: 'APPLY_FORMATION', team: 'mine', name: '4-3-3' });
     expect(placedPlayers(withKeeper, 'mine')).toHaveLength(11);
     const gk = withKeeper.pieces.find((p) => p.team === 'mine' && p.isKeeper)!;
@@ -199,51 +203,51 @@ describe('APPLY_MATCHUP', () => {
       const b = placedPlayers(oppAttacks, other).map((p) => p.position!);
       for (const pos of a) {
         expect(
-          b.some(
-            (m) => Math.abs(76.19 - m.x - pos.x) < 1e-9 && Math.abs(100 - m.y - pos.y) < 1e-9,
-          ),
+          b.some((m) => Math.abs(76.19 - m.x - pos.x) < 1e-9 && Math.abs(100 - m.y - pos.y) < 1e-9),
         ).toBe(true);
       }
     }
   });
 
-  it.each(
-    FORMATIONS.flatMap((a) => FORMATIONS.map((b) => [a.name, b.name] as const)),
-  )('keeps all positions inside the pitch for %s vs %s', (mine, opponent) => {
-    for (const attacker of ['mine', 'opponent'] as const) {
-      const state = matchup(withKeepers(), attacker, { mine, opponent });
-      for (const team of ['mine', 'opponent'] as const) {
-        for (const piece of placedPlayers(state, team)) {
+  it.each(FORMATIONS.flatMap((a) => FORMATIONS.map((b) => [a.name, b.name] as const)))(
+    'keeps all positions inside the pitch for %s vs %s',
+    (mine, opponent) => {
+      for (const attacker of ['mine', 'opponent'] as const) {
+        const state = matchup(withKeepers(), attacker, { mine, opponent });
+        for (const team of ['mine', 'opponent'] as const) {
+          for (const piece of placedPlayers(state, team)) {
+            expect(piece.position!.x).toBeGreaterThan(0);
+            expect(piece.position!.x).toBeLessThan(76.19);
+            expect(piece.position!.y).toBeGreaterThan(0);
+            expect(piece.position!.y).toBeLessThan(100);
+          }
+        }
+      }
+    },
+  );
+
+  it.each(FORMATIONS.flatMap((a) => FORMATIONS.map((b) => [a.name, b.name] as const)))(
+    'keeps attackers at least MIN_SEP from defenders for %s vs %s',
+    (mine, opponent) => {
+      for (const attacker of ['mine', 'opponent'] as const) {
+        const state = matchup(withKeepers(), attacker, { mine, opponent });
+        const defender = attacker === 'mine' ? 'opponent' : 'mine';
+        const defenderPositions = placedPlayers(state, defender).map((p) => p.position!);
+        const attackerOutfield = placedPlayers(state, attacker).filter((p) => !p.isKeeper);
+        for (const piece of attackerOutfield) {
+          for (const d of defenderPositions) {
+            expect(
+              Math.hypot(d.x - piece.position!.x, d.y - piece.position!.y),
+            ).toBeGreaterThanOrEqual(MIN_SEP - 1e-9);
+          }
           expect(piece.position!.x).toBeGreaterThan(0);
           expect(piece.position!.x).toBeLessThan(76.19);
           expect(piece.position!.y).toBeGreaterThan(0);
           expect(piece.position!.y).toBeLessThan(100);
         }
       }
-    }
-  });
-
-  it.each(
-    FORMATIONS.flatMap((a) => FORMATIONS.map((b) => [a.name, b.name] as const)),
-  )('keeps attackers at least MIN_SEP from defenders for %s vs %s', (mine, opponent) => {
-    for (const attacker of ['mine', 'opponent'] as const) {
-      const state = matchup(withKeepers(), attacker, { mine, opponent });
-      const defender = attacker === 'mine' ? 'opponent' : 'mine';
-      const defenderPositions = placedPlayers(state, defender).map((p) => p.position!);
-      const attackerOutfield = placedPlayers(state, attacker).filter((p) => !p.isKeeper);
-      for (const piece of attackerOutfield) {
-        for (const d of defenderPositions) {
-          expect(
-            Math.hypot(d.x - piece.position!.x, d.y - piece.position!.y),
-          ).toBeGreaterThanOrEqual(MIN_SEP - 1e-9);
-        }
-        expect(piece.position!.x).toBeGreaterThan(0);
-        expect(piece.position!.x).toBeLessThan(76.19);
-        expect(piece.position!.y).toBeGreaterThan(0);
-        expect(piece.position!.y).toBeLessThan(100);
-      }
-    }
-  });
+    },
+  );
 
   it('leaves subs, the ball, and keeper toggles untouched, and records both formations', () => {
     let state = boardReducer(createInitialBoard(), { type: 'SET_SQUAD', team: 'mine', size: 20 });

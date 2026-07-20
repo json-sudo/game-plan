@@ -21,7 +21,9 @@ function PitchPiece({ piece }: { piece: Piece }) {
       transform={`translate(${x} ${y})`}
       opacity={draggingId === piece.id ? 0.3 : 1}
       onPointerDown={(e) => startDrag(piece, e)}
-      aria-label={isBall ? 'ball' : `${piece.team === 'mine' ? 'my team' : 'opponent'} ${piece.label}`}
+      aria-label={
+        isBall ? 'ball' : `${piece.team === 'mine' ? 'my team' : 'opponent'} ${piece.label}`
+      }
     >
       {isBall ? (
         <image href={ballImg} x={-1.2} y={-1.2} width={2.4} height={2.4} />

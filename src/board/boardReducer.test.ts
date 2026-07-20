@@ -39,9 +39,7 @@ describe('PLACE_PIECE / BENCH_PIECE', () => {
 describe('SET_SQUAD', () => {
   it('growing 11→20 appends S1…S9', () => {
     const next = boardReducer(createInitialBoard(), { type: 'SET_SQUAD', team: 'mine', size: 20 });
-    expect(subLabels(next, 'mine')).toEqual(
-      Array.from({ length: 9 }, (_, i) => `S${i + 1}`),
-    );
+    expect(subLabels(next, 'mine')).toEqual(Array.from({ length: 9 }, (_, i) => `S${i + 1}`));
     expect(next.squad.mine).toBe(20);
     expect(subLabels(next, 'opponent')).toEqual([]);
   });
@@ -49,21 +47,26 @@ describe('SET_SQUAD', () => {
   it('growing again 20→26 continues at S10', () => {
     let state = boardReducer(createInitialBoard(), { type: 'SET_SQUAD', team: 'mine', size: 20 });
     state = boardReducer(state, { type: 'SET_SQUAD', team: 'mine', size: 26 });
-    expect(subLabels(state, 'mine')).toEqual(
-      Array.from({ length: 15 }, (_, i) => `S${i + 1}`),
-    );
+    expect(subLabels(state, 'mine')).toEqual(Array.from({ length: 15 }, (_, i) => `S${i + 1}`));
   });
 
   it('shrinking removes highest-numbered subs first and never touches the starters', () => {
     let state = boardReducer(createInitialBoard(), { type: 'SET_SQUAD', team: 'mine', size: 26 });
     state = boardReducer(state, { type: 'SET_SQUAD', team: 'mine', size: 20 });
-    expect(subLabels(state, 'mine')).toEqual(
-      Array.from({ length: 9 }, (_, i) => `S${i + 1}`),
-    );
+    expect(subLabels(state, 'mine')).toEqual(Array.from({ length: 9 }, (_, i) => `S${i + 1}`));
     state = boardReducer(state, { type: 'SET_SQUAD', team: 'mine', size: 11 });
     expect(subLabels(state, 'mine')).toEqual([]);
     expect(teamPieces(state, 'mine').map((p) => p.label)).toEqual([
-      'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'LW', 'RW', 'ST', 'DM',
+      'CB',
+      'CB',
+      'LB',
+      'RB',
+      'CM',
+      'CM',
+      'LW',
+      'RW',
+      'ST',
+      'DM',
     ]);
   });
 
@@ -71,11 +74,27 @@ describe('SET_SQUAD', () => {
     let state = boardReducer(createInitialBoard(), { type: 'SET_SQUAD', team: 'mine', size: 26 });
     // Place the two highest subs; shrinking to 20 must remove 6 pieces,
     // preferring the 13 benched subs (highest first) over the placed S14/S15.
-    state = boardReducer(state, { type: 'PLACE_PIECE', id: 'mine-s15', position: { x: 10, y: 10 } });
-    state = boardReducer(state, { type: 'PLACE_PIECE', id: 'mine-s14', position: { x: 20, y: 10 } });
+    state = boardReducer(state, {
+      type: 'PLACE_PIECE',
+      id: 'mine-s15',
+      position: { x: 10, y: 10 },
+    });
+    state = boardReducer(state, {
+      type: 'PLACE_PIECE',
+      id: 'mine-s14',
+      position: { x: 20, y: 10 },
+    });
     state = boardReducer(state, { type: 'SET_SQUAD', team: 'mine', size: 20 });
     expect(subLabels(state, 'mine')).toEqual([
-      'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S14', 'S15',
+      'S1',
+      'S2',
+      'S3',
+      'S4',
+      'S5',
+      'S6',
+      'S7',
+      'S14',
+      'S15',
     ]);
   });
 });
@@ -90,9 +109,7 @@ describe('CLEAR_PITCH', () => {
 
     const next = boardReducer(state, { type: 'CLEAR_PITCH' });
     expect(next.pieces.some((p) => 'position' in p)).toBe(false);
-    expect(next.pieces).toEqual(
-      state.pieces.map(({ position: _position, ...rest }) => rest),
-    );
+    expect(next.pieces).toEqual(state.pieces.map(({ position: _position, ...rest }) => rest));
     expect(next.squad).toEqual(state.squad);
     expect(next.keeper).toEqual(state.keeper);
     expect(next.formation).toEqual({ mine: '4-3-3', opponent: '4-4-2' });
@@ -129,7 +146,11 @@ describe('SET_KEEPER', () => {
   });
 
   it('on adds a benched GK', () => {
-    const state = boardReducer(createInitialBoard(), { type: 'SET_KEEPER', team: 'mine', on: true });
+    const state = boardReducer(createInitialBoard(), {
+      type: 'SET_KEEPER',
+      team: 'mine',
+      on: true,
+    });
     const gk = state.pieces.find((p) => p.team === 'mine' && p.isKeeper)!;
     expect(gk.label).toBe('GK');
     expect(gk.position).toBeUndefined();

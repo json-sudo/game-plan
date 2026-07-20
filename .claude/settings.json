@@ -1,0 +1,9 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [{ "type": "command", "command": "node .claude/hooks/stop-check.js" }]
+      }
+    ]
+  }
+}

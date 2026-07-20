@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "lint": "oxlint && stylelint \"src/**/*.scss\" && node scripts/check-colors.mjs && node scripts/check-structure.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -26,6 +28,10 @@
     "@vitejs/plugin-react": "^6.0.3",
     "jsdom": "^29.1.1",
     "oxlint": "^1.71.0",
+    "postcss-scss": "^4.0.9",
+    "prettier": "^3.9.5",
+    "stylelint": "^17.14.1",
+    "stylelint-scss": "^7.2.0",
     "typescript": "~6.0.2",
     "vite": "^8.1.1",
     "vitest": "^4.1.10"

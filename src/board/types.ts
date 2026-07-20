@@ -3,8 +3,7 @@ export type Team = 'mine' | 'opponent';
 export type SquadSize = 11 | 20 | 26;
 
 export type PieceFill =
-  | { kind: 'solid'; color: string }
-  | { kind: 'kit'; primary: string; secondary: string };
+  { kind: 'solid'; color: string } | { kind: 'kit'; primary: string; secondary: string };
 
 export interface Piece {
   id: string;

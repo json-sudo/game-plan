@@ -130,7 +130,7 @@ describe('Matchup mode', () => {
     expect(screen.getByTestId('formation-opponent')).toHaveTextContent('3-5-2');
   });
 
-  it('defaults pickers to each team\'s recorded formation', async () => {
+  it("defaults pickers to each team's recorded formation", async () => {
     renderTopBar();
     await openModal();
     await userEvent.click(screen.getByRole('button', { name: '4-2-3-1' }));

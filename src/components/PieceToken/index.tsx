@@ -38,7 +38,9 @@ export function PieceToken({ piece, lifted, onPointerDown }: Props) {
       }
       data-piece-id={piece.id}
       onPointerDown={onPointerDown}
-      aria-label={isBall ? 'ball' : `${piece.team === 'mine' ? 'my team' : 'opponent'} ${piece.label}`}
+      aria-label={
+        isBall ? 'ball' : `${piece.team === 'mine' ? 'my team' : 'opponent'} ${piece.label}`
+      }
     >
       {piece.label}
     </span>

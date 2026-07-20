@@ -198,10 +198,7 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
         action.attacker === 'mine',
       );
       const resolvedAttacking: Assignments = new Map(
-        [...attacking].map(([id, a]) => [
-          id,
-          { ...a, position: separated.get(id) ?? a.position },
-        ]),
+        [...attacking].map(([id, a]) => [id, { ...a, position: separated.get(id) ?? a.position }]),
       );
 
       return {

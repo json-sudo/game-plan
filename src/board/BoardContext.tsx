@@ -37,7 +37,9 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   return (
     <BoardStateContext.Provider value={state}>
       <BoardDispatchContext.Provider value={dispatchWithAnimation}>
-        <BoardAnimatingContext.Provider value={animating}>{children}</BoardAnimatingContext.Provider>
+        <BoardAnimatingContext.Provider value={animating}>
+          {children}
+        </BoardAnimatingContext.Provider>
       </BoardDispatchContext.Provider>
     </BoardStateContext.Provider>
   );
