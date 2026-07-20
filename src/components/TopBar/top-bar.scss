@@ -38,6 +38,7 @@
 
 .top-bar__formation {
     display: inline-flex;
+    align-items: center;
     gap: 6px;
     border: 1px solid var(--border-color);
     border-radius: 0.3rem;
@@ -56,6 +57,30 @@
     &:focus {
         color: var(--action-muted);
     }
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+
+        &:hover {
+            color: var(--text-color);
+        }
+    }
+}
+
+.top-bar__toast {
+    position: fixed;
+    bottom: 1.2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 0.3rem;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: var(--control-bg);
+    color: var(--control-text);
+    box-shadow: var(--drag-shadow);
+    z-index: 30;
 }
 
 .formation-modal__backdrop {
@@ -227,6 +252,11 @@
         letter-spacing: 0.1em;
         text-transform: uppercase;
         cursor: pointer;
+
+        &:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
     }
 
     .reset-confirm__cancel {
@@ -261,4 +291,87 @@
             background: var(--control-idle-bg);
         }
     }
+}
+
+.slot-panel {
+    width: min(26rem, calc(100vw - 2rem));
+    background: var(--body-bg);
+    border-radius: 0.4rem;
+    box-shadow: var(--drag-shadow);
+}
+
+.slot-panel__list {
+    list-style: none;
+    padding: 0.4rem 0;
+
+    button {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: none;
+        padding: 0.7rem 1.2rem;
+        font: inherit;
+        color: var(--text-color);
+        cursor: pointer;
+
+        &:hover {
+            background: var(--control-idle-bg);
+        }
+
+        &.is-active {
+            background: var(--control-idle-bg);
+        }
+    }
+}
+
+.slot-panel__row-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.slot-panel__row-time {
+    font-size: 0.75rem;
+    color: var(--muted-text);
+}
+
+.slot-panel__hint {
+    padding: 0 1.2rem 0.6rem;
+    font-size: 0.78rem;
+    color: var(--muted-text);
+}
+
+.slot-panel__name {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.4rem 1.2rem 0.8rem;
+
+    label {
+        font-size: 0.75rem;
+        color: var(--muted-text);
+    }
+
+    input {
+        border: 1px solid var(--border-color);
+        border-radius: 0.3rem;
+        padding: 0.5rem 0.7rem;
+        font: inherit;
+        font-size: 0.85rem;
+        background: var(--panel-bg);
+        color: var(--text-color);
+
+        &:disabled {
+            opacity: 0.5;
+        }
+    }
+}
+
+.slot-panel__error {
+    margin: 0 1.2rem 0.8rem;
+    font-size: 0.78rem;
+    color: var(--team-opponent);
 }

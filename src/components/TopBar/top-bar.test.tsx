@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BoardProvider, useBoard } from '../../board/BoardContext';
+import { createInitialBoard } from '../../board/boardReducer';
 import { TopBar } from '.';
 
 function mockMatchMedia(matches: boolean) {
@@ -247,7 +248,7 @@ describe('Theme toggle button', () => {
     const actions = button.closest('.top-bar__actions')!;
     expect(actions.lastElementChild).toBe(button);
     expect(actions.children[actions.children.length - 2]).toBe(
-      screen.getByRole('button', { name: 'Formation' }),
+      screen.getByRole('button', { name: 'Save' }),
     );
     for (const path of button.querySelectorAll('path')) {
       expect(path).toHaveAttribute('stroke', 'currentColor');
@@ -276,5 +277,144 @@ describe('Theme toggle button', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Switch to light mode' }));
     expect(document.documentElement.dataset.theme).toBe('light');
     expect(localStorage.getItem('game-plan:theme')).toBe('light');
+  });
+});
+
+async function placeNinePlusPieces() {
+  await openModal();
+  await userEvent.click(screen.getByRole('button', { name: '4-3-3' }));
+}
+
+describe('Save / Load', () => {
+  it('Save is disabled below 9 combined placed pieces and enabled at/above it; Load is absent with zero slots', async () => {
+    renderTopBar();
+    expect(screen.getByRole('button', { name: /Save/ })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /Load/ })).not.toBeInTheDocument();
+
+    await placeNinePlusPieces();
+    expect(screen.getByRole('button', { name: /Save/ })).toBeEnabled();
+  });
+
+  it('Save panel prefills the name when overwriting and starts empty for a new slot, then Load appears once saved', async () => {
+    renderTopBar();
+    await placeNinePlusPieces();
+
+    await userEvent.click(screen.getByRole('button', { name: /Save/ }));
+    const saveDialog = await screen.findByRole('dialog', { name: 'Save board' });
+    expect(within(saveDialog).getByLabelText('Name')).toHaveValue('');
+
+    await userEvent.type(within(saveDialog).getByLabelText('Name'), 'My first board');
+    await userEvent.click(within(saveDialog).getByRole('button', { name: 'Save' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(await screen.findByText('Board saved')).toBeInTheDocument();
+
+    expect(screen.getByRole('button', { name: /Load/ })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /Save/ }));
+    const saveAgainDialog = await screen.findByRole('dialog', { name: 'Save board' });
+    expect(within(saveAgainDialog).getByRole('button', { name: /My first board/ })).toHaveClass(
+      'is-active',
+    );
+    expect(within(saveAgainDialog).getByLabelText('Name')).toHaveValue('My first board');
+  });
+
+  it('Load panel lists each slot by name and timestamp, and selecting one replaces the rendered board', async () => {
+    renderTopBar();
+    await placeNinePlusPieces();
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
+
+    await userEvent.click(screen.getByRole('button', { name: /Save/ }));
+    const saveDialog = await screen.findByRole('dialog', { name: 'Save board' });
+    await userEvent.type(within(saveDialog).getByLabelText('Name'), 'Alpha');
+    await userEvent.click(within(saveDialog).getByRole('button', { name: 'Save' }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear pitch' }));
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('0');
+
+    await userEvent.click(screen.getByRole('button', { name: /Load/ }));
+    const loadDialog = await screen.findByRole('dialog', { name: 'Load board' });
+    expect(within(loadDialog).getByText('Alpha')).toBeInTheDocument();
+
+    await userEvent.click(within(loadDialog).getByRole('button', { name: /Alpha/ }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
+  });
+
+  it('disables Save and Load with an explanatory label when localStorage is unavailable', async () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('storage disabled');
+    });
+
+    renderTopBar();
+    await placeNinePlusPieces();
+
+    const saveButton = screen.getByRole('button', { name: /Save/ });
+    expect(saveButton).toBeDisabled();
+    expect(saveButton.getAttribute('title')).toMatch(/unavailable/i);
+
+    const loadButton = screen.getByRole('button', { name: /Load/ });
+    expect(loadButton).toBeDisabled();
+    expect(loadButton.getAttribute('title')).toMatch(/unavailable/i);
+
+    setItemSpy.mockRestore();
+  });
+
+  it('shows an inline error and preserves prior slots when the save write throws (quota exceeded)', async () => {
+    renderTopBar();
+    await placeNinePlusPieces();
+
+    await userEvent.click(screen.getByRole('button', { name: /Save/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Save board' });
+    await userEvent.type(within(dialog).getByLabelText('Name'), 'Overflow');
+
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota exceeded', 'QuotaExceededError');
+    });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(await within(dialog).findByText(/storage is full/i)).toBeInTheDocument();
+    setItemSpy.mockRestore();
+
+    expect(localStorage.getItem('gameplan:boards:v1')).toBeNull();
+  });
+
+  it('once both slots are full, the Save panel only offers the two existing slots with account-creation copy', async () => {
+    localStorage.setItem(
+      'gameplan:boards:v1',
+      JSON.stringify({
+        version: 1,
+        slots: [
+          { id: 'a', name: 'Alpha', savedAt: 100, board: createInitialBoard() },
+          { id: 'b', name: 'Bravo', savedAt: 200, board: createInitialBoard() },
+        ],
+      }),
+    );
+
+    renderTopBar();
+    await placeNinePlusPieces();
+    await userEvent.click(screen.getByRole('button', { name: /Save/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Save board' });
+
+    expect(within(dialog).getByText('Alpha')).toBeInTheDocument();
+    expect(within(dialog).getByText('Bravo')).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: /New slot/ })).not.toBeInTheDocument();
+    expect(within(dialog).getByText(/create an account/i)).toBeInTheDocument();
+  });
+
+  it('explicit Load surfaces an inline error when the saved data has become corrupt', async () => {
+    localStorage.setItem(
+      'gameplan:boards:v1',
+      JSON.stringify({
+        version: 1,
+        slots: [{ id: 'a', name: 'Alpha', savedAt: 100, board: createInitialBoard() }],
+      }),
+    );
+
+    renderTopBar();
+    await userEvent.click(screen.getByRole('button', { name: /Load/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Load board' });
+
+    localStorage.setItem('gameplan:boards:v1', '{not valid json');
+    await userEvent.click(within(dialog).getByRole('button', { name: /Alpha/ }));
+    expect(await within(dialog).findByText(/corrupted/i)).toBeInTheDocument();
   });
 });

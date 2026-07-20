@@ -11,6 +11,7 @@ import {
 } from 'react';
 import type { BoardState } from './types';
 import { boardReducer, createInitialBoard, type BoardAction } from './boardReducer';
+import { loadBoardsWrapper, pickAutoLoadSlot } from './persistence';
 
 export const FORMATION_ANIMATION_MS = 400;
 
@@ -18,8 +19,17 @@ const BoardStateContext = createContext<BoardState | null>(null);
 const BoardDispatchContext = createContext<Dispatch<BoardAction> | null>(null);
 const BoardAnimatingContext = createContext(false);
 
+function initialBoardState(): BoardState {
+  const result = loadBoardsWrapper();
+  if (result.status === 'ok') {
+    const slot = pickAutoLoadSlot(result.wrapper);
+    if (slot) return slot.board;
+  }
+  return createInitialBoard();
+}
+
 export function BoardProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(boardReducer, undefined, createInitialBoard);
+  const [state, dispatch] = useReducer(boardReducer, undefined, initialBoardState);
   const [animating, setAnimating] = useState(false);
   const timeoutRef = useRef<number | undefined>(undefined);
 

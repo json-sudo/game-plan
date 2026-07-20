@@ -167,3 +167,21 @@ describe('SET_KEEPER', () => {
     expect(teamPieces(state, 'mine')).toHaveLength(10);
   });
 });
+
+describe('LOAD_BOARD', () => {
+  it('fully replaces the in-memory state with the loaded board', () => {
+    const state = boardReducer(createInitialBoard(), {
+      type: 'SET_SQUAD',
+      team: 'mine',
+      size: 26,
+    });
+    const loaded: BoardState = {
+      ...createInitialBoard(),
+      squad: { mine: 20, opponent: 11 },
+      keeper: { mine: true, opponent: false },
+    };
+    const next = boardReducer(state, { type: 'LOAD_BOARD', board: loaded });
+    expect(next).toBe(loaded);
+    expect(next).toEqual(loaded);
+  });
+});

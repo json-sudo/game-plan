@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
-import type { Team } from '../../board/types';
+import type { BoardState, Team } from '../../board/types';
 import { FORMATIONS } from '../../board/formations';
 import { useBoard, useBoardDispatch } from '../../board/BoardContext';
 import { TEAM_COLORS } from '../../board/boardReducer';
+import { canSaveBoard, SLOT_NAME_MAX_LENGTH } from '../../board/persistence';
+import { usePersistedBoards } from '../../board/usePersistedBoards';
 import ClearIcon from '../../assets/clear.icon';
 import ResetIcon from '../../assets/reset.icon';
 import DarkThemeIcon from '../../assets/dark.icon';
 import LightThemeIcon from '../../assets/light-theme.icon';
+import DownArrowIcon from '../../assets/down-arrow.icon';
+import SaveIcon from '../../assets/save.icon';
+import LoadIcon from '../../assets/load.icon';
 import { useTheme } from '../../shared/hooks/useTheme';
 import './top-bar.scss';
 
@@ -217,11 +222,239 @@ function ResetConfirmModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+type PersistedBoards = ReturnType<typeof usePersistedBoards>;
+
+const NEW_SLOT = '__new__';
+
+function formatTimestamp(savedAt: number): string {
+  return new Date(savedAt).toLocaleString(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+}
+
+function SavePanel({
+  board,
+  persisted,
+  onClose,
+  onSaved,
+}: {
+  board: BoardState;
+  persisted: PersistedBoards;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const { slots, currentSlotId, save } = persisted;
+  const atCap = slots.length >= 2;
+  const currentIsSlot = slots.some((s) => s.id === currentSlotId);
+  const [selected, setSelected] = useState<string | null>(() => {
+    if (currentIsSlot) return currentSlotId;
+    if (!atCap) return NEW_SLOT;
+    return null;
+  });
+  const [name, setName] = useState(() => {
+    if (currentIsSlot) return slots.find((s) => s.id === currentSlotId)?.name ?? '';
+    return '';
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const selectSlot = (id: string) => {
+    setSelected(id);
+    setName(id === NEW_SLOT ? '' : (slots.find((s) => s.id === id)?.name ?? ''));
+    setError(null);
+  };
+
+  const confirm = () => {
+    if (!selected || !name.trim()) return;
+    const targetSlotId = selected === NEW_SLOT ? null : selected;
+    const result = save(targetSlotId, name, board);
+    if (result.status === 'error') {
+      setError(result.message);
+      return;
+    }
+    onSaved();
+    onClose();
+  };
+
+  return (
+    <div className="formation-modal__backdrop" onClick={onClose}>
+      <div
+        className="slot-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Save board"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="formation-modal__header">
+          <h2>Save Board</h2>
+          <button type="button" aria-label="Close" onClick={onClose}>
+            ×
+          </button>
+        </header>
+
+        <ul className="slot-panel__list">
+          {slots.map((slot) => (
+            <li key={slot.id}>
+              <button
+                type="button"
+                className={selected === slot.id ? 'is-active' : undefined}
+                onClick={() => selectSlot(slot.id)}
+              >
+                <span className="slot-panel__row-name">{slot.name}</span>
+                <span className="slot-panel__row-time">{formatTimestamp(slot.savedAt)}</span>
+              </button>
+            </li>
+          ))}
+          {!atCap && (
+            <li>
+              <button
+                type="button"
+                className={selected === NEW_SLOT ? 'is-active' : undefined}
+                onClick={() => selectSlot(NEW_SLOT)}
+              >
+                <span className="slot-panel__row-name">New slot</span>
+              </button>
+            </li>
+          )}
+        </ul>
+
+        {atCap && (
+          <p className="slot-panel__hint">
+            Both save slots are full. Choose one above to overwrite it, or create an account for
+            unlimited, cross-device boards.
+          </p>
+        )}
+        {!selected && atCap && (
+          <p className="slot-panel__hint">Pick a slot to overwrite before saving.</p>
+        )}
+
+        <div className="slot-panel__name">
+          <label htmlFor="slot-name-input">Name</label>
+          <input
+            id="slot-name-input"
+            type="text"
+            value={name}
+            maxLength={SLOT_NAME_MAX_LENGTH}
+            disabled={!selected}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+
+        {error && <p className="slot-panel__error">{error}</p>}
+
+        <div className="reset-confirm__actions">
+          <button type="button" className="reset-confirm__cancel" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="reset-confirm__confirm"
+            disabled={!selected || !name.trim()}
+            onClick={confirm}
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoadPanel({
+  persisted,
+  onClose,
+  onLoaded,
+}: {
+  persisted: PersistedBoards;
+  onClose: () => void;
+  onLoaded: (board: BoardState) => void;
+}) {
+  const { slots, loadSlot } = persisted;
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const select = (id: string) => {
+    const result = loadSlot(id);
+    if (result.status !== 'ok') {
+      setError("Couldn't load that board — the saved data looks corrupted.");
+      return;
+    }
+    onLoaded(result.slot.board);
+    onClose();
+  };
+
+  return (
+    <div className="formation-modal__backdrop" onClick={onClose}>
+      <div
+        className="slot-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Load board"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="formation-modal__header">
+          <h2>Load Board</h2>
+          <button type="button" aria-label="Close" onClick={onClose}>
+            ×
+          </button>
+        </header>
+
+        <ul className="slot-panel__list">
+          {slots.map((slot) => (
+            <li key={slot.id}>
+              <button type="button" onClick={() => select(slot.id)}>
+                <span className="slot-panel__row-name">{slot.name}</span>
+                <span className="slot-panel__row-time">{formatTimestamp(slot.savedAt)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {error && <p className="slot-panel__error">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
 export function TopBar() {
+  const board = useBoard();
   const dispatch = useBoardDispatch();
   const { theme, toggleTheme } = useTheme();
   const [modalOpen, setModalOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [loadOpen, setLoadOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const persisted = usePersistedBoards();
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 2500);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  const saveEnabled = persisted.storageAvailable && canSaveBoard(board);
+  const saveTitle = !persisted.storageAvailable
+    ? 'Saving is unavailable — this browser is blocking local storage.'
+    : !canSaveBoard(board)
+      ? 'Place at least 9 players to save this board.'
+      : undefined;
+  const loadVisible = !persisted.storageAvailable || persisted.slots.length > 0;
 
   return (
     <>
@@ -242,7 +475,34 @@ export function TopBar() {
           </button>
           <button type="button" className="top-bar__formation" onClick={() => setModalOpen(true)}>
             Formation
+            <DownArrowIcon />
           </button>
+          <button
+            type="button"
+            className="top-bar__formation"
+            disabled={!saveEnabled}
+            title={saveTitle}
+            onClick={() => setSaveOpen(true)}
+          >
+            <SaveIcon />
+            Save
+          </button>
+          {loadVisible && (
+            <button
+              type="button"
+              className="top-bar__formation"
+              disabled={!persisted.storageAvailable}
+              title={
+                !persisted.storageAvailable
+                  ? 'Loading is unavailable — this browser is blocking local storage.'
+                  : undefined
+              }
+              onClick={() => setLoadOpen(true)}
+            >
+              <LoadIcon />
+              Load
+            </button>
+          )}
           <button
             type="button"
             className="top-bar__action"
@@ -255,6 +515,26 @@ export function TopBar() {
       </header>
       {modalOpen && <FormationModal onClose={() => setModalOpen(false)} />}
       {resetOpen && <ResetConfirmModal onClose={() => setResetOpen(false)} />}
+      {saveOpen && (
+        <SavePanel
+          board={board}
+          persisted={persisted}
+          onClose={() => setSaveOpen(false)}
+          onSaved={() => setToast('Board saved')}
+        />
+      )}
+      {loadOpen && (
+        <LoadPanel
+          persisted={persisted}
+          onClose={() => setLoadOpen(false)}
+          onLoaded={(loadedBoard) => dispatch({ type: 'LOAD_BOARD', board: loadedBoard })}
+        />
+      )}
+      {toast && (
+        <div className="top-bar__toast" role="status">
+          {toast}
+        </div>
+      )}
     </>
   );
 }

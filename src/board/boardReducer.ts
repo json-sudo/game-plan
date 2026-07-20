@@ -7,13 +7,12 @@ import {
   type FormationSlot,
 } from './formations';
 
-// Must match the board colors in src/shared/styles/_variables.scss
 export const TEAM_COLORS = {
-  mine: '#1C3D6E',
-  mineKeeper: '#C5882A',
-  opponent: '#7A1C2E',
-  opponentKeeper: '#4A2F7A',
-  ball: '#FFFFFF',
+  mine: 'var(--team-mine)',
+  mineKeeper: 'var(--team-mine-keeper)',
+  opponent: 'var(--team-opponent)',
+  opponentKeeper: 'var(--team-opponent-keeper)',
+  ball: 'var(--ball)',
 } as const;
 
 const STARTER_LABELS = ['CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'LW', 'RW', 'ST', 'DM'];
@@ -26,7 +25,8 @@ export type BoardAction =
   | { type: 'APPLY_FORMATION'; team: Team; name: string }
   | { type: 'APPLY_MATCHUP'; attacker: Team; formations: { mine: string; opponent: string } }
   | { type: 'CLEAR_PITCH' }
-  | { type: 'RESET_BOARD' };
+  | { type: 'RESET_BOARD' }
+  | { type: 'LOAD_BOARD'; board: BoardState };
 
 export function subNumber(piece: Piece): number | null {
   const m = /^S(\d+)$/.exec(piece.label);
@@ -222,6 +222,9 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
 
     case 'RESET_BOARD':
       return createInitialBoard();
+
+    case 'LOAD_BOARD':
+      return action.board;
 
     case 'SET_KEEPER': {
       if (state.keeper[action.team] === action.on) return state;

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint && stylelint \"src/**/*.scss\" && node scripts/check-colors.mjs && node scripts/check-structure.mjs",
+    "lint": "oxlint && stylelint \"src/**/*.scss\" && node scripts/check-structure.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "vite preview",

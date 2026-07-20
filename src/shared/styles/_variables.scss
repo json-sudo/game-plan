@@ -1,9 +1,9 @@
-$team-mine: #1C3D6E;
-$team-mine-keeper: #C5882A;
-$team-opponent: #7A1C2E;
-$team-opponent-keeper: #4A2F7A;
-$ball: #FFFFFF;
-$pitch: #3D7A50;
+$team-mine: #1c3d6e;
+$team-mine-keeper: #c5882a;
+$team-opponent: #7a1c2e;
+$team-opponent-keeper: #4a2f7a;
+$ball: #ffffff;
+$pitch: #3d7a50;
 $pitch-stripe: #428556;
 
 @mixin board-colors {
@@ -14,38 +14,42 @@ $pitch-stripe: #428556;
     --ball: #{$ball};
     --pitch: #{$pitch};
     --pitch-stripe: #{$pitch-stripe};
-    --pitch-line: color-mix(in srgb, #FFFFFF 72%, transparent);
-    --ball-sheen: color-mix(in srgb, #FFFFFF 30%, transparent); // radial gradient edge on the ball token
+    --pitch-line: color-mix(in srgb, #ffffff 72%, transparent);
+    --ball-sheen: color-mix(
+        in srgb,
+        #ffffff 30%,
+        transparent
+    );
 }
 
 @mixin light-theme {
-    --text-color: #1C1B17;
-    --muted-text: #706E65;
-    --action-muted: #706E65;
+    --text-color: #1c1b17;
+    --muted-text: #706e65;
+    --action-muted: #706e65;
     --bench-sub-label: var(--token-color);
-    --body-bg: #F5F4EF;
-    --panel-bg: #ECEAE4;
-    --border-color: #E0DDD6;
-    --token-ring: color-mix(in srgb, #1C1B17 10%, transparent);
-    --control-bg: #1A1108;
-    --control-text: #FFFFFF;
-    --control-idle-bg: color-mix(in srgb, #1C1B17 10%, transparent);
-    --drag-shadow: 0 4px 12px rgba(0, 0, 0, 0.20), 0 1px 3px rgba(0, 0, 0, 0.18);
+    --body-bg: #f5f4ef;
+    --panel-bg: #eceae4;
+    --border-color: #e0ddd6;
+    --token-ring: color-mix(in srgb, #1c1b17 10%, transparent);
+    --control-bg: #1a1108;
+    --control-text: #ffffff;
+    --control-idle-bg: color-mix(in srgb, #1c1b17 10%, transparent);
+    --drag-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.18);
 }
 
 @mixin dark-theme {
-    --text-color: #EDF0EE;
-    --muted-text: #8A9E9F;
-    --action-muted: #8A9B9B;
-    --bench-sub-label: #8A9B9B;
-    --pitch: #1A4A2E;
-    --pitch-stripe: #1E5234;
-    --body-bg: #0B1A1B;
+    --text-color: #edf0ee;
+    --muted-text: #8a9e9f;
+    --action-muted: #8a9b9b;
+    --bench-sub-label: #8a9b9b;
+    --pitch: #1a4a2e;
+    --pitch-stripe: #1e5234;
+    --body-bg: #0b1a1b;
     --panel-bg: #122425;
-    --border-color: #1F3435;
-    --token-ring: color-mix(in srgb, #FFFFFF 18%, transparent);
-    --control-bg: #EDF0EE;
-    --control-text: #1A1108;
-    --control-idle-bg: color-mix(in srgb, #FFFFFF 8%, transparent);
+    --border-color: #1f3435;
+    --token-ring: color-mix(in srgb, #ffffff 18%, transparent);
+    --control-bg: #edf0ee;
+    --control-text: #1a1108;
+    --control-idle-bg: color-mix(in srgb, #ffffff 8%, transparent);
     --drag-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
 }
