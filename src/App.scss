@@ -38,11 +38,11 @@ button {
 
 .app {
     display: grid;
-    grid-template-columns: 1fr 17rem;
+    grid-template-columns: 1fr;
     min-height: 100vh;
 
-    @media (max-width: 900px) {
-        grid-template-columns: 1fr;
+    @media (min-width: 825px) {
+        grid-template-columns: 1fr 17rem;
     }
 }
 
@@ -51,7 +51,7 @@ button {
     position: sticky;
     top: 1rem;
 
-    @media (max-width: 900px) {
+    @media (max-width: 825px) {
         position: static;
     }
 }

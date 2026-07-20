@@ -1,8 +1,12 @@
 .bench {
-    display: flex;
+    display: none;
     flex-direction: column;
     background: var(--panel-bg);
     border: 1px solid var(--border-color);
+
+    @media (min-width: 825px) {
+        display: flex;
+    }
 
     h2 {
         font-size: 0.7rem;

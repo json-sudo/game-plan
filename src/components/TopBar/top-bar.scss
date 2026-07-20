@@ -30,12 +30,15 @@
     color: var(--action-muted);
     transition: color 0.3s ease-out;
 
-    &:hover, &:focus {
+    &:hover,
+    &:focus {
         color: var(--text-color);
     }
 }
 
 .top-bar__formation {
+    display: inline-flex;
+    gap: 6px;
     border: 1px solid var(--border-color);
     border-radius: 0.3rem;
     padding: 0.5rem 1.4rem;
@@ -49,10 +52,10 @@
     color: var(--text-color);
     transition: color 0.3s ease-out;
 
-    &:hover, &:focus {
+    &:hover,
+    &:focus {
         color: var(--action-muted);
     }
-    
 }
 
 .formation-modal__backdrop {
