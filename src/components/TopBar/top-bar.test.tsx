@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BoardProvider, useBoard } from '../../board/BoardContext';
-import { createInitialBoard } from '../../board/boardReducer';
+import { boardReducer, createInitialBoard } from '../../board/boardReducer';
+import { buildShareHash } from '../../board/shareCodec';
 import { TopBar } from '.';
 
 function mockMatchMedia(matches: boolean) {
@@ -16,6 +17,7 @@ beforeEach(() => {
 afterEach(() => {
   localStorage.clear();
   delete document.documentElement.dataset.theme;
+  window.location.hash = '';
 });
 
 function PlacedProbe() {
@@ -248,7 +250,7 @@ describe('Theme toggle button', () => {
     const actions = button.closest('.top-bar__actions')!;
     expect(actions.lastElementChild).toBe(button);
     expect(actions.children[actions.children.length - 2]).toBe(
-      screen.getByRole('button', { name: 'Save' }),
+      screen.getByRole('button', { name: 'Share your current edits' }),
     );
     for (const path of button.querySelectorAll('path')) {
       expect(path).toHaveAttribute('stroke', 'currentColor');
@@ -416,5 +418,103 @@ describe('Save / Load', () => {
     localStorage.setItem('gameplan:boards:v1', '{not valid json');
     await userEvent.click(within(dialog).getByRole('button', { name: /Alpha/ }));
     expect(await within(dialog).findByText(/corrupted/i)).toBeInTheDocument();
+  });
+});
+
+function mockClipboard(writeText: (text: string) => Promise<void>) {
+  Object.assign(navigator, { clipboard: { writeText } });
+}
+
+describe('Share', () => {
+  it('mirrors Save’s disabled/enabled state and, once enabled, shows a link and copy confirmation on click', async () => {
+    mockClipboard(() => Promise.resolve());
+    renderTopBar();
+
+    const shareButton = screen.getByRole('button', { name: 'Share your current edits' });
+    const saveButton = screen.getByRole('button', { name: /Save/ });
+    expect(shareButton).toBeDisabled();
+    expect(saveButton).toBeDisabled();
+
+    await placeNinePlusPieces();
+    expect(shareButton).toBeEnabled();
+    expect(saveButton).toBeEnabled();
+
+    await userEvent.click(shareButton);
+    const dialog = await screen.findByRole('dialog', { name: 'Share board' });
+    const linkInput = within(dialog).getByLabelText('Link') as HTMLInputElement;
+    expect(linkInput.value).toContain('#s=v1.');
+    expect(await within(dialog).findByText(/copied to clipboard/i)).toBeInTheDocument();
+  });
+
+  it('still shows the link, selectable, when the clipboard write fails or is denied', async () => {
+    mockClipboard(() => Promise.reject(new Error('denied')));
+    renderTopBar();
+    await placeNinePlusPieces();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Share your current edits' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Share board' });
+    const linkInput = within(dialog).getByLabelText('Link') as HTMLInputElement;
+    expect(linkInput.value).toContain('#s=v1.');
+    expect(linkInput).not.toBeDisabled();
+    expect(await within(dialog).findByText(/copy this link/i)).toBeInTheDocument();
+  });
+
+  it('updates the address bar hash only when Share is clicked, not on ordinary edits', async () => {
+    renderTopBar();
+    await placeNinePlusPieces();
+    expect(window.location.hash).toBe('');
+
+    mockClipboard(() => Promise.resolve());
+    await userEvent.click(screen.getByRole('button', { name: 'Share your current edits' }));
+    await screen.findByRole('dialog', { name: 'Share board' });
+    expect(window.location.hash).toMatch(/^#s=v1\./);
+  });
+});
+
+describe('Share-link boot error banner', () => {
+  it('renders the error banner and boots to the default board for a malformed share hash, instead of crashing', () => {
+    window.location.hash = '#s=v1.not-valid-base64!!!';
+    expect(() => renderTopBar()).not.toThrow();
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/couldn't be opened/i);
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('0');
+  });
+
+  it('the banner is dismissible', async () => {
+    window.location.hash = '#s=v1.not-valid-base64!!!';
+    renderTopBar();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});
+
+describe('Regression: shared-link board interoperates with Save/Load', () => {
+  it('a board loaded via a shared URL can be Saved to localStorage and then Loaded back', async () => {
+    let sharedBoard = createInitialBoard();
+    sharedBoard = boardReducer(sharedBoard, {
+      type: 'APPLY_FORMATION',
+      team: 'mine',
+      name: '4-3-3',
+    });
+    window.location.hash = buildShareHash(sharedBoard);
+
+    renderTopBar();
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
+
+    await userEvent.click(screen.getByRole('button', { name: /Save/ }));
+    const saveDialog = await screen.findByRole('dialog', { name: 'Save board' });
+    await userEvent.type(within(saveDialog).getByLabelText('Name'), 'From a link');
+    await userEvent.click(within(saveDialog).getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Board saved')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear pitch' }));
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('0');
+
+    await userEvent.click(screen.getByRole('button', { name: /Load/ }));
+    const loadDialog = await screen.findByRole('dialog', { name: 'Load board' });
+    await userEvent.click(within(loadDialog).getByRole('button', { name: /From a link/ }));
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
   });
 });

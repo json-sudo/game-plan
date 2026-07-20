@@ -68,6 +68,53 @@
     }
 }
 
+.top-bar__icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    border-radius: 0.3rem;
+    padding: 0.55rem;
+    background: var(--panel-bg);
+    color: var(--text-color);
+    transition: color 0.3s ease-out;
+
+    &:hover,
+    &:focus {
+        color: var(--action-muted);
+    }
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+
+        &:hover {
+            color: var(--text-color);
+        }
+    }
+}
+
+.top-bar__banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
+    background: color-mix(in srgb, var(--team-opponent) 16%, var(--panel-bg));
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+
+    button {
+        border: none;
+        background: none;
+        font-size: 1rem;
+        color: var(--muted-text);
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+}
+
 .top-bar__toast {
     position: fixed;
     bottom: 1.2rem;

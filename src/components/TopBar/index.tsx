@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { BoardState, Team } from '../../board/types';
 import { FORMATIONS } from '../../board/formations';
-import { useBoard, useBoardDispatch } from '../../board/BoardContext';
+import { useBoard, useBoardDispatch, useShareLinkError } from '../../board/BoardContext';
 import { TEAM_COLORS } from '../../board/boardReducer';
 import { canSaveBoard, SLOT_NAME_MAX_LENGTH } from '../../board/persistence';
 import { usePersistedBoards } from '../../board/usePersistedBoards';
+import { buildShareHash } from '../../board/shareCodec';
 import ClearIcon from '../../assets/clear.icon';
 import ResetIcon from '../../assets/reset.icon';
 import DarkThemeIcon from '../../assets/dark.icon';
@@ -12,6 +13,7 @@ import LightThemeIcon from '../../assets/light-theme.icon';
 import DownArrowIcon from '../../assets/down-arrow.icon';
 import SaveIcon from '../../assets/save.icon';
 import LoadIcon from '../../assets/load.icon';
+import ShareIcon from '../../assets/share.icon';
 import { useTheme } from '../../shared/hooks/useTheme';
 import './top-bar.scss';
 
@@ -431,6 +433,81 @@ function LoadPanel({
   );
 }
 
+function SharePanel({ url, onClose }: { url: string; onClose: () => void }) {
+  const [copyState, setCopyState] = useState<'pending' | 'copied' | 'failed'>('pending');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  useEffect(() => {
+    inputRef.current?.select();
+    if (!navigator.clipboard?.writeText) {
+      setCopyState('failed');
+      return;
+    }
+    navigator.clipboard.writeText(url).then(
+      () => setCopyState('copied'),
+      () => setCopyState('failed'),
+    );
+  }, [url]);
+
+  return (
+    <div className="formation-modal__backdrop" onClick={onClose}>
+      <div
+        className="slot-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Share board"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="formation-modal__header">
+          <h2>Share Board</h2>
+          <button type="button" aria-label="Close" onClick={onClose}>
+            ×
+          </button>
+        </header>
+
+        <p className="slot-panel__hint">
+          {copyState === 'copied'
+            ? 'Link copied to clipboard.'
+            : 'Copy this link to share your board:'}
+        </p>
+
+        <div className="slot-panel__name">
+          <label htmlFor="share-url-input">Link</label>
+          <input
+            id="share-url-input"
+            ref={inputRef}
+            type="text"
+            readOnly
+            value={url}
+            onFocus={(e) => e.currentTarget.select()}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ShareLinkErrorBanner() {
+  const [hasError, dismiss] = useShareLinkError();
+  if (!hasError) return null;
+  return (
+    <div className="top-bar__banner" role="alert">
+      <span>This link couldn't be opened — it may be broken or from an unsupported version.</span>
+      <button type="button" aria-label="Dismiss" onClick={dismiss}>
+        ×
+      </button>
+    </div>
+  );
+}
+
 export function TopBar() {
   const board = useBoard();
   const dispatch = useBoardDispatch();
@@ -439,6 +516,7 @@ export function TopBar() {
   const [resetOpen, setResetOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [loadOpen, setLoadOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const persisted = usePersistedBoards();
 
@@ -455,6 +533,13 @@ export function TopBar() {
       ? 'Place at least 9 players to save this board.'
       : undefined;
   const loadVisible = !persisted.storageAvailable || persisted.slots.length > 0;
+  // Same gate as Save, reusing the identical predicate so the two never drift apart.
+  const shareEnabled = canSaveBoard(board);
+
+  const openShare = () => {
+    window.location.hash = buildShareHash(board);
+    setShareUrl(window.location.href);
+  };
 
   return (
     <>
@@ -505,6 +590,16 @@ export function TopBar() {
           )}
           <button
             type="button"
+            className="top-bar__icon-button"
+            disabled={!shareEnabled}
+            title="Share your current edits"
+            aria-label="Share your current edits"
+            onClick={openShare}
+          >
+            <ShareIcon />
+          </button>
+          <button
+            type="button"
             className="top-bar__action"
             aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
             onClick={toggleTheme}
@@ -513,6 +608,7 @@ export function TopBar() {
           </button>
         </div>
       </header>
+      <ShareLinkErrorBanner />
       {modalOpen && <FormationModal onClose={() => setModalOpen(false)} />}
       {resetOpen && <ResetConfirmModal onClose={() => setResetOpen(false)} />}
       {saveOpen && (
@@ -530,6 +626,7 @@ export function TopBar() {
           onLoaded={(loadedBoard) => dispatch({ type: 'LOAD_BOARD', board: loadedBoard })}
         />
       )}
+      {shareUrl && <SharePanel url={shareUrl} onClose={() => setShareUrl(null)} />}
       {toast && (
         <div className="top-bar__toast" role="status">
           {toast}

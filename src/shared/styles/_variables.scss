@@ -15,11 +15,7 @@ $pitch-stripe: #428556;
     --pitch: #{$pitch};
     --pitch-stripe: #{$pitch-stripe};
     --pitch-line: color-mix(in srgb, #ffffff 72%, transparent);
-    --ball-sheen: color-mix(
-        in srgb,
-        #ffffff 30%,
-        transparent
-    );
+    --ball-sheen: color-mix(in srgb, #ffffff 30%, transparent);
 }
 
 @mixin light-theme {
