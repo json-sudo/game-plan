@@ -1,4 +1,5 @@
 .token {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -13,6 +14,22 @@
     cursor: grab;
     user-select: none;
     touch-action: none;
+}
+
+.token__name {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 0.1rem;
+    max-width: 3.2rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.55rem;
+    font-weight: 600;
+    color: var(--text-color);
+    pointer-events: none;
 }
 
 .token--sub {

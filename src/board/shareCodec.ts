@@ -43,14 +43,13 @@ export function encodeBoard(board: BoardState): string {
   const pieces: EncodedPiece[] = board.pieces
     .filter((p) => p.position !== undefined)
     .map((p) => {
-      const name = (p as { name?: string }).name;
       const tuple: EncodedPiece = [
         p.id,
         toFixedPoint(p.position!.x),
         toFixedPoint(p.position!.y),
         p.label,
       ];
-      if (name) tuple.push(name);
+      if (p.name) tuple.push(p.name);
       return tuple;
     });
 

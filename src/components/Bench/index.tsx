@@ -2,6 +2,7 @@ import type { Piece, SquadSize, Team } from '../../board/types';
 import { subNumber, TEAM_COLORS } from '../../board/boardReducer';
 import { useBoard, useBoardDispatch } from '../../board/BoardContext';
 import { useDrag } from '../../board/DragContext';
+import { useNameEditor } from '../NameEditor';
 import { PieceToken } from '../PieceToken';
 import './bench.scss';
 
@@ -14,9 +15,17 @@ function benchOrder(a: Piece, b: Piece): number {
 
 function DraggableToken({ piece }: { piece: Piece }) {
   const { startDrag, draggingId } = useDrag();
+  const { openNameEditor } = useNameEditor();
+  const isBall = piece.type === 'ball';
   return (
     <span className={draggingId === piece.id ? 'bench__dragging-origin' : undefined}>
-      <PieceToken piece={piece} onPointerDown={(e) => startDrag(piece, e)} />
+      <PieceToken
+        piece={piece}
+        onPointerDown={(e) => {
+          const anchor = e.currentTarget.getBoundingClientRect();
+          startDrag(piece, e, isBall ? undefined : () => openNameEditor(piece, anchor));
+        }}
+      />
     </span>
   );
 }

@@ -76,27 +76,35 @@ describe('encodeBoard / decodeShareHash round-trip', () => {
     expect(result.board).toEqual(board);
   });
 
-  it('the wire format has a reserved name slot that decode round-trips opaquely (format-level only — blocked on [[piece-naming]])', () => {
-    // Piece.name doesn't exist on the type yet, so encodeBoard never produces this
-    // shape today, and the spec's "named benched piece travels without a position"
-    // exception isn't implementable until [[piece-naming]] lands (there is no way to
-    // identify which unplaced pieces are "named" without that field). This test proves
-    // the reserved 5th tuple slot exists and round-trips, by hand-crafting a payload
-    // for an otherwise-placed piece the way a future encoder could extend to.
-    const board = createInitialBoard();
-    const pieceId = board.pieces.find((p) => p.type === 'player')!.id;
+  it('a custom name on a placed piece round-trips through encode/decode', () => {
+    let board = boardReducer(createInitialBoard(), {
+      type: 'PLACE_PIECE',
+      id: 'mine-1',
+      position: { x: 30, y: 25 },
+    });
+    board = boardReducer(board, { type: 'SET_PIECE_NAME', id: 'mine-1', name: 'Lefty' });
 
-    const rawTuple = [11, 11, 0, 0, 0, 0, [[pieceId, 500, 500, 'CB', 'Lefty']]];
-    const json = JSON.stringify(rawTuple);
-    const bytes = new TextEncoder().encode(json);
-    let binary = '';
-    for (const byte of bytes) binary += String.fromCharCode(byte);
-    const b64 = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    const result = decodeShareHash(`#s=v1.${b64}`);
+    const result = decodeShareHash(buildShareHash(board));
     expect(result.status).toBe('ok');
     if (result.status !== 'ok') return;
-    const decodedPiece = result.board.pieces.find((p) => p.id === pieceId)! as { name?: string };
-    expect(decodedPiece.name).toBe('Lefty');
+    expect(result.board.pieces.find((p) => p.id === 'mine-1')?.name).toBe('Lefty');
+  });
+
+  it('a named but unplaced (benched) piece is not representable — its name is dropped on encode', () => {
+    // Only placed pieces are encoded at all (see the "omits unplaced bench pieces" test
+    // above), so a name on a benched piece has nowhere to travel yet. Documented gap:
+    // naming an unplaced piece and sharing loses the name until the wire format grows
+    // a way to carry unplaced-but-named pieces.
+    const board = boardReducer(createInitialBoard(), {
+      type: 'SET_PIECE_NAME',
+      id: 'mine-1',
+      name: 'Lefty',
+    });
+
+    const result = decodeShareHash(buildShareHash(board));
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') return;
+    expect(result.board.pieces.find((p) => p.id === 'mine-1')?.name).toBeUndefined();
   });
 
   it('coordinate fixed-point round-trip preserves values to at least 2 decimal places, including 0 and the max', () => {

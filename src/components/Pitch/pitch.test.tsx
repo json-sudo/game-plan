@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { BoardProvider, FORMATION_ANIMATION_MS, useBoardDispatch } from '../../board/BoardContext';
 import { DragProvider } from '../../board/DragContext';
+import { NameEditorProvider } from '../NameEditor';
 import { Pitch } from '.';
 
 function DispatchProbe() {
@@ -40,8 +41,10 @@ function renderPitch() {
   return render(
     <BoardProvider>
       <DragProvider>
-        <Pitch />
-        <DispatchProbe />
+        <NameEditorProvider>
+          <Pitch />
+          <DispatchProbe />
+        </NameEditorProvider>
       </DragProvider>
     </BoardProvider>,
   );

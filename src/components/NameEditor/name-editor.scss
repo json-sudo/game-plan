@@ -1,0 +1,14 @@
+.name-editor {
+    position: fixed;
+    transform: translateX(-50%);
+    z-index: 20;
+    width: 9.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.3rem;
+    padding: 0.35rem 0.55rem;
+    font: inherit;
+    font-size: 0.8rem;
+    background: var(--panel-bg);
+    color: var(--text-color);
+    box-shadow: var(--drag-shadow);
+}

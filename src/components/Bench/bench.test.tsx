@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BoardProvider, useBoardDispatch } from '../../board/BoardContext';
 import { DragProvider } from '../../board/DragContext';
+import { NameEditorProvider } from '../NameEditor';
 import { Bench } from '.';
 
 function PlaceButton() {
@@ -21,8 +22,10 @@ function renderBench() {
   return render(
     <BoardProvider>
       <DragProvider>
-        <Bench />
-        <PlaceButton />
+        <NameEditorProvider>
+          <Bench />
+          <PlaceButton />
+        </NameEditorProvider>
       </DragProvider>
     </BoardProvider>,
   );

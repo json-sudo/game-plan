@@ -168,6 +168,71 @@ describe('SET_KEEPER', () => {
   });
 });
 
+describe('SET_PIECE_NAME', () => {
+  it('sets name on the matching piece and leaves label/position/others untouched', () => {
+    const placed = boardReducer(createInitialBoard(), {
+      type: 'PLACE_PIECE',
+      id: 'mine-1',
+      position: { x: 30, y: 25 },
+    });
+    const next = boardReducer(placed, { type: 'SET_PIECE_NAME', id: 'mine-1', name: 'Alex' });
+    const piece = next.pieces.find((p) => p.id === 'mine-1')!;
+    expect(piece.name).toBe('Alex');
+    expect(piece.label).toBe('CB');
+    expect(piece.position).toEqual({ x: 30, y: 25 });
+    expect(next.pieces.find((p) => p.id === 'mine-2')?.name).toBeUndefined();
+  });
+
+  it('trims whitespace around a name', () => {
+    const next = boardReducer(createInitialBoard(), {
+      type: 'SET_PIECE_NAME',
+      id: 'mine-1',
+      name: '  Alex  ',
+    });
+    expect(next.pieces.find((p) => p.id === 'mine-1')?.name).toBe('Alex');
+  });
+
+  it('an empty/whitespace-only name clears the field entirely (not "")', () => {
+    let state = boardReducer(createInitialBoard(), {
+      type: 'SET_PIECE_NAME',
+      id: 'mine-1',
+      name: 'Alex',
+    });
+    state = boardReducer(state, { type: 'SET_PIECE_NAME', id: 'mine-1', name: '   ' });
+    const piece = state.pieces.find((p) => p.id === 'mine-1')!;
+    expect(piece.name).toBeUndefined();
+    expect('name' in piece).toBe(false);
+  });
+
+  it('APPLY_FORMATION changes label but leaves name untouched', () => {
+    let state = boardReducer(createInitialBoard(), {
+      type: 'SET_PIECE_NAME',
+      id: 'mine-1',
+      name: 'Alex',
+    });
+    state = boardReducer(state, { type: 'APPLY_FORMATION', team: 'mine', name: '4-3-3' });
+    const piece = state.pieces.find((p) => p.id === 'mine-1')!;
+    expect(piece.name).toBe('Alex');
+    expect(piece.label).not.toBe('CB');
+  });
+
+  it('SET_SQUAD shrink removing a named sub leaves no trace of its name', () => {
+    let state = boardReducer(createInitialBoard(), { type: 'SET_SQUAD', team: 'mine', size: 20 });
+    state = boardReducer(state, { type: 'SET_PIECE_NAME', id: 'mine-s9', name: 'Sub Nine' });
+    state = boardReducer(state, { type: 'SET_SQUAD', team: 'mine', size: 11 });
+    expect(state.pieces.find((p) => p.id === 'mine-s9')).toBeUndefined();
+    expect(state.pieces.some((p) => p.name === 'Sub Nine')).toBe(false);
+  });
+
+  it('SET_KEEPER off removing a named GK leaves no trace of its name', () => {
+    let state = boardReducer(createInitialBoard(), { type: 'SET_KEEPER', team: 'mine', on: true });
+    state = boardReducer(state, { type: 'SET_PIECE_NAME', id: 'mine-gk', name: 'Keeper Kate' });
+    state = boardReducer(state, { type: 'SET_KEEPER', team: 'mine', on: false });
+    expect(state.pieces.find((p) => p.team === 'mine' && p.isKeeper)).toBeUndefined();
+    expect(state.pieces.some((p) => p.name === 'Keeper Kate')).toBe(false);
+  });
+});
+
 describe('LOAD_BOARD', () => {
   it('fully replaces the in-memory state with the loaded board', () => {
     const state = boardReducer(createInitialBoard(), {

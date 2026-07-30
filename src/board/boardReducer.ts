@@ -23,6 +23,7 @@ export type BoardAction =
   | { type: 'SET_SQUAD'; team: Team; size: SquadSize }
   | { type: 'SET_KEEPER'; team: Team; on: boolean }
   | { type: 'APPLY_FORMATION'; team: Team; name: string }
+  | { type: 'SET_PIECE_NAME'; id: string; name: string }
   | { type: 'APPLY_MATCHUP'; attacker: Team; formations: { mine: string; opponent: string } }
   | { type: 'CLEAR_PITCH' }
   | { type: 'RESET_BOARD' }
@@ -205,6 +206,21 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
         ...state,
         pieces: applyAssignments(state.pieces, new Map([...defending, ...resolvedAttacking])),
         formation: { mine: action.formations.mine, opponent: action.formations.opponent },
+      };
+    }
+
+    case 'SET_PIECE_NAME': {
+      const name = action.name.trim();
+      return {
+        ...state,
+        pieces: state.pieces.map((p) => {
+          if (p.id !== action.id) return p;
+          if (name === '') {
+            const { name: _name, ...unnamed } = p;
+            return unnamed;
+          }
+          return { ...p, name };
+        }),
       };
     }
 

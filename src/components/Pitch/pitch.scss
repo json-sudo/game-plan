@@ -30,6 +30,15 @@
     user-select: none;
 }
 
+.pitch__name {
+    fill: #ffffff;
+    font-size: 1.2px;
+    font-weight: 600;
+    text-anchor: middle;
+    pointer-events: none;
+    user-select: none;
+}
+
 .pitch__hint {
     pointer-events: none;
     user-select: none;

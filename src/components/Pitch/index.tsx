@@ -2,25 +2,40 @@ import type { CSSProperties } from 'react';
 import type { Piece } from '../../board/types';
 import { FORMATION_ANIMATION_MS, useBoard, useBoardAnimating } from '../../board/BoardContext';
 import { useDrag } from '../../board/DragContext';
+import { useNameEditor } from '../NameEditor';
 import ballImg from '../../assets/ball.png';
 import './pitch.scss';
 
 export const PITCH_W = 76.19;
 export const PITCH_H = 100;
 
+// SVG text can't ellipsize itself; cap rendered names and expose the full
+// name via <title>. Tuned by eye against the 2.2-radius token.
+const NAME_DISPLAY_CHARS = 12;
+
+function truncateName(name: string): string {
+  return name.length > NAME_DISPLAY_CHARS ? `${name.slice(0, NAME_DISPLAY_CHARS - 1)}…` : name;
+}
+
 function PitchPiece({ piece }: { piece: Piece }) {
   const { startDrag, draggingId } = useDrag();
+  const { openNameEditor } = useNameEditor();
   if (!piece.position) return null;
   const { x, y } = piece.position;
   const color = piece.fill.kind === 'solid' ? piece.fill.color : piece.fill.primary;
   const isBall = piece.type === 'ball';
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    const anchor = e.currentTarget.getBoundingClientRect();
+    startDrag(piece, e, isBall ? undefined : () => openNameEditor(piece, anchor));
+  };
 
   return (
     <g
       className="pitch__piece"
       transform={`translate(${x} ${y})`}
       opacity={draggingId === piece.id ? 0.3 : 1}
-      onPointerDown={(e) => startDrag(piece, e)}
+      onPointerDown={onPointerDown}
       aria-label={
         isBall ? 'ball' : `${piece.team === 'mine' ? 'my team' : 'opponent'} ${piece.label}`
       }
@@ -31,6 +46,14 @@ function PitchPiece({ piece }: { piece: Piece }) {
         <>
           <circle r={2.2} fill={color} />
           <text className="pitch__label">{piece.label}</text>
+          {piece.name && (
+            <>
+              <title>{piece.name}</title>
+              <text className="pitch__name" y={3.9}>
+                {truncateName(piece.name)}
+              </text>
+            </>
+          )}
         </>
       )}
     </g>

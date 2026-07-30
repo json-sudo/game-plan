@@ -93,6 +93,25 @@ describe('saveSlot', () => {
     expect(updated.board).toEqual(newBoard);
   });
 
+  it('round-trips a piece custom name through the saved board (no special-casing)', () => {
+    const board: BoardState = {
+      ...createInitialBoard(),
+      pieces: createInitialBoard().pieces.map((p) =>
+        p.id === 'mine-1' ? { ...p, name: 'Alex' } : p,
+      ),
+    };
+    const storage = memoryStorage();
+    const result = saveSlot(null, null, 'Alpha', board, storage, 100);
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') return;
+    expect(result.wrapper.slots[0].board.pieces.find((p) => p.id === 'mine-1')?.name).toBe('Alex');
+
+    const loaded = loadBoardsWrapper(storage);
+    expect(loaded.status).toBe('ok');
+    if (loaded.status !== 'ok') return;
+    expect(loaded.wrapper.slots[0].board.pieces.find((p) => p.id === 'mine-1')?.name).toBe('Alex');
+  });
+
   it('requires an explicit target when both slots are full and never creates a 3rd', () => {
     const a = { id: 'a', name: 'Alpha', savedAt: 100, board: createInitialBoard() };
     const b = { id: 'b', name: 'Bravo', savedAt: 150, board: createInitialBoard() };

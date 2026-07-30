@@ -10,6 +10,7 @@ export interface Piece {
   type: PieceType;
   team: Team;
   label: string;
+  name?: string;
   position?: { x: number; y: number };
   fill: PieceFill;
   isKeeper?: boolean;
