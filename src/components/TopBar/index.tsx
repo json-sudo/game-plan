@@ -14,8 +14,12 @@ import DownArrowIcon from '../../assets/down-arrow.icon';
 import SaveIcon from '../../assets/save.icon';
 import LoadIcon from '../../assets/load.icon';
 import ShareIcon from '../../assets/share.icon';
+import MenuIcon from '../../assets/menu.icon';
 import { useTheme } from '../../shared/hooks/useTheme';
+import { useBelowBreakpoint } from '../../shared/hooks/useBelowBreakpoint';
 import './top-bar.scss';
+
+const TOP_BAR_BREAKPOINT = 825;
 
 type ApplyMode = Team | 'matchup';
 
@@ -495,6 +499,87 @@ function SharePanel({ url, onClose }: { url: string; onClose: () => void }) {
   );
 }
 
+function TopBarMenu({
+  panelRef,
+  open,
+  onClear,
+  onReset,
+  onSave,
+  saveEnabled,
+  saveTitle,
+  loadVisible,
+  loadEnabled,
+  loadTitle,
+  onLoad,
+  onShare,
+  shareEnabled,
+}: {
+  panelRef: React.RefObject<HTMLElement | null>;
+  open: boolean;
+  onClear: () => void;
+  onReset: () => void;
+  onSave: () => void;
+  saveEnabled: boolean;
+  saveTitle: string | undefined;
+  loadVisible: boolean;
+  loadEnabled: boolean;
+  loadTitle: string | undefined;
+  onLoad: () => void;
+  onShare: () => void;
+  shareEnabled: boolean;
+}) {
+  return (
+    <div
+      id="top-bar-menu-panel"
+      className={open ? 'top-bar__menu top-bar__menu--open' : 'top-bar__menu'}
+      inert={!open}
+    >
+      <nav className="top-bar__menu-list" aria-label="Menu" ref={panelRef}>
+        <button type="button" className="top-bar__menu-item" onClick={onClear}>
+          <ClearIcon />
+          Clear pitch
+        </button>
+        <button type="button" className="top-bar__menu-item" onClick={onReset}>
+          <ResetIcon />
+          Reset
+        </button>
+        <button
+          type="button"
+          className="top-bar__menu-item"
+          disabled={!saveEnabled}
+          title={saveTitle}
+          onClick={onSave}
+        >
+          <SaveIcon />
+          Save
+        </button>
+        {loadVisible && (
+          <button
+            type="button"
+            className="top-bar__menu-item"
+            disabled={!loadEnabled}
+            title={loadTitle}
+            onClick={onLoad}
+          >
+            <LoadIcon />
+            Load
+          </button>
+        )}
+        <button
+          type="button"
+          className="top-bar__menu-item"
+          disabled={!shareEnabled}
+          title="Share your current edits"
+          onClick={onShare}
+        >
+          <ShareIcon />
+          Share
+        </button>
+      </nav>
+    </div>
+  );
+}
+
 function ShareLinkErrorBanner() {
   const [hasError, dismiss] = useShareLinkError();
   if (!hasError) return null;
@@ -518,13 +603,53 @@ export function TopBar() {
   const [loadOpen, setLoadOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const persisted = usePersistedBoards();
+  const isMobile = useBelowBreakpoint(TOP_BAR_BREAKPOINT);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const menuPanelRef = useRef<HTMLElement>(null);
+  const menuWasOpenRef = useRef(false);
 
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 2500);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    if (!isMobile) setMenuOpen(false);
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (menuOpen) {
+      menuWasOpenRef.current = true;
+      const firstItem =
+        menuPanelRef.current?.querySelector<HTMLButtonElement>('button:not(:disabled)');
+      firstItem?.focus();
+    } else if (menuWasOpenRef.current) {
+      menuWasOpenRef.current = false;
+      menuButtonRef.current?.focus();
+    }
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (menuPanelRef.current?.contains(target)) return;
+      if (menuButtonRef.current?.contains(target)) return;
+      setMenuOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menuOpen]);
 
   const saveEnabled = persisted.storageAvailable && canSaveBoard(board);
   const saveTitle = !persisted.storageAvailable
@@ -533,7 +658,6 @@ export function TopBar() {
       ? 'Place at least 9 players to save this board.'
       : undefined;
   const loadVisible = !persisted.storageAvailable || persisted.slots.length > 0;
-  // Same gate as Save, reusing the identical predicate so the two never drift apart.
   const shareEnabled = canSaveBoard(board);
 
   const openShare = () => {
@@ -541,73 +665,138 @@ export function TopBar() {
     setShareUrl(window.location.href);
   };
 
+  const loadTitle = !persisted.storageAvailable
+    ? 'Loading is unavailable — this browser is blocking local storage.'
+    : undefined;
+
+  const themeToggleButton = (
+    <button
+      type="button"
+      className="top-bar__action"
+      aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+      onClick={toggleTheme}
+    >
+      {theme === 'light' ? <DarkThemeIcon /> : <LightThemeIcon />}
+    </button>
+  );
+
+  const formationButton = (
+    <button type="button" className="top-bar__formation" onClick={() => setModalOpen(true)}>
+      Formation
+      <DownArrowIcon />
+    </button>
+  );
+
   return (
     <>
       <header className="top-bar">
         <span className="top-bar__wordmark">Game Plan</span>
         <div className="top-bar__actions">
-          <button
-            type="button"
-            className="top-bar__action"
-            onClick={() => dispatch({ type: 'CLEAR_PITCH' })}
-          >
-            <ClearIcon />
-            Clear pitch
-          </button>
-          <button type="button" className="top-bar__action" onClick={() => setResetOpen(true)}>
-            <ResetIcon />
-            Reset
-          </button>
-          <button type="button" className="top-bar__formation" onClick={() => setModalOpen(true)}>
-            Formation
-            <DownArrowIcon />
-          </button>
-          <button
-            type="button"
-            className="top-bar__formation"
-            disabled={!saveEnabled}
-            title={saveTitle}
-            onClick={() => setSaveOpen(true)}
-          >
-            <SaveIcon />
-            Save
-          </button>
-          {loadVisible && (
-            <button
-              type="button"
-              className="top-bar__formation"
-              disabled={!persisted.storageAvailable}
-              title={
-                !persisted.storageAvailable
-                  ? 'Loading is unavailable — this browser is blocking local storage.'
-                  : undefined
-              }
-              onClick={() => setLoadOpen(true)}
-            >
-              <LoadIcon />
-              Load
-            </button>
+          {isMobile ? (
+            <>
+              {formationButton}
+              {themeToggleButton}
+              <button
+                type="button"
+                ref={menuButtonRef}
+                className={
+                  menuOpen
+                    ? 'top-bar__menu-button top-bar__menu-button--open'
+                    : 'top-bar__menu-button'
+                }
+                aria-expanded={menuOpen}
+                aria-controls="top-bar-menu-panel"
+                aria-label="Menu"
+                title="Menu"
+                onClick={() => setMenuOpen((open) => !open)}
+              >
+                {menuOpen ? <ClearIcon /> : <MenuIcon />}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="top-bar__action"
+                onClick={() => dispatch({ type: 'CLEAR_PITCH' })}
+              >
+                <ClearIcon />
+                Clear pitch
+              </button>
+              <button type="button" className="top-bar__action" onClick={() => setResetOpen(true)}>
+                <ResetIcon />
+                Reset
+              </button>
+              {formationButton}
+              <button
+                type="button"
+                className="top-bar__formation"
+                disabled={!saveEnabled}
+                title={saveTitle}
+                onClick={() => setSaveOpen(true)}
+              >
+                <SaveIcon />
+                Save
+              </button>
+              {loadVisible && (
+                <button
+                  type="button"
+                  className="top-bar__formation"
+                  disabled={!persisted.storageAvailable}
+                  title={loadTitle}
+                  onClick={() => setLoadOpen(true)}
+                >
+                  <LoadIcon />
+                  Load
+                </button>
+              )}
+              <button
+                type="button"
+                className="top-bar__icon-button"
+                disabled={!shareEnabled}
+                title="Share your current edits"
+                aria-label="Share your current edits"
+                onClick={openShare}
+              >
+                <ShareIcon />
+              </button>
+              {themeToggleButton}
+            </>
           )}
-          <button
-            type="button"
-            className="top-bar__icon-button"
-            disabled={!shareEnabled}
-            title="Share your current edits"
-            aria-label="Share your current edits"
-            onClick={openShare}
-          >
-            <ShareIcon />
-          </button>
-          <button
-            type="button"
-            className="top-bar__action"
-            aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-            onClick={toggleTheme}
-          >
-            {theme === 'light' ? <DarkThemeIcon /> : <LightThemeIcon />}
-          </button>
         </div>
       </header>
+      {isMobile && (
+        <TopBarMenu
+          panelRef={menuPanelRef}
+          open={menuOpen}
+          onClear={() => {
+            dispatch({ type: 'CLEAR_PITCH' });
+            setMenuOpen(false);
+          }}
+          onReset={() => {
+            setResetOpen(true);
+            setMenuOpen(false);
+          }}
+          onSave={() => {
+            setSaveOpen(true);
+            setMenuOpen(false);
+          }}
+          saveEnabled={saveEnabled}
+          saveTitle={saveTitle}
+          loadVisible={loadVisible}
+          loadEnabled={persisted.storageAvailable}
+          loadTitle={loadTitle}
+          onLoad={() => {
+            setLoadOpen(true);
+            setMenuOpen(false);
+          }}
+          onShare={() => {
+            openShare();
+            setMenuOpen(false);
+          }}
+          shareEnabled={shareEnabled}
+        />
+      )}
       <ShareLinkErrorBanner />
       {modalOpen && <FormationModal onClose={() => setModalOpen(false)} />}
       {resetOpen && <ResetConfirmModal onClose={() => setResetOpen(false)} />}

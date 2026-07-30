@@ -99,6 +99,27 @@ describe('formation apply animation', () => {
   });
 });
 
+describe('empty-pitch hint (responsive at 825px, CSS-only)', () => {
+  it('renders both the wide two-line hint and the compact single-line hint, with CSS deciding which shows', () => {
+    renderPitch();
+    const svg = pitchSvg();
+    const wide = svg.querySelector('.pitch__hint--wide')!;
+    expect(wide).toHaveTextContent('drag pieces from the bench');
+    expect(wide).toHaveTextContent('or use a formation preset');
+
+    const compact = svg.querySelector('.pitch__hint--compact')!;
+    expect(compact).toHaveTextContent('pick a formation');
+  });
+
+  it('hides both hint groups once a piece is placed', () => {
+    renderPitch();
+    fireEvent.click(screen.getByRole('button', { name: 'place-piece' }));
+    const svg = pitchSvg();
+    expect(svg.querySelector('.pitch__hint--wide')).not.toBeInTheDocument();
+    expect(svg.querySelector('.pitch__hint--compact')).not.toBeInTheDocument();
+  });
+});
+
 describe('piece rendering via <g transform>', () => {
   it('positions a player piece with translate and draws children at the origin', () => {
     renderPitch();

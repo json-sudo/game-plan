@@ -60,3 +60,17 @@
     font-size: 1.3px;
     opacity: 0.7;
 }
+
+.pitch__hint--compact {
+    display: none;
+}
+
+@media (max-width: 824.98px) {
+    .pitch__hint--wide {
+        display: none;
+    }
+
+    .pitch__hint--compact {
+        display: block;
+    }
+}

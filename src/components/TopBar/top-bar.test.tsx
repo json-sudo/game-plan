@@ -471,6 +471,144 @@ describe('Share', () => {
   });
 });
 
+describe('Mobile hamburger menu (<825px)', () => {
+  beforeEach(() => {
+    mockMatchMedia(true);
+  });
+
+  it('shows only the wordmark, Formation, theme toggle, and the hamburger button in the bar', () => {
+    renderTopBar();
+    expect(screen.getByText('Game Plan')).toBeInTheDocument();
+    const bar = within(document.querySelector('.top-bar__actions')!);
+    expect(bar.getByRole('button', { name: 'Formation' })).toBeInTheDocument();
+    expect(bar.getByRole('button', { name: /Switch to (dark|light) mode/ })).toBeInTheDocument();
+    expect(bar.getByRole('button', { name: 'Menu' })).toBeInTheDocument();
+    expect(bar.getAllByRole('button')).toHaveLength(3);
+
+    expect(bar.queryByRole('button', { name: 'Clear pitch' })).not.toBeInTheDocument();
+    expect(bar.queryByRole('button', { name: 'Reset' })).not.toBeInTheDocument();
+    expect(bar.queryByRole('button', { name: /^Save/ })).not.toBeInTheDocument();
+    expect(bar.queryByRole('button', { name: 'Share your current edits' })).not.toBeInTheDocument();
+  });
+
+  const openMenu = async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
+    return within(screen.getByRole('navigation', { name: 'Menu' }));
+  };
+
+  it('opens the panel listing Clear, Reset, Save and Share (Load absent with zero slots)', async () => {
+    renderTopBar();
+    const menu = await openMenu();
+    expect(menu.getByRole('button', { name: /Clear pitch/ })).toBeInTheDocument();
+    expect(menu.getByRole('button', { name: /Reset/ })).toBeInTheDocument();
+    expect(menu.getByRole('button', { name: /Save/ })).toBeInTheDocument();
+    expect(menu.getByRole('button', { name: /Share/ })).toBeInTheDocument();
+    expect(menu.queryByRole('button', { name: /Load/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('selecting Clear pitch closes the menu and clears the board, same as the desktop action', async () => {
+    renderTopBar();
+    await userEvent.click(screen.getByRole('button', { name: 'Formation' }));
+    await userEvent.click(screen.getByRole('button', { name: '4-3-3' }));
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
+
+    const menu = await openMenu();
+    await userEvent.click(menu.getByRole('button', { name: /Clear pitch/ }));
+    expect(screen.queryByRole('navigation', { name: 'Menu' })).toHaveClass('top-bar__menu-list');
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('0');
+  });
+
+  it('selecting Reset closes the menu and opens the same confirm dialog as the desktop button', async () => {
+    renderTopBar();
+    const menu = await openMenu();
+    await userEvent.click(menu.getByRole('button', { name: /Reset/ }));
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('dialog', { name: 'Reset board' })).toBeInTheDocument();
+  });
+
+  it('Save/Share menu items are disabled below the 9-piece gate and enabled at/above it', async () => {
+    renderTopBar();
+    let menu = await openMenu();
+    expect(menu.getByRole('button', { name: /Save/ })).toBeDisabled();
+    expect(menu.getByRole('button', { name: /Share/ })).toBeDisabled();
+    await userEvent.keyboard('{Escape}');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Formation' }));
+    await userEvent.click(screen.getByRole('button', { name: '4-3-3' }));
+
+    menu = await openMenu();
+    expect(menu.getByRole('button', { name: /Save/ })).toBeEnabled();
+    expect(menu.getByRole('button', { name: /Share/ })).toBeEnabled();
+  });
+
+  it('selecting Save closes the menu and opens the same Save panel as the desktop button, and Load then appears', async () => {
+    renderTopBar();
+    await userEvent.click(screen.getByRole('button', { name: 'Formation' }));
+    await userEvent.click(screen.getByRole('button', { name: '4-3-3' }));
+
+    const menu = await openMenu();
+    await userEvent.click(menu.getByRole('button', { name: /Save/ }));
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false');
+    const saveDialog = await screen.findByRole('dialog', { name: 'Save board' });
+    await userEvent.type(within(saveDialog).getByLabelText('Name'), 'Mobile save');
+    await userEvent.click(within(saveDialog).getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Board saved')).toBeInTheDocument();
+
+    const menuAfterSave = await openMenu();
+    expect(menuAfterSave.getByRole('button', { name: /Load/ })).toBeInTheDocument();
+  });
+
+  it('selecting Share closes the menu and opens the same Share panel as the desktop button', async () => {
+    mockClipboard(() => Promise.resolve());
+    renderTopBar();
+    await userEvent.click(screen.getByRole('button', { name: 'Formation' }));
+    await userEvent.click(screen.getByRole('button', { name: '4-3-3' }));
+
+    const menu = await openMenu();
+    await userEvent.click(menu.getByRole('button', { name: /Share/ }));
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false');
+    const dialog = await screen.findByRole('dialog', { name: 'Share board' });
+    expect(within(dialog).getByLabelText('Link')).toBeInTheDocument();
+  });
+
+  it('clicking outside the open menu closes it without triggering any action', async () => {
+    renderTopBar();
+    await openMenu();
+    await userEvent.click(screen.getByText('Game Plan'));
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('0');
+  });
+
+  it('pressing Escape closes the open menu', async () => {
+    renderTopBar();
+    await openMenu();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('toggling the hamburger button while open closes the menu', async () => {
+    renderTopBar();
+    const menuButton = screen.getByRole('button', { name: 'Menu' });
+    await userEvent.click(menuButton);
+    expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.click(menuButton);
+    expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('moves focus into the panel on open and returns focus to the hamburger button on close', async () => {
+    renderTopBar();
+    const menuButton = screen.getByRole('button', { name: 'Menu' });
+    await userEvent.click(menuButton);
+    const menu = within(screen.getByRole('navigation', { name: 'Menu' }));
+    expect(menu.getByRole('button', { name: /Clear pitch/ })).toHaveFocus();
+
+    await userEvent.keyboard('{Escape}');
+    expect(menuButton).toHaveFocus();
+  });
+});
+
 describe('Share-link boot error banner', () => {
   it('renders the error banner and boots to the default board for a malformed share hash, instead of crashing', () => {
     window.location.hash = '#s=v1.not-valid-base64!!!';

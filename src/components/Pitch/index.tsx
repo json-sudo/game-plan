@@ -107,14 +107,21 @@ export function Pitch() {
       </g>
 
       {placed.length === 0 && (
-        <g className="pitch__hint">
-          <text x={cx} y={48.6} className="pitch__hint-main">
-            drag pieces from the bench
-          </text>
-          <text x={cx} y={52.4} className="pitch__hint-sub">
-            or use a formation preset
-          </text>
-        </g>
+        <>
+          <g className="pitch__hint pitch__hint--wide">
+            <text x={cx} y={48.6} className="pitch__hint-main">
+              drag pieces from the bench
+            </text>
+            <text x={cx} y={52.4} className="pitch__hint-sub">
+              or use a formation preset
+            </text>
+          </g>
+          <g className="pitch__hint pitch__hint--compact">
+            <text x={cx} y={50.5} className="pitch__hint-main">
+              pick a formation
+            </text>
+          </g>
+        </>
       )}
 
       {placed.map((p) => (
