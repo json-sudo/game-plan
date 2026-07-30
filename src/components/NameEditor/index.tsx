@@ -6,6 +6,8 @@ import './name-editor.scss';
 export const PIECE_NAME_MAX_LENGTH = 24;
 
 interface NameEditorApi {
+  renaming: boolean;
+  toggleRenaming: () => void;
   openNameEditor: (piece: Piece, anchor: DOMRect) => void;
 }
 
@@ -26,6 +28,7 @@ interface EditorState {
 
 export function NameEditorProvider({ children }: { children: ReactNode }) {
   const dispatch = useBoardDispatch();
+  const [renaming, setRenaming] = useState(false);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const cancelledRef = useRef(false);
 
@@ -58,7 +61,9 @@ export function NameEditorProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <NameEditorContext.Provider value={{ openNameEditor }}>
+    <NameEditorContext.Provider
+      value={{ renaming, toggleRenaming: () => setRenaming((r) => !r), openNameEditor }}
+    >
       {children}
       {editor && (
         <input

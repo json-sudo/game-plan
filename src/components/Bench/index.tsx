@@ -15,15 +15,21 @@ function benchOrder(a: Piece, b: Piece): number {
 
 function DraggableToken({ piece }: { piece: Piece }) {
   const { startDrag, draggingId } = useDrag();
-  const { openNameEditor } = useNameEditor();
+  const { renaming, openNameEditor } = useNameEditor();
   const isBall = piece.type === 'ball';
+  const nameable = renaming && !isBall;
   return (
     <span className={draggingId === piece.id ? 'bench__dragging-origin' : undefined}>
       <PieceToken
         piece={piece}
+        nameable={nameable}
         onPointerDown={(e) => {
-          const anchor = e.currentTarget.getBoundingClientRect();
-          startDrag(piece, e, isBall ? undefined : () => openNameEditor(piece, anchor));
+          if (nameable) {
+            e.preventDefault();
+            openNameEditor(piece, e.currentTarget.getBoundingClientRect());
+            return;
+          }
+          startDrag(piece, e);
         }}
       />
     </span>

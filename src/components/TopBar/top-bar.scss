@@ -116,6 +116,17 @@
     color: var(--control-text);
 }
 
+.top-bar__action--active {
+    color: var(--control-text);
+    background: var(--control-bg);
+    border-radius: 0.3rem;
+
+    &:hover,
+    &:focus {
+        color: var(--control-text);
+    }
+}
+
 .top-bar__menu {
     display: grid;
     grid-template-rows: 0fr;
@@ -168,6 +179,16 @@
     &:disabled {
         opacity: 0.45;
         cursor: not-allowed;
+    }
+}
+
+.top-bar__menu-item--active {
+    background: var(--control-bg);
+    color: var(--control-text);
+
+    &:hover:not(:disabled),
+    &:focus:not(:disabled) {
+        background: var(--control-bg);
     }
 }
 

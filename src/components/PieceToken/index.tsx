@@ -9,10 +9,11 @@ function fillColor(piece: Piece): string {
 interface Props {
   piece: Piece;
   lifted?: boolean;
+  nameable?: boolean;
   onPointerDown?: (e: React.PointerEvent) => void;
 }
 
-export function PieceToken({ piece, lifted, onPointerDown }: Props) {
+export function PieceToken({ piece, lifted, nameable, onPointerDown }: Props) {
   const color = fillColor(piece);
   const isBall = piece.type === 'ball';
   const isBenchedSub = subNumber(piece) !== null && piece.position === undefined;
@@ -22,6 +23,7 @@ export function PieceToken({ piece, lifted, onPointerDown }: Props) {
     isBall && 'token--ball',
     isBenchedSub && 'token--sub',
     lifted && 'token--lifted',
+    nameable && 'token--nameable',
   ]
     .filter(Boolean)
     .join(' ');

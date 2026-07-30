@@ -1,21 +1,47 @@
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { BoardProvider } from '../../board/BoardContext';
-import { DragProvider, DRAG_THRESHOLD_PX } from '../../board/DragContext';
+import { BoardProvider, useBoardDispatch } from '../../board/BoardContext';
+import { DragProvider } from '../../board/DragContext';
 import { Bench } from '../Bench';
-import { NameEditorProvider } from '.';
+import { NameEditorProvider, useNameEditor } from '.';
+
+function RenameToggle() {
+  const { renaming, toggleRenaming } = useNameEditor();
+  return (
+    <button type="button" onClick={toggleRenaming}>
+      {renaming ? 'rename on' : 'rename off'}
+    </button>
+  );
+}
+
+function DispatchProbe() {
+  const dispatch = useBoardDispatch();
+  return (
+    <button
+      type="button"
+      onClick={() => dispatch({ type: 'PLACE_PIECE', id: 'mine-1', position: { x: 10, y: 20 } })}
+    >
+      place-piece
+    </button>
+  );
+}
 
 function renderBench() {
   return render(
     <BoardProvider>
       <DragProvider>
         <NameEditorProvider>
+          <RenameToggle />
           <Bench />
+          <DispatchProbe />
         </NameEditorProvider>
       </DragProvider>
     </BoardProvider>,
   );
+}
+
+function turnOnRename() {
+  fireEvent.click(screen.getByRole('button', { name: 'rename off' }));
 }
 
 function tap(el: Element) {
@@ -23,9 +49,16 @@ function tap(el: Element) {
   fireEvent.pointerUp(window, { clientX: 100, clientY: 100 });
 }
 
-describe('name editing via click-to-edit', () => {
-  it('clicking a piece opens an input pre-filled with its current name (empty if unset)', () => {
+describe('Rename mode toggle', () => {
+  it('is off by default: pointer-down on a piece does not open the name input', () => {
     renderBench();
+    tap(screen.getAllByLabelText('my team CB')[0]);
+    expect(screen.queryByLabelText('Piece name')).not.toBeInTheDocument();
+  });
+
+  it('turning it on and clicking a piece opens an input pre-filled with its current name (empty if unset)', () => {
+    renderBench();
+    turnOnRename();
     tap(screen.getAllByLabelText('my team CB')[0]);
     const input = screen.getByLabelText('Piece name') as HTMLInputElement;
     expect(input.value).toBe('');
@@ -33,6 +66,7 @@ describe('name editing via click-to-edit', () => {
 
   it('typing and pressing Enter sets the name and closes the input', () => {
     renderBench();
+    turnOnRename();
     const piece = screen.getAllByLabelText('my team CB')[0];
     tap(piece);
     const input = screen.getByLabelText('Piece name');
@@ -44,6 +78,7 @@ describe('name editing via click-to-edit', () => {
 
   it('re-opening shows the previously set name', () => {
     renderBench();
+    turnOnRename();
     const piece = screen.getAllByLabelText('my team CB')[0];
     tap(piece);
     fireEvent.change(screen.getByLabelText('Piece name'), { target: { value: 'Alex' } });
@@ -54,6 +89,7 @@ describe('name editing via click-to-edit', () => {
 
   it('confirming an empty/whitespace value clears the name', () => {
     renderBench();
+    turnOnRename();
     const piece = screen.getAllByLabelText('my team CB')[0];
     tap(piece);
     fireEvent.change(screen.getByLabelText('Piece name'), { target: { value: 'Alex' } });
@@ -66,6 +102,7 @@ describe('name editing via click-to-edit', () => {
 
   it('pressing Escape cancels without changing the stored name', () => {
     renderBench();
+    turnOnRename();
     const piece = screen.getAllByLabelText('my team CB')[0];
     tap(piece);
     fireEvent.change(screen.getByLabelText('Piece name'), { target: { value: 'Alex' } });
@@ -82,28 +119,35 @@ describe('name editing via click-to-edit', () => {
 
   it('enforces a 24-character maxLength', () => {
     renderBench();
+    turnOnRename();
     tap(screen.getAllByLabelText('my team CB')[0]);
     const input = screen.getByLabelText('Piece name');
     expect(input).toHaveAttribute('maxlength', '24');
   });
 
-  it('a drag gesture (pointer down + move past threshold) does not open the name input', () => {
+  it('the ball piece has no name-editing affordance even while rename mode is on', () => {
     renderBench();
-    const piece = screen.getAllByLabelText('my team CB')[0];
-    fireEvent.pointerDown(piece, { clientX: 100, clientY: 100 });
-    fireEvent.pointerMove(window, {
-      clientX: 100,
-      clientY: 100 + DRAG_THRESHOLD_PX + 1,
-    });
-    fireEvent.pointerUp(window, { clientX: 100, clientY: 100 + DRAG_THRESHOLD_PX + 1 });
+    turnOnRename();
+    tap(screen.getByLabelText('ball'));
     expect(screen.queryByLabelText('Piece name')).not.toBeInTheDocument();
   });
 
-  it('the ball piece has no name-editing affordance', async () => {
+  it('with rename mode off, pointer down/move/up drags a piece and never opens the name input', () => {
     renderBench();
-    const ball = screen.getByLabelText('ball');
-    tap(ball);
+    const piece = screen.getAllByLabelText('my team CB')[0];
+    fireEvent.pointerDown(piece, { clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(window, { clientX: 200, clientY: 200 });
+    fireEvent.pointerUp(window, { clientX: 200, clientY: 200 });
     expect(screen.queryByLabelText('Piece name')).not.toBeInTheDocument();
-    await userEvent.hover(ball);
+  });
+
+  it('with rename mode on, pointer-down on a player piece does not dispatch a drag placement', () => {
+    renderBench();
+    turnOnRename();
+    const piece = screen.getAllByLabelText('my team CB')[0];
+    fireEvent.pointerDown(piece, { clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(window, { clientX: 200, clientY: 200 });
+    fireEvent.pointerUp(window, { clientX: 200, clientY: 200 });
+    expect(screen.getByLabelText('Piece name')).toBeInTheDocument();
   });
 });

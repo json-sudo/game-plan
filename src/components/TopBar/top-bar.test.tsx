@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { BoardProvider, useBoard } from '../../board/BoardContext';
 import { boardReducer, createInitialBoard } from '../../board/boardReducer';
 import { buildShareHash } from '../../board/shareCodec';
+import { NameEditorProvider } from '../NameEditor';
 import { TopBar } from '.';
 
 function mockMatchMedia(matches: boolean) {
@@ -44,8 +45,10 @@ function PlacedProbe() {
 function renderTopBar() {
   return render(
     <BoardProvider>
-      <TopBar />
-      <PlacedProbe />
+      <NameEditorProvider>
+        <TopBar />
+        <PlacedProbe />
+      </NameEditorProvider>
     </BoardProvider>,
   );
 }
@@ -165,6 +168,18 @@ describe('Clear and Reset buttons', () => {
       }
     }
     expect(screen.getByRole('button', { name: 'Formation' })).toBeInTheDocument();
+  });
+});
+
+describe('Rename toggle (desktop)', () => {
+  it('is off by default and toggles the pressed state on click', async () => {
+    renderTopBar();
+    const button = screen.getByRole('button', { name: 'Rename pieces' });
+    expect(button).toHaveAttribute('aria-pressed', 'false');
+    await userEvent.click(button);
+    expect(button).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(button);
+    expect(button).toHaveAttribute('aria-pressed', 'false');
   });
 });
 
@@ -496,15 +511,29 @@ describe('Mobile hamburger menu (<825px)', () => {
     return within(screen.getByRole('navigation', { name: 'Menu' }));
   };
 
-  it('opens the panel listing Clear, Reset, Save and Share (Load absent with zero slots)', async () => {
+  it('opens the panel listing Rename, Clear, Reset, Save and Share (Load absent with zero slots)', async () => {
     renderTopBar();
     const menu = await openMenu();
+    expect(menu.getByRole('button', { name: /Rename pieces/ })).toBeInTheDocument();
     expect(menu.getByRole('button', { name: /Clear pitch/ })).toBeInTheDocument();
     expect(menu.getByRole('button', { name: /Reset/ })).toBeInTheDocument();
     expect(menu.getByRole('button', { name: /Save/ })).toBeInTheDocument();
     expect(menu.getByRole('button', { name: /Share/ })).toBeInTheDocument();
     expect(menu.queryByRole('button', { name: /Load/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('selecting Rename pieces toggles rename mode and closes the menu', async () => {
+    renderTopBar();
+    let menu = await openMenu();
+    await userEvent.click(menu.getByRole('button', { name: /Rename pieces/ }));
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false');
+
+    menu = await openMenu();
+    expect(menu.getByRole('button', { name: /Rename pieces/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('selecting Clear pitch closes the menu and clears the board, same as the desktop action', async () => {
@@ -602,7 +631,7 @@ describe('Mobile hamburger menu (<825px)', () => {
     const menuButton = screen.getByRole('button', { name: 'Menu' });
     await userEvent.click(menuButton);
     const menu = within(screen.getByRole('navigation', { name: 'Menu' }));
-    expect(menu.getByRole('button', { name: /Clear pitch/ })).toHaveFocus();
+    expect(menu.getByRole('button', { name: /Rename pieces/ })).toHaveFocus();
 
     await userEvent.keyboard('{Escape}');
     expect(menuButton).toHaveFocus();

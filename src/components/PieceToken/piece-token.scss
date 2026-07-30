@@ -45,6 +45,10 @@
     box-shadow: none;
 }
 
+.token--nameable {
+    cursor: text;
+}
+
 .token--lifted {
     box-shadow: var(--drag-shadow);
     cursor: grabbing;

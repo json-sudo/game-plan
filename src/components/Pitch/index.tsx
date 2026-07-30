@@ -19,20 +19,25 @@ function truncateName(name: string): string {
 
 function PitchPiece({ piece }: { piece: Piece }) {
   const { startDrag, draggingId } = useDrag();
-  const { openNameEditor } = useNameEditor();
+  const { renaming, openNameEditor } = useNameEditor();
   if (!piece.position) return null;
   const { x, y } = piece.position;
   const color = piece.fill.kind === 'solid' ? piece.fill.color : piece.fill.primary;
   const isBall = piece.type === 'ball';
+  const nameable = renaming && !isBall;
 
   const onPointerDown = (e: React.PointerEvent) => {
-    const anchor = e.currentTarget.getBoundingClientRect();
-    startDrag(piece, e, isBall ? undefined : () => openNameEditor(piece, anchor));
+    if (nameable) {
+      e.preventDefault();
+      openNameEditor(piece, e.currentTarget.getBoundingClientRect());
+      return;
+    }
+    startDrag(piece, e);
   };
 
   return (
     <g
-      className="pitch__piece"
+      className={nameable ? 'pitch__piece pitch__piece--nameable' : 'pitch__piece'}
       transform={`translate(${x} ${y})`}
       opacity={draggingId === piece.id ? 0.3 : 1}
       onPointerDown={onPointerDown}

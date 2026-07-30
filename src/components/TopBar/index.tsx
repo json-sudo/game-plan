@@ -6,6 +6,7 @@ import { TEAM_COLORS } from '../../board/boardReducer';
 import { canSaveBoard, SLOT_NAME_MAX_LENGTH } from '../../board/persistence';
 import { usePersistedBoards } from '../../board/usePersistedBoards';
 import { buildShareHash } from '../../board/shareCodec';
+import { useNameEditor } from '../NameEditor';
 import ClearIcon from '../../assets/clear.icon';
 import ResetIcon from '../../assets/reset.icon';
 import DarkThemeIcon from '../../assets/dark.icon';
@@ -15,6 +16,7 @@ import SaveIcon from '../../assets/save.icon';
 import LoadIcon from '../../assets/load.icon';
 import ShareIcon from '../../assets/share.icon';
 import MenuIcon from '../../assets/menu.icon';
+import RenameIcon from '../../assets/rename.icon';
 import { useTheme } from '../../shared/hooks/useTheme';
 import { useBelowBreakpoint } from '../../shared/hooks/useBelowBreakpoint';
 import './top-bar.scss';
@@ -502,6 +504,8 @@ function SharePanel({ url, onClose }: { url: string; onClose: () => void }) {
 function TopBarMenu({
   panelRef,
   open,
+  renaming,
+  onToggleRename,
   onClear,
   onReset,
   onSave,
@@ -516,6 +520,8 @@ function TopBarMenu({
 }: {
   panelRef: React.RefObject<HTMLElement | null>;
   open: boolean;
+  renaming: boolean;
+  onToggleRename: () => void;
   onClear: () => void;
   onReset: () => void;
   onSave: () => void;
@@ -535,6 +541,17 @@ function TopBarMenu({
       inert={!open}
     >
       <nav className="top-bar__menu-list" aria-label="Menu" ref={panelRef}>
+        <button
+          type="button"
+          className={
+            renaming ? 'top-bar__menu-item top-bar__menu-item--active' : 'top-bar__menu-item'
+          }
+          aria-pressed={renaming}
+          onClick={onToggleRename}
+        >
+          <RenameIcon />
+          Rename pieces
+        </button>
         <button type="button" className="top-bar__menu-item" onClick={onClear}>
           <ClearIcon />
           Clear pitch
@@ -597,6 +614,7 @@ export function TopBar() {
   const board = useBoard();
   const dispatch = useBoardDispatch();
   const { theme, toggleTheme } = useTheme();
+  const { renaming, toggleRenaming } = useNameEditor();
   const [modalOpen, setModalOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
@@ -717,6 +735,15 @@ export function TopBar() {
             <>
               <button
                 type="button"
+                className={renaming ? 'top-bar__action top-bar__action--active' : 'top-bar__action'}
+                aria-pressed={renaming}
+                onClick={toggleRenaming}
+              >
+                <RenameIcon />
+                Rename pieces
+              </button>
+              <button
+                type="button"
                 className="top-bar__action"
                 onClick={() => dispatch({ type: 'CLEAR_PITCH' })}
               >
@@ -769,6 +796,11 @@ export function TopBar() {
         <TopBarMenu
           panelRef={menuPanelRef}
           open={menuOpen}
+          renaming={renaming}
+          onToggleRename={() => {
+            toggleRenaming();
+            setMenuOpen(false);
+          }}
           onClear={() => {
             dispatch({ type: 'CLEAR_PITCH' });
             setMenuOpen(false);
