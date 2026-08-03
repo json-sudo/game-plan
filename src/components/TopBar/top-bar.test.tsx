@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BoardProvider, useBoard } from '../../board/BoardContext';
+import { BoardProvider, useBoard, useBoardDispatch } from '../../board/BoardContext';
 import { boardReducer, createInitialBoard } from '../../board/boardReducer';
 import { buildShareHash } from '../../board/shareCodec';
 import { NameEditorProvider } from '../NameEditor';
@@ -48,6 +48,48 @@ function renderTopBar() {
       <NameEditorProvider>
         <TopBar />
         <PlacedProbe />
+      </NameEditorProvider>
+    </BoardProvider>,
+  );
+}
+
+function ScenarioButton({
+  mine,
+  opponent,
+}: {
+  mine: { count: number; y: number };
+  opponent: { count: number; y: number };
+}) {
+  const dispatch = useBoardDispatch();
+  const place = () => {
+    for (let i = 1; i <= mine.count; i++) {
+      dispatch({ type: 'PLACE_PIECE', id: `mine-${i}`, position: { x: 5 + i * 3, y: mine.y } });
+    }
+    for (let i = 1; i <= opponent.count; i++) {
+      dispatch({
+        type: 'PLACE_PIECE',
+        id: `opponent-${i}`,
+        position: { x: 5 + i * 3, y: opponent.y },
+      });
+    }
+  };
+  return (
+    <button type="button" onClick={place}>
+      apply-scenario
+    </button>
+  );
+}
+
+function renderTopBarWithScenario(
+  mine: { count: number; y: number },
+  opponent: { count: number; y: number },
+) {
+  return render(
+    <BoardProvider>
+      <NameEditorProvider>
+        <TopBar />
+        <PlacedProbe />
+        <ScenarioButton mine={mine} opponent={opponent} />
       </NameEditorProvider>
     </BoardProvider>,
   );
@@ -153,6 +195,145 @@ describe('Matchup mode', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
     expect(screen.getByTestId('placed-opponent')).toHaveTextContent('0');
+  });
+});
+
+describe('Matchup mode Visualize toggle', () => {
+  const enterMatchup = async () => {
+    await openModal();
+    await userEvent.click(screen.getByRole('button', { name: 'Matchup' }));
+  };
+
+  it('shows a Visualize toggle alongside the attacker toggle and formation pickers, off by default', async () => {
+    renderTopBar();
+    await enterMatchup();
+    expect(screen.getByRole('button', { name: 'My Team attacks' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('group', { name: 'My Team formation' }),
+    ).toBeInTheDocument();
+    const toggle = screen.getByRole('button', { name: 'Visualize' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('is not gated by piece count — the toggle is available even on an empty pitch', async () => {
+    renderTopBar();
+    await enterMatchup();
+    expect(screen.getByRole('button', { name: 'Visualize' })).toBeEnabled();
+  });
+
+  it('with the toggle off, Apply behaves exactly as today: places both teams and closes (regression)', async () => {
+    renderTopBar();
+    await enterMatchup();
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
+    expect(screen.getByTestId('placed-opponent')).toHaveTextContent('10');
+  });
+
+  it('with the toggle on, Apply places the matchup but proceeds into the visualization-settings step instead of closing', async () => {
+    renderTopBar();
+    await enterMatchup();
+    await userEvent.click(screen.getByRole('button', { name: 'Visualize' }));
+    expect(screen.getByRole('button', { name: 'Visualize' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+    // The matchup is applied even though the flow continues.
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
+    expect(screen.getByTestId('placed-opponent')).toHaveTextContent('10');
+
+    // The flow moves into a new step rather than closing: the matchup-picking UI
+    // (Apply button, per-team formation pickers) is gone, but a dialog remains open.
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Apply' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('group', { name: 'My Team formation' }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('Header Visualize button — gating', () => {
+  it('is disabled with zero pieces placed', () => {
+    renderTopBar();
+    expect(screen.getByRole('button', { name: 'Visualize' })).toBeDisabled();
+  });
+
+  it('stays disabled below 7 pieces total, even split evenly across both teams', async () => {
+    renderTopBarWithScenario({ count: 3, y: 60 }, { count: 3, y: 40 });
+    await userEvent.click(screen.getByRole('button', { name: 'apply-scenario' }));
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('3');
+    expect(screen.getByTestId('placed-opponent')).toHaveTextContent('3');
+    expect(screen.getByRole('button', { name: 'Visualize' })).toBeDisabled();
+  });
+
+  it('stays disabled at >= 7 total when the defending side (opponent, since My Team is attacking from the top half) has fewer than 2 pieces', async () => {
+    renderTopBarWithScenario({ count: 6, y: 40 }, { count: 1, y: 60 });
+    await userEvent.click(screen.getByRole('button', { name: 'apply-scenario' }));
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('6');
+    expect(screen.getByTestId('placed-opponent')).toHaveTextContent('1');
+    expect(screen.getByRole('button', { name: 'Visualize' })).toBeDisabled();
+  });
+
+  it('stays disabled at >= 7 total when the defending side (My Team, in its own bottom half) has fewer than 2 pieces', async () => {
+    renderTopBarWithScenario({ count: 1, y: 90 }, { count: 6, y: 10 });
+    await userEvent.click(screen.getByRole('button', { name: 'apply-scenario' }));
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('1');
+    expect(screen.getByTestId('placed-opponent')).toHaveTextContent('6');
+    expect(screen.getByRole('button', { name: 'Visualize' })).toBeDisabled();
+  });
+
+  it('is enabled once total >= 7 pieces and the defending side has >= 2 pieces', async () => {
+    renderTopBarWithScenario({ count: 6, y: 40 }, { count: 2, y: 60 });
+    await userEvent.click(screen.getByRole('button', { name: 'apply-scenario' }));
+    expect(screen.getByRole('button', { name: 'Visualize' })).toBeEnabled();
+  });
+});
+
+describe('Header Visualize button — entry point', () => {
+  it('starts the visualization-settings step directly against the current board, without re-applying any formation', async () => {
+    renderTopBarWithScenario({ count: 6, y: 40 }, { count: 2, y: 60 });
+    await userEvent.click(screen.getByRole('button', { name: 'apply-scenario' }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Visualize' }));
+
+    // Board placement is untouched — no formation/matchup got applied on click.
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('6');
+    expect(screen.getByTestId('placed-opponent')).toHaveTextContent('2');
+    expect(screen.getByTestId('formation-mine')).toHaveTextContent('none');
+    expect(screen.getByTestId('formation-opponent')).toHaveTextContent('none');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('defaults to My Team attacking when My Team is placed in the top half', async () => {
+    renderTopBarWithScenario({ count: 6, y: 40 }, { count: 2, y: 60 });
+    await userEvent.click(screen.getByRole('button', { name: 'apply-scenario' }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Visualize' }));
+
+    expect(screen.getByRole('button', { name: 'My Team attacks' })).toHaveClass('is-active');
+  });
+
+  it('defaults to My Team defending when My Team is placed in the bottom half', async () => {
+    renderTopBarWithScenario({ count: 6, y: 60 }, { count: 2, y: 40 });
+    await userEvent.click(screen.getByRole('button', { name: 'apply-scenario' }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Visualize' }));
+
+    expect(screen.getByRole('button', { name: 'Opponent attacks' })).toHaveClass('is-active');
+  });
+
+  it('lets the user override the inferred attacker default via the attacker toggle', async () => {
+    renderTopBarWithScenario({ count: 6, y: 40 }, { count: 2, y: 60 });
+    await userEvent.click(screen.getByRole('button', { name: 'apply-scenario' }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Visualize' }));
+    expect(screen.getByRole('button', { name: 'My Team attacks' })).toHaveClass('is-active');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Opponent attacks' }));
+    expect(screen.getByRole('button', { name: 'Opponent attacks' })).toHaveClass('is-active');
   });
 });
 

@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import type { Piece } from '../../board/types';
 import { FORMATION_ANIMATION_MS, useBoard, useBoardAnimating } from '../../board/BoardContext';
 import { useDrag } from '../../board/DragContext';
+import { useVisualize } from '../../board/VisualizeContext';
 import { useNameEditor } from '../NameEditor';
 import ballImg from '../../assets/ball.png';
 import './pitch.scss';
@@ -20,6 +21,7 @@ function truncateName(name: string): string {
 function PitchPiece({ piece }: { piece: Piece }) {
   const { startDrag, draggingId } = useDrag();
   const { renaming, openNameEditor } = useNameEditor();
+  const visualize = useVisualize();
   if (!piece.position) return null;
   const { x, y } = piece.position;
   const color = piece.fill.kind === 'solid' ? piece.fill.color : piece.fill.primary;
@@ -27,6 +29,13 @@ function PitchPiece({ piece }: { piece: Piece }) {
   const nameable = renaming && !isBall;
 
   const onPointerDown = (e: React.PointerEvent) => {
+    if (visualize.active) {
+      if (!isBall && piece.team === visualize.attacker) {
+        e.preventDefault();
+        visualize.selectCarrier(piece.id);
+      }
+      return;
+    }
     if (nameable) {
       e.preventDefault();
       openNameEditor(piece, e.currentTarget.getBoundingClientRect());
