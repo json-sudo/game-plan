@@ -31,6 +31,10 @@ $pitch-stripe: #428556;
     --control-text: #ffffff;
     --control-idle-bg: color-mix(in srgb, #1c1b17 10%, transparent);
     --drag-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.18);
+    --visualize-accent: #c8763e;
+    --visualize-accent-hover: #b8672f;
+    --visualize-accent-text: #ffffff;
+    --visualize-accent-idle-bg: color-mix(in srgb, #c8763e 14%, transparent);
 }
 
 @mixin dark-theme {
@@ -48,4 +52,8 @@ $pitch-stripe: #428556;
     --control-text: #1a1108;
     --control-idle-bg: color-mix(in srgb, #ffffff 8%, transparent);
     --drag-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
+    --visualize-accent: #d98b52;
+    --visualize-accent-hover: #e39c69;
+    --visualize-accent-text: #1a1108;
+    --visualize-accent-idle-bg: color-mix(in srgb, #d98b52 16%, transparent);
 }

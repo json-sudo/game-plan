@@ -71,7 +71,7 @@ async function placeScenarioAndOpenVisualize(
   renderApp(mine, opponent);
   await userEvent.click(screen.getByRole('button', { name: 'apply-scenario' }));
   await userEvent.click(screen.getByRole('button', { name: 'Visualize' }));
-  return screen.getByRole('dialog', { name: 'Visualize' });
+  return screen.getByRole('region', { name: 'Visualize' });
 }
 
 const clickPiece = (name: string) => {
@@ -136,7 +136,7 @@ describe('Action selection', () => {
     clickPiece('my team CB');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Dribble' }));
 
-    const directionGroup = within(dialog).getByRole('group', { name: /direction/i });
+    const directionGroup = screen.getByRole('group', { name: /direction/i });
     const directions = within(directionGroup).getAllByRole('button');
     expect(directions.length).toBeGreaterThan(0);
     expect(dialog.querySelector('input[type="number"]')).toBeNull();
@@ -165,5 +165,14 @@ describe('Shoot/Clear contextual gating', () => {
     const actionGroup = within(dialog).getByRole('group', { name: 'Action' });
     expect(within(actionGroup).queryByRole('button', { name: 'Shoot' })).not.toBeInTheDocument();
     expect(within(actionGroup).queryByRole('button', { name: 'Clear' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Attacker options gating', () => {
+  it('leaves both options enabled when both teams are on the pitch', async () => {
+    const dialog = await placeScenarioAndOpenVisualize({ count: 6, y: 40 }, { count: 2, y: 60 });
+    const attackerGroup = within(dialog).getByRole('group', { name: 'Attacker' });
+    expect(within(attackerGroup).getByRole('button', { name: /^mine$/i })).toBeEnabled();
+    expect(within(attackerGroup).getByRole('button', { name: /^opponent$/i })).toBeEnabled();
   });
 });

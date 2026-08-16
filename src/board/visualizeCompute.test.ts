@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { boardReducer, createInitialBoard } from './boardReducer';
-import { PITCH_H, PITCH_W } from '../components/Pitch';
+import { PITCH_H, PITCH_W } from './pitchGeometry';
 import type { BoardState } from './types';
 import {
   ATTACKING_DISTANT_REACTION_DISTANCE,
@@ -123,37 +123,29 @@ describe('computeVisualizeOutcome', () => {
     });
 
     it('uses the compact DEFENDER_DRIBBLE_DISTANCE / DEFENDER_ROLE_ALLOWED_DRIBBLE_DIRECTIONS tables when the carrier is on the non-attacking (defending) team', () => {
-      // Attacker is 'mine', so a carrier on 'opponent' is the defending side —
-      // this should branch to the DEFENDER_* tables, not the attacking-style ones.
       let board = createInitialBoard();
-      board = place(board, 'opponent-4', 40, 50); // CB
-      const before = board.pieces.find((p) => p.id === 'opponent-4')!.position!;
+      board = place(board, 'opponent-1', 40, 50); // CB
+      const before = board.pieces.find((p) => p.id === 'opponent-1')!.position!;
 
       const outcome = computeVisualizeOutcome(board, {
         attacker: 'mine',
-        carrierId: 'opponent-4',
+        carrierId: 'opponent-1',
         action: 'dribble',
         dribbleDirection: 'forward',
       });
-      const after = outcome.get('opponent-4')!;
-
-      // 'opponent' attacks toward y = PITCH_H, so forward increases y.
+      const after = outcome.get('opponent-1')!;
       expect(after.x).toBeCloseTo(before.x, 6);
       expect(after.y).toBeCloseTo(before.y + DEFENDER_DRIBBLE_DISTANCE.centerBack, 6);
-      // The attacking-style distance table would have moved it much further —
-      // confirm the compact, defender-style distance was actually used.
       expect(DEFENDER_DRIBBLE_DISTANCE.centerBack).toBeLessThan(DRIBBLE_DISTANCE.centerBack);
 
-      // A direction outside the defender-style allowed arc (only 'forward' is
-      // allowed for a defending center back) should yield no net displacement.
       expect(DEFENDER_ROLE_ALLOWED_DRIBBLE_DIRECTIONS.centerBack).toEqual(['forward']);
       const sidewaysOutcome = computeVisualizeOutcome(board, {
         attacker: 'mine',
-        carrierId: 'opponent-4',
+        carrierId: 'opponent-1',
         action: 'dribble',
         dribbleDirection: 'left',
       });
-      expect(sidewaysOutcome.get('opponent-4')).toEqual(before);
+      expect(sidewaysOutcome.get('opponent-1')).toEqual(before);
     });
   });
 
@@ -260,9 +252,6 @@ describe('computeVisualizeOutcome', () => {
       expect(nearMove).toBeLessThanOrEqual(ATTACKING_NEAR_PLAY_REACTION_DISTANCE);
       expect(farMove).toBeLessThanOrEqual(ATTACKING_DISTANT_REACTION_DISTANCE);
       expect(nearMove).toBeGreaterThan(farMove);
-
-      // Confirm the attacking-style tables (which are larger) were actually
-      // used, not the defending-style ones a broken branch would fall back to.
       expect(nearMove).toBeGreaterThan(NEAR_PLAY_REACTION_DISTANCE);
       expect(farMove).toBeGreaterThan(DISTANT_REACTION_DISTANCE);
     });

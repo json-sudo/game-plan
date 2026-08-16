@@ -1,14 +1,18 @@
 import type { CSSProperties } from 'react';
 import type { Piece } from '../../board/types';
-import { FORMATION_ANIMATION_MS, useBoard, useBoardAnimating } from '../../board/BoardContext';
+import {
+  FORMATION_ANIMATION_MS,
+  useBoard,
+  useBoardAnimating,
+  useBoardAnimatingDuration,
+  useBoardDispatch,
+} from '../../board/BoardContext';
 import { useDrag } from '../../board/DragContext';
 import { useVisualize } from '../../board/VisualizeContext';
+import { PITCH_H, PITCH_W } from '../../board/pitchGeometry';
 import { useNameEditor } from '../NameEditor';
 import ballImg from '../../assets/ball.png';
 import './pitch.scss';
-
-export const PITCH_W = 76.19;
-export const PITCH_H = 100;
 
 // SVG text can't ellipsize itself; cap rendered names and expose the full
 // name via <title>. Tuned by eye against the 2.2-radius token.
@@ -22,17 +26,22 @@ function PitchPiece({ piece }: { piece: Piece }) {
   const { startDrag, draggingId } = useDrag();
   const { renaming, openNameEditor } = useNameEditor();
   const visualize = useVisualize();
+  const dispatch = useBoardDispatch();
   if (!piece.position) return null;
   const { x, y } = piece.position;
   const color = piece.fill.kind === 'solid' ? piece.fill.color : piece.fill.primary;
   const isBall = piece.type === 'ball';
   const nameable = renaming && !isBall;
+  const isCarrierRing = visualize.active && visualize.carrierId === piece.id;
+  const isTargetRing =
+    visualize.active && visualize.action === 'pass' && visualize.passTargetId === piece.id;
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (visualize.active) {
       if (!isBall && piece.team === visualize.attacker) {
         e.preventDefault();
         visualize.selectCarrier(piece.id);
+        dispatch({ type: 'PLACE_VISUALIZE_BALL_HOP', position: { x, y } });
       }
       return;
     }
@@ -58,6 +67,9 @@ function PitchPiece({ piece }: { piece: Piece }) {
         <image href={ballImg} x={-1.2} y={-1.2} width={2.4} height={2.4} />
       ) : (
         <>
+          {(isCarrierRing || isTargetRing) && (
+            <circle r={3.1} className="pitch__visualize-ring" />
+          )}
           <circle r={2.2} fill={color} />
           <text className="pitch__label">{piece.label}</text>
           {piece.name && (
@@ -77,15 +89,30 @@ function PitchPiece({ piece }: { piece: Piece }) {
 export function Pitch() {
   const board = useBoard();
   const animating = useBoardAnimating();
+  const animatingDuration = useBoardAnimatingDuration();
   const { pitchRef } = useDrag();
+  const visualize = useVisualize();
   const placed = board.pieces.filter((p) => p.position !== undefined);
   const cx = PITCH_W / 2;
+
+  const carrierPiece =
+    visualize.active && visualize.carrierId
+      ? board.pieces.find((p) => p.id === visualize.carrierId)
+      : undefined;
+  const passTargetPiece =
+    visualize.active && visualize.action === 'pass' && visualize.passTargetId
+      ? board.pieces.find((p) => p.id === visualize.passTargetId)
+      : undefined;
 
   return (
     <svg
       ref={pitchRef}
       className={animating ? 'pitch pitch--animating' : 'pitch'}
-      style={{ '--formation-anim-duration': `${FORMATION_ANIMATION_MS}ms` } as CSSProperties}
+      style={
+        {
+          '--formation-anim-duration': `${animatingDuration ?? FORMATION_ANIMATION_MS}ms`,
+        } as CSSProperties
+      }
       viewBox={`0 0 ${PITCH_W} ${PITCH_H}`}
       role="img"
       aria-label="pitch"
@@ -136,6 +163,16 @@ export function Pitch() {
             </text>
           </g>
         </>
+      )}
+
+      {carrierPiece?.position && passTargetPiece?.position && (
+        <line
+          className="pitch__visualize-line"
+          x1={carrierPiece.position.x}
+          y1={carrierPiece.position.y}
+          x2={passTargetPiece.position.x}
+          y2={passTargetPiece.position.y}
+        />
       )}
 
       {placed.map((p) => (

@@ -1,5 +1,5 @@
 import type { BoardState, Team } from './types';
-import { PITCH_H } from '../components/Pitch';
+import { PITCH_H } from './pitchGeometry';
 
 export type VisualizeAction = 'pass' | 'dribble' | 'shoot' | 'clear';
 

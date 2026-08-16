@@ -144,23 +144,23 @@ describe('Formation Preset modal', () => {
   });
 });
 
+const picker = (team: 'My Formation' | 'Opponent Formation') =>
+  screen.getByRole('combobox', { name: team });
+
 describe('Matchup mode', () => {
   const enterMatchup = async () => {
     await openModal();
     await userEvent.click(screen.getByRole('button', { name: 'Matchup' }));
   };
-  const picker = (team: 'My Team' | 'Opponent') =>
-    within(screen.getByRole('group', { name: `${team} formation` }));
-
   it('reveals attacker toggle and per-team pickers with defaults, without applying', async () => {
     renderTopBar();
     await enterMatchup();
-    expect(screen.getByRole('button', { name: 'My Team attacks' })).toHaveClass('is-active');
-    expect(picker('My Team').getByRole('button', { name: '4-3-3' })).toHaveClass('is-active');
-    expect(picker('Opponent').getByRole('button', { name: '4-3-3' })).toHaveClass('is-active');
+    expect(screen.getByRole('button', { name: 'Mine' })).toHaveClass('is-active');
+    expect(picker('My Formation')).toHaveValue('4-3-3');
+    expect(picker('Opponent Formation')).toHaveValue('4-3-3');
 
-    await userEvent.click(picker('My Team').getByRole('button', { name: '4-4-2' }));
-    expect(picker('My Team').getByRole('button', { name: '4-4-2' })).toHaveClass('is-active');
+    await userEvent.selectOptions(picker('My Formation'), '4-4-2');
+    expect(picker('My Formation')).toHaveValue('4-4-2');
     expect(screen.getByTestId('placed-mine')).toHaveTextContent('0');
     expect(screen.getByTestId('placed-opponent')).toHaveTextContent('0');
   });
@@ -168,9 +168,9 @@ describe('Matchup mode', () => {
   it('applies both teams on Apply and closes', async () => {
     renderTopBar();
     await enterMatchup();
-    await userEvent.click(picker('My Team').getByRole('button', { name: '4-4-2' }));
-    await userEvent.click(picker('Opponent').getByRole('button', { name: '3-5-2' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    await userEvent.selectOptions(picker('My Formation'), '4-4-2');
+    await userEvent.selectOptions(picker('Opponent Formation'), '3-5-2');
+    await userEvent.click(screen.getByRole('button', { name: 'Apply matchup' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
     expect(screen.getByTestId('placed-opponent')).toHaveTextContent('10');
@@ -183,8 +183,8 @@ describe('Matchup mode', () => {
     await openModal();
     await userEvent.click(screen.getByRole('button', { name: '4-2-3-1' }));
     await enterMatchup();
-    expect(picker('My Team').getByRole('button', { name: '4-2-3-1' })).toHaveClass('is-active');
-    expect(picker('Opponent').getByRole('button', { name: '4-3-3' })).toHaveClass('is-active');
+    expect(picker('My Formation')).toHaveValue('4-2-3-1');
+    expect(picker('Opponent Formation')).toHaveValue('4-3-3');
   });
 
   it('switching back to a single team restores click-to-apply', async () => {
@@ -207,10 +207,8 @@ describe('Matchup mode Visualize toggle', () => {
   it('shows a Visualize toggle alongside the attacker toggle and formation pickers, off by default', async () => {
     renderTopBar();
     await enterMatchup();
-    expect(screen.getByRole('button', { name: 'My Team attacks' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('group', { name: 'My Team formation' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mine' })).toBeInTheDocument();
+    expect(picker('My Formation')).toBeInTheDocument();
     const toggle = screen.getByRole('button', { name: 'Visualize' });
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
   });
@@ -224,7 +222,7 @@ describe('Matchup mode Visualize toggle', () => {
   it('with the toggle off, Apply behaves exactly as today: places both teams and closes (regression)', async () => {
     renderTopBar();
     await enterMatchup();
-    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Apply matchup' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
     expect(screen.getByTestId('placed-opponent')).toHaveTextContent('10');
@@ -239,19 +237,14 @@ describe('Matchup mode Visualize toggle', () => {
       'true',
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Apply matchup' }));
 
-    // The matchup is applied even though the flow continues.
     expect(screen.getByTestId('placed-mine')).toHaveTextContent('10');
     expect(screen.getByTestId('placed-opponent')).toHaveTextContent('10');
 
-    // The flow moves into a new step rather than closing: the matchup-picking UI
-    // (Apply button, per-team formation pickers) is gone, but a dialog remains open.
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Apply' })).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('group', { name: 'My Team formation' }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Visualize' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Apply matchup' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'My Formation' })).not.toBeInTheDocument();
   });
 });
 
@@ -299,12 +292,11 @@ describe('Header Visualize button — entry point', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Visualize' }));
 
-    // Board placement is untouched — no formation/matchup got applied on click.
     expect(screen.getByTestId('placed-mine')).toHaveTextContent('6');
     expect(screen.getByTestId('placed-opponent')).toHaveTextContent('2');
     expect(screen.getByTestId('formation-mine')).toHaveTextContent('none');
     expect(screen.getByTestId('formation-opponent')).toHaveTextContent('none');
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Visualize' })).toBeInTheDocument();
   });
 
   it('defaults to My Team attacking when My Team is placed in the top half', async () => {
@@ -313,7 +305,7 @@ describe('Header Visualize button — entry point', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Visualize' }));
 
-    expect(screen.getByRole('button', { name: 'My Team attacks' })).toHaveClass('is-active');
+    expect(screen.getByRole('button', { name: 'Mine' })).toHaveClass('is-active');
   });
 
   it('defaults to My Team defending when My Team is placed in the bottom half', async () => {
@@ -322,7 +314,7 @@ describe('Header Visualize button — entry point', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Visualize' }));
 
-    expect(screen.getByRole('button', { name: 'Opponent attacks' })).toHaveClass('is-active');
+    expect(screen.getByRole('button', { name: 'Opponent' })).toHaveClass('is-active');
   });
 
   it('lets the user override the inferred attacker default via the attacker toggle', async () => {
@@ -330,10 +322,10 @@ describe('Header Visualize button — entry point', () => {
     await userEvent.click(screen.getByRole('button', { name: 'apply-scenario' }));
 
     await userEvent.click(screen.getByRole('button', { name: 'Visualize' }));
-    expect(screen.getByRole('button', { name: 'My Team attacks' })).toHaveClass('is-active');
+    expect(screen.getByRole('button', { name: 'Mine' })).toHaveClass('is-active');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Opponent attacks' }));
-    expect(screen.getByRole('button', { name: 'Opponent attacks' })).toHaveClass('is-active');
+    await userEvent.click(screen.getByRole('button', { name: 'Opponent' }));
+    expect(screen.getByRole('button', { name: 'Opponent' })).toHaveClass('is-active');
   });
 });
 

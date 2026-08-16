@@ -1,4 +1,4 @@
-import { PITCH_H, PITCH_W } from '../components/Pitch';
+import { PITCH_H, PITCH_W } from './pitchGeometry';
 import type { BoardState, Piece, Team } from './types';
 import type { VisualizeAction } from './visualizeActions';
 import type { DribbleDirection } from './VisualizeContext';

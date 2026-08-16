@@ -1,5 +1,6 @@
 import type { Piece, SquadSize, Team } from '../../board/types';
-import { subNumber, TEAM_COLORS } from '../../board/boardReducer';
+import { TEAM_COLORS } from '../../board/boardReducer';
+import { subNumber } from '../../board/pieces';
 import { useBoard, useBoardDispatch } from '../../board/BoardContext';
 import { useDrag } from '../../board/DragContext';
 import { useNameEditor } from '../NameEditor';

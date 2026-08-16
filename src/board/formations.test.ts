@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FORMATIONS, MATCHUP_OFFSET, MIN_SEP, getFormation, mirrorSlot } from './formations';
-import { boardReducer, createInitialBoard, subNumber } from './boardReducer';
+import { boardReducer, createInitialBoard } from './boardReducer';
+import { subNumber } from './pieces';
 import type { BoardState, Team } from './types';
 
 const EXPECTED_LABELS: Record<string, string[]> = {

@@ -11,7 +11,7 @@ import {
 import type { Piece } from './types';
 import { useBoardDispatch } from './BoardContext';
 import { PieceToken } from '../components/PieceToken';
-import { PITCH_W, PITCH_H } from '../components/Pitch';
+import { PITCH_W, PITCH_H } from './pitchGeometry';
 
 interface DragApi {
   pitchRef: RefObject<SVGSVGElement | null>;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { boardReducer, createInitialBoard } from './boardReducer';
-import { PITCH_H } from '../components/Pitch';
+import { PITCH_H } from './pitchGeometry';
 import { ATTACKING_THIRD_DEPTH, PRESSURE_RADIUS, getAvailableActions } from './visualizeActions';
 import type { BoardState } from './types';
 

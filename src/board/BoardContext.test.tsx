@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { BoardProvider, useBoard, useShareLinkError } from './BoardContext';
+import { BoardProvider, useBoard, useBoardDispatch, useShareLinkError } from './BoardContext';
 import { boardReducer, createInitialBoard } from './boardReducer';
 import { BOARDS_STORAGE_KEY, type BoardsWrapper } from './persistence';
 import { buildShareHash } from './shareCodec';
@@ -8,6 +8,7 @@ import type { BoardState } from './types';
 
 function Probe() {
   const board = useBoard();
+  const dispatch = useBoardDispatch();
   const [shareLinkError] = useShareLinkError();
   const placedMine = board.pieces.filter(
     (p) => p.team === 'mine' && p.type === 'player' && p.position !== undefined,
@@ -16,6 +17,9 @@ function Probe() {
     <div>
       <span data-testid="placed-mine">{placedMine}</span>
       <span data-testid="share-link-error">{String(shareLinkError)}</span>
+      <button type="button" onClick={() => dispatch({ type: 'LOAD_BOARD', board: createInitialBoard() })}>
+        load
+      </button>
     </div>
   );
 }
@@ -135,5 +139,44 @@ describe('share-link boot precedence', () => {
     renderProbe();
     expect(screen.getByTestId('share-link-error')).toHaveTextContent('false');
     expect(screen.getByTestId('placed-mine')).toHaveTextContent('0');
+  });
+});
+
+describe('share hash cleanup', () => {
+  it('clears a valid share hash from the URL after booting from it, so a refresh does not re-apply it', () => {
+    const sharedBoard = boardReducer(createInitialBoard(), {
+      type: 'PLACE_PIECE',
+      id: 'mine-1',
+      position: { x: 5, y: 5 },
+    });
+    window.location.hash = buildShareHash(sharedBoard);
+
+    renderProbe();
+    expect(screen.getByTestId('placed-mine')).toHaveTextContent('1');
+    expect(window.location.hash).toBe('');
+  });
+
+  it('clears a malformed share hash from the URL after falling back, so a refresh stops re-showing the error', () => {
+    window.location.hash = '#s=v1.not-valid-base64!!!';
+
+    renderProbe();
+    expect(screen.getByTestId('share-link-error')).toHaveTextContent('true');
+    expect(window.location.hash).toBe('');
+  });
+
+  it('leaves an unrelated hash alone', () => {
+    window.location.hash = '#/some-other-route';
+    renderProbe();
+    expect(window.location.hash).toBe('#/some-other-route');
+  });
+
+  it('clears the share hash again when LOAD_BOARD is dispatched, so it cannot outrank the loaded slot next boot', () => {
+    window.location.hash = buildShareHash(createInitialBoard());
+    renderProbe();
+    expect(window.location.hash).toBe('');
+
+    window.location.hash = buildShareHash(createInitialBoard());
+    screen.getByRole('button', { name: 'load' }).click();
+    expect(window.location.hash).toBe('');
   });
 });

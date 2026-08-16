@@ -16,12 +16,15 @@ import { decodeShareHash, looksLikeShareHash } from './shareCodec';
 
 export const FORMATION_ANIMATION_MS = 400;
 
+export const VISUALIZE_PRE_ANIMATION_DELAY_MS = 1200;
+export const VISUALIZE_ANIMATION_MS = 4000;
+
 const BoardStateContext = createContext<BoardState | null>(null);
 const BoardDispatchContext = createContext<Dispatch<BoardAction> | null>(null);
 const BoardAnimatingContext = createContext(false);
+const BoardAnimatingDurationContext = createContext<number | null>(null);
 const ShareLinkErrorContext = createContext<[boolean, () => void]>([false, () => {}]);
 
-/** The normal boot path — most-recent saved slot if one exists, else a fresh board. */
 function normalBootBoard(): BoardState {
   const result = loadBoardsWrapper();
   if (result.status === 'ok') {
@@ -31,51 +34,93 @@ function normalBootBoard(): BoardState {
   return createInitialBoard();
 }
 
-/**
- * A valid share hash in the URL wins over the saved-slot auto-load; a malformed one
- * shows an inline error and falls back to the normal boot path. No hash at all (or a
- * hash that isn't attempting to be a share link) also uses the normal boot path,
- * silently.
- */
-function computeBootState(): { board: BoardState; shareLinkError: boolean } {
+/** Drops the share hash from the URL without a navigation, so it stops outranking future state changes. */
+function clearShareHashFromUrl() {
+  if (typeof window === 'undefined') return;
+  window.history.replaceState(null, '', window.location.pathname + window.location.search);
+}
+
+function computeBootState(): { board: BoardState; shareLinkError: boolean; hadShareHash: boolean } {
   const hash = typeof window !== 'undefined' ? window.location.hash : '';
   if (!looksLikeShareHash(hash)) {
-    return { board: normalBootBoard(), shareLinkError: false };
+    return { board: normalBootBoard(), shareLinkError: false, hadShareHash: false };
   }
   const result = decodeShareHash(hash);
   if (result.status === 'ok') {
-    return { board: result.board, shareLinkError: false };
+    return { board: result.board, shareLinkError: false, hadShareHash: true };
   }
-  return { board: normalBootBoard(), shareLinkError: true };
+  return { board: normalBootBoard(), shareLinkError: true, hadShareHash: true };
 }
 
 export function BoardProvider({ children }: { children: ReactNode }) {
   const [boot] = useState(computeBootState);
   const [state, dispatch] = useReducer(boardReducer, boot.board);
   const [shareLinkError, setShareLinkError] = useState(boot.shareLinkError);
-  const [animating, setAnimating] = useState(false);
+  const [animatingDuration, setAnimatingDuration] = useState<number | null>(null);
   const timeoutRef = useRef<number | undefined>(undefined);
+  const visualizeDelayRef = useRef<number | undefined>(undefined);
+  const visualizeBallHopRef = useRef<number | undefined>(undefined);
 
   const dispatchWithAnimation = useCallback((action: BoardAction) => {
-    if (action.type === 'APPLY_FORMATION' || action.type === 'APPLY_MATCHUP') {
-      setAnimating(true);
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = window.setTimeout(() => setAnimating(false), FORMATION_ANIMATION_MS);
+    window.clearTimeout(timeoutRef.current);
+    window.clearTimeout(visualizeDelayRef.current);
+    window.clearTimeout(visualizeBallHopRef.current);
+
+    if (
+      action.type === 'APPLY_FORMATION' ||
+      action.type === 'APPLY_MATCHUP' ||
+      action.type === 'PLACE_VISUALIZE_BALL_HOP'
+    ) {
+      setAnimatingDuration(FORMATION_ANIMATION_MS);
+      timeoutRef.current = window.setTimeout(() => setAnimatingDuration(null), FORMATION_ANIMATION_MS);
+      dispatch(action);
+      return;
+    }
+    if (action.type === 'APPLY_VISUALIZE_OUTCOME') {
+      setAnimatingDuration(null);
+      visualizeDelayRef.current = window.setTimeout(() => {
+        dispatch(action);
+        setAnimatingDuration(VISUALIZE_ANIMATION_MS);
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = window.setTimeout(
+          () => setAnimatingDuration(null),
+          VISUALIZE_ANIMATION_MS,
+        );
+      }, VISUALIZE_PRE_ANIMATION_DELAY_MS);
+      return;
+    }
+    if (action.type === 'LOAD_BOARD') {
+      clearShareHashFromUrl();
+      dispatch(action);
+      return;
     }
     dispatch(action);
   }, []);
 
-  useEffect(() => () => window.clearTimeout(timeoutRef.current), []);
+  useEffect(() => {
+    if (boot.hadShareHash) clearShareHashFromUrl();
+  }, [boot.hadShareHash]);
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(timeoutRef.current);
+      window.clearTimeout(visualizeDelayRef.current);
+      window.clearTimeout(visualizeBallHopRef.current);
+    },
+    [],
+  );
 
   const dismissShareLinkError = useCallback(() => setShareLinkError(false), []);
 
   return (
     <BoardStateContext.Provider value={state}>
       <BoardDispatchContext.Provider value={dispatchWithAnimation}>
-        <BoardAnimatingContext.Provider value={animating}>
-          <ShareLinkErrorContext.Provider value={[shareLinkError, dismissShareLinkError]}>
-            {children}
-          </ShareLinkErrorContext.Provider>
+        <BoardAnimatingContext.Provider value={animatingDuration !== null}>
+          <BoardAnimatingDurationContext.Provider value={animatingDuration}>
+            <ShareLinkErrorContext.Provider value={[shareLinkError, dismissShareLinkError]}>
+              {children}
+            </ShareLinkErrorContext.Provider>
+          </BoardAnimatingDurationContext.Provider>
         </BoardAnimatingContext.Provider>
       </BoardDispatchContext.Provider>
     </BoardStateContext.Provider>
@@ -98,7 +143,10 @@ export function useBoardAnimating(): boolean {
   return useContext(BoardAnimatingContext);
 }
 
-/** `[hasError, dismiss]` for the "this share link couldn't be opened" boot-time banner. */
+export function useBoardAnimatingDuration(): number | null {
+  return useContext(BoardAnimatingDurationContext);
+}
+
 export function useShareLinkError(): [boolean, () => void] {
   return useContext(ShareLinkErrorContext);
 }

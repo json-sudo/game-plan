@@ -1,4 +1,4 @@
-import { PITCH_W, PITCH_H } from '../components/Pitch';
+import { PITCH_W, PITCH_H } from './pitchGeometry';
 
 export interface FormationSlot {
   label: string;

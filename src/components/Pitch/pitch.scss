@@ -69,6 +69,20 @@
     display: none;
 }
 
+.pitch__visualize-ring {
+    fill: none;
+    stroke: var(--visualize-accent);
+    stroke-width: 0.4;
+    pointer-events: none;
+}
+
+.pitch__visualize-line {
+    stroke: var(--visualize-accent);
+    stroke-width: 0.3;
+    stroke-dasharray: 1.2 1;
+    pointer-events: none;
+}
+
 @media (max-width: 824.98px) {
     .pitch__hint--wide {
         display: none;

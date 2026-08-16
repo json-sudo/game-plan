@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { boardReducer, createInitialBoard, subNumber } from './boardReducer';
+import { boardReducer, createInitialBoard } from './boardReducer';
+import { subNumber } from './pieces';
 import type { BoardState } from './types';
 
 const teamPieces = (state: BoardState, team: 'mine' | 'opponent') =>
@@ -118,6 +119,81 @@ describe('CLEAR_PITCH', () => {
   it('is a no-op on an already-empty pitch', () => {
     const initial = createInitialBoard();
     expect(boardReducer(initial, { type: 'CLEAR_PITCH' })).toBe(initial);
+  });
+});
+
+describe('APPLY_VISUALIZE_OUTCOME', () => {
+  it('overwrites only the listed pieces (and the ball) with their new positions, immutably', () => {
+    let state = boardReducer(createInitialBoard(), {
+      type: 'APPLY_MATCHUP',
+      attacker: 'mine',
+      formations: { mine: '4-3-3', opponent: '4-4-2' },
+    });
+    const before = state;
+
+    const carrier = teamPieces(state, 'mine')[0];
+    const reactive = teamPieces(state, 'mine')[1];
+    const newCarrierPos = { x: 40, y: 60 };
+    const newReactivePos = { x: 20, y: 55 };
+    const newBallPos = { x: 40, y: 62 };
+
+    state = boardReducer(state, {
+      type: 'APPLY_VISUALIZE_OUTCOME',
+      outcome: [
+        { id: carrier.id, position: newCarrierPos },
+        { id: reactive.id, position: newReactivePos },
+        { id: 'ball', position: newBallPos },
+      ],
+    });
+
+    expect(state).not.toBe(before);
+    expect(state.pieces.find((p) => p.id === carrier.id)?.position).toEqual(newCarrierPos);
+    expect(state.pieces.find((p) => p.id === reactive.id)?.position).toEqual(newReactivePos);
+    expect(state.pieces.find((p) => p.id === 'ball')?.position).toEqual(newBallPos);
+
+    const untouched = teamPieces(state, 'mine').find(
+      (p) => p.id !== carrier.id && p.id !== reactive.id,
+    )!;
+    const untouchedBefore = teamPieces(before, 'mine').find((p) => p.id === untouched.id)!;
+    expect(untouched.position).toEqual(untouchedBefore.position);
+
+    expect(state.squad).toEqual(before.squad);
+    expect(state.keeper).toEqual(before.keeper);
+    expect(state.formation).toEqual(before.formation);
+  });
+
+  it('leaves pieces not named in the outcome list completely untouched', () => {
+    const state = boardReducer(createInitialBoard(), {
+      type: 'APPLY_MATCHUP',
+      attacker: 'mine',
+      formations: { mine: '4-3-3', opponent: '4-4-2' },
+    });
+    const next = boardReducer(state, {
+      type: 'APPLY_VISUALIZE_OUTCOME',
+      outcome: [],
+    });
+    expect(next.pieces).toEqual(state.pieces);
+  });
+
+  it('can be chained: a second APPLY_VISUALIZE_OUTCOME run applies cleanly on top of the first', () => {
+    let state = boardReducer(createInitialBoard(), {
+      type: 'APPLY_MATCHUP',
+      attacker: 'mine',
+      formations: { mine: '4-3-3', opponent: '4-4-2' },
+    });
+    const carrier = teamPieces(state, 'mine')[0];
+
+    state = boardReducer(state, {
+      type: 'APPLY_VISUALIZE_OUTCOME',
+      outcome: [{ id: carrier.id, position: { x: 30, y: 50 } }],
+    });
+    expect(state.pieces.find((p) => p.id === carrier.id)?.position).toEqual({ x: 30, y: 50 });
+
+    state = boardReducer(state, {
+      type: 'APPLY_VISUALIZE_OUTCOME',
+      outcome: [{ id: carrier.id, position: { x: 45, y: 70 } }],
+    });
+    expect(state.pieces.find((p) => p.id === carrier.id)?.position).toEqual({ x: 45, y: 70 });
   });
 });
 

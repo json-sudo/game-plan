@@ -6,6 +6,7 @@ import {
   standardPlacement,
   type FormationSlot,
 } from './formations';
+import { subNumber } from './pieces';
 
 export const TEAM_COLORS = {
   mine: 'var(--team-mine)',
@@ -25,14 +26,14 @@ export type BoardAction =
   | { type: 'APPLY_FORMATION'; team: Team; name: string }
   | { type: 'SET_PIECE_NAME'; id: string; name: string }
   | { type: 'APPLY_MATCHUP'; attacker: Team; formations: { mine: string; opponent: string } }
+  | {
+      type: 'APPLY_VISUALIZE_OUTCOME';
+      outcome: { id: string; position: { x: number; y: number } }[];
+    }
+  | { type: 'PLACE_VISUALIZE_BALL_HOP'; position: { x: number; y: number } }
   | { type: 'CLEAR_PITCH' }
   | { type: 'RESET_BOARD' }
   | { type: 'LOAD_BOARD'; board: BoardState };
-
-export function subNumber(piece: Piece): number | null {
-  const m = /^S(\d+)$/.exec(piece.label);
-  return m ? Number(m[1]) : null;
-}
 
 function playerColor(team: Team, isKeeper: boolean): string {
   if (team === 'mine') return isKeeper ? TEAM_COLORS.mineKeeper : TEAM_COLORS.mine;
@@ -208,6 +209,24 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
         formation: { mine: action.formations.mine, opponent: action.formations.opponent },
       };
     }
+
+    case 'APPLY_VISUALIZE_OUTCOME': {
+      const positions = new Map(action.outcome.map((o) => [o.id, o.position]));
+      return {
+        ...state,
+        pieces: state.pieces.map((p) =>
+          positions.has(p.id) ? { ...p, position: positions.get(p.id)! } : p,
+        ),
+      };
+    }
+
+    case 'PLACE_VISUALIZE_BALL_HOP':
+      return {
+        ...state,
+        pieces: state.pieces.map((p) =>
+          p.id === 'ball' ? { ...p, position: action.position } : p,
+        ),
+      };
 
     case 'SET_PIECE_NAME': {
       const name = action.name.trim();

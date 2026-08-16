@@ -1,5 +1,5 @@
 import type { Piece } from '../../board/types';
-import { subNumber } from '../../board/boardReducer';
+import { subNumber } from '../../board/pieces';
 import './piece-token.scss';
 
 function fillColor(piece: Piece): string {

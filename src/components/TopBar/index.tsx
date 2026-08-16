@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import type { BoardState, Team } from '../../board/types';
+import type { BoardState, Piece, Team } from '../../board/types';
 import { FORMATIONS } from '../../board/formations';
-import { PITCH_H } from '../Pitch';
+import { PITCH_H } from '../../board/pitchGeometry';
 import { useBoard, useBoardDispatch, useShareLinkError } from '../../board/BoardContext';
 import { TEAM_COLORS } from '../../board/boardReducer';
 import { useVisualize, type DribbleDirection } from '../../board/VisualizeContext';
 import { getAvailableActions } from '../../board/visualizeActions';
+import { computeVisualizeOutcome } from '../../board/visualizeCompute';
 import { canSaveBoard, SLOT_NAME_MAX_LENGTH } from '../../board/persistence';
 import { usePersistedBoards } from '../../board/usePersistedBoards';
 import { buildShareHash } from '../../board/shareCodec';
@@ -28,7 +29,7 @@ const TOP_BAR_BREAKPOINT = 825;
 
 type ApplyMode = Team | 'matchup';
 
-const TEAM_NAMES: Record<Team, string> = { mine: 'My Team', opponent: 'Opponent' };
+const TEAM_NAMES: Record<Team, string> = { mine: 'My Formation', opponent: 'Opponent Formation' };
 
 function FormationPicker({
   team,
@@ -45,18 +46,18 @@ function FormationPicker({
         <span className="formation-modal__dot" style={{ background: TEAM_COLORS[team] }} />
         {TEAM_NAMES[team]}
       </span>
-      <div role="group" aria-label={`${TEAM_NAMES[team]} formation`}>
+      <select
+      id={`${TEAM_NAMES[team].replaceAll(' ', '-').toLowerCase()}-select`}
+        aria-label={TEAM_NAMES[team]}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
         {FORMATIONS.map((f) => (
-          <button
-            key={f.name}
-            type="button"
-            className={value === f.name ? 'is-active' : undefined}
-            onClick={() => onChange(f.name)}
-          >
+          <option key={f.name} value={f.name}>
             {f.name}
-          </button>
+          </option>
         ))}
-      </div>
+      </select>
     </div>
   );
 }
@@ -75,14 +76,82 @@ const ACTION_LABELS = {
   clear: 'Clear',
 } as const;
 
+const NO_PIECES_TITLE = 'This team has no pieces on the pitch.';
+
+function hasPlacedPlayers(board: BoardState, team: Team): boolean {
+  return board.pieces.some(
+    (p) => p.team === team && p.type === 'player' && p.position !== undefined,
+  );
+}
+
+const DRIBBLE_DIRECTION_ARROWS: Record<DribbleDirection, string> = {
+  forward: '▲',
+  left: '◀',
+  right: '▶',
+  back: '▼',
+};
+
+const DRIBBLE_DIRECTION_HINT: Record<DribbleDirection, string> = {
+  forward: 'Forward selected.',
+  left: 'Left selected.',
+  right: 'Right selected.',
+  back: 'Back selected.',
+};
+
+function DribbleDirectionPanel({ carrierPiece }: { carrierPiece: Piece | undefined }) {
+  const visualize = useVisualize();
+  const color = carrierPiece
+    ? carrierPiece.fill.kind === 'solid'
+      ? carrierPiece.fill.color
+      : carrierPiece.fill.primary
+    : undefined;
+
+  return (
+    <div className="dribble-panel" role="region" aria-label="Dribble direction">
+      <div role="group" aria-label="Direction" className="dribble-panel__grid">
+        {DRIBBLE_DIRECTIONS.map((d) => (
+          <button
+            key={d.value}
+            type="button"
+            className={
+              visualize.dribbleDirection === d.value
+                ? `dribble-panel__arrow dribble-panel__arrow--${d.value} is-active`
+                : `dribble-panel__arrow dribble-panel__arrow--${d.value}`
+            }
+            aria-label={d.label}
+            onClick={() => visualize.selectDribbleDirection(d.value)}
+          >
+            {DRIBBLE_DIRECTION_ARROWS[d.value]}
+          </button>
+        ))}
+        <div className="dribble-panel__center">
+          {carrierPiece && (
+            <span className="dribble-panel__dot" style={{ background: color }}>
+              {carrierPiece.label}
+            </span>
+          )}
+        </div>
+      </div>
+      <p className="dribble-panel__hint">
+        {visualize.dribbleDirection
+          ? DRIBBLE_DIRECTION_HINT[visualize.dribbleDirection]
+          : 'Choose a direction.'}
+      </p>
+    </div>
+  );
+}
+
 function VisualizeStep({
   attacker,
   setAttacker,
+  onConfirm,
 }: {
   attacker: Team;
   setAttacker: (team: Team) => void;
+  onConfirm: () => void;
 }) {
   const board = useBoard();
+  const dispatch = useBoardDispatch();
   const visualize = useVisualize();
 
   useEffect(() => {
@@ -90,10 +159,19 @@ function VisualizeStep({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attacker]);
 
+  const carrierPiece = visualize.carrierId
+    ? board.pieces.find((p) => p.id === visualize.carrierId)
+    : undefined;
+
   useEffect(() => {
     return () => visualize.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const canAttack = {
+    mine: hasPlacedPlayers(board, 'mine'),
+    opponent: hasPlacedPlayers(board, 'opponent'),
+  };
 
   const carrierId = visualize.carrierId;
   const actions = carrierId ? getAvailableActions(board, attacker, carrierId) : [];
@@ -111,24 +189,44 @@ function VisualizeStep({
         ? visualize.dribbleDirection !== null
         : visualize.action !== null;
 
+  const handleConfirm = () => {
+    if (!carrierId || !visualize.action || !confirmEnabled) return;
+    const outcome = computeVisualizeOutcome(board, {
+      attacker,
+      carrierId,
+      action: visualize.action,
+      passTargetId: visualize.passTargetId,
+      dribbleDirection: visualize.dribbleDirection,
+    });
+    dispatch({
+      type: 'APPLY_VISUALIZE_OUTCOME',
+      outcome: Array.from(outcome, ([id, position]) => ({ id, position })),
+    });
+    onConfirm();
+  };
+
   return (
     <div className="formation-modal__visualize">
       <div className="formation-modal__teams">
-        <span className="formation-modal__teams-label">Attacker</span>
+        <span className="formation-modal__teams-label">Attacking side</span>
         <div role="group" aria-label="Attacker">
           <button
             type="button"
             className={attacker === 'mine' ? 'is-active' : undefined}
+            disabled={!canAttack.mine}
+            title={canAttack.mine ? undefined : NO_PIECES_TITLE}
             onClick={() => setAttacker('mine')}
           >
-            My Team attacks
+            Mine
           </button>
           <button
             type="button"
             className={attacker === 'opponent' ? 'is-active' : undefined}
+            disabled={!canAttack.opponent}
+            title={canAttack.opponent ? undefined : NO_PIECES_TITLE}
             onClick={() => setAttacker('opponent')}
           >
-            Opponent attacks
+            Opponent
           </button>
         </div>
       </div>
@@ -139,7 +237,26 @@ function VisualizeStep({
         </p>
       ) : (
         <>
-          <div role="group" aria-label="Action" className="formation-modal__visualize-actions">
+          {carrierPiece && (
+            <div className="visualize-panel__carrier">
+              <span
+                className="visualize-panel__dot"
+                style={{
+                  background:
+                    carrierPiece.fill.kind === 'solid'
+                      ? carrierPiece.fill.color
+                      : carrierPiece.fill.primary,
+                }}
+              />
+              Carrier · {carrierPiece.label}
+            </div>
+          )}
+
+          <div
+            role="group"
+            aria-label="Action"
+            className="formation-modal__visualize-actions visualize-panel__pills"
+          >
             {(['pass', 'dribble', 'shoot', 'clear'] as const)
               .filter((a) => actions.includes(a))
               .map((a) => (
@@ -155,7 +272,7 @@ function VisualizeStep({
           </div>
 
           {visualize.action === 'pass' && (
-            <div role="group" aria-label="Pass target">
+            <div role="group" aria-label="Pass target" className="visualize-panel__list">
               {teammates.map((t) => (
                 <button
                   key={t.id}
@@ -163,22 +280,13 @@ function VisualizeStep({
                   className={visualize.passTargetId === t.id ? 'is-active' : undefined}
                   onClick={() => visualize.selectPassTarget(t.id)}
                 >
+                  <span
+                    className="visualize-panel__dot"
+                    style={{
+                      background: t.fill.kind === 'solid' ? t.fill.color : t.fill.primary,
+                    }}
+                  />
                   {t.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {visualize.action === 'dribble' && (
-            <div role="group" aria-label="Dribble direction">
-              {DRIBBLE_DIRECTIONS.map((d) => (
-                <button
-                  key={d.value}
-                  type="button"
-                  className={visualize.dribbleDirection === d.value ? 'is-active' : undefined}
-                  onClick={() => visualize.selectDribbleDirection(d.value)}
-                >
-                  {d.label}
                 </button>
               ))}
             </div>
@@ -187,10 +295,11 @@ function VisualizeStep({
           {visualize.action && (
             <button
               type="button"
-              className="formation-modal__visualize-confirm"
+              className="formation-modal__visualize-confirm visualize-panel__confirm"
               disabled={!confirmEnabled}
+              onClick={handleConfirm}
             >
-              Confirm
+              Confirm {ACTION_LABELS[visualize.action]}
             </button>
           )}
         </>
@@ -199,23 +308,53 @@ function VisualizeStep({
   );
 }
 
+function VisualizePanel({
+  attacker,
+  setAttacker,
+  onClose,
+}: {
+  attacker: Team;
+  setAttacker: (team: Team) => void;
+  onClose: () => void;
+}) {
+  const board = useBoard();
+  const visualize = useVisualize();
+  const carrierPiece = visualize.carrierId
+    ? board.pieces.find((p) => p.id === visualize.carrierId)
+    : undefined;
+
+  return (
+    <>
+      <div className="visualize-panel" role="region" aria-label="Visualize">
+        <header className="formation-modal__header">
+          <h2>Visualize</h2>
+          <button type="button" aria-label="Close" onClick={onClose}>
+            ×
+          </button>
+        </header>
+        <VisualizeStep attacker={attacker} setAttacker={setAttacker} onConfirm={onClose} />
+      </div>
+      {visualize.action === 'dribble' && <DribbleDirectionPanel carrierPiece={carrierPiece} />}
+    </>
+  );
+}
+
 function FormationModal({
   onClose,
-  startInVisualize,
+  onVisualize,
 }: {
   onClose: () => void;
-  startInVisualize?: { attacker: Team };
+  onVisualize?: (attacker: Team) => void;
 }) {
   const board = useBoard();
   const dispatch = useBoardDispatch();
   const [mode, setMode] = useState<ApplyMode>('mine');
-  const [attacker, setAttacker] = useState<Team>(startInVisualize?.attacker ?? 'mine');
+  const [attacker, setAttacker] = useState<Team>('mine');
   const [picks, setPicks] = useState<{ mine: string; opponent: string }>({
     mine: board.formation?.mine ?? '4-3-3',
     opponent: board.formation?.opponent ?? '4-3-3',
   });
   const [visualizeToggle, setVisualizeToggle] = useState(false);
-  const [step, setStep] = useState<'pick' | 'visualize'>(startInVisualize ? 'visualize' : 'pick');
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -232,34 +371,11 @@ function FormationModal({
 
   const applyMatchup = () => {
     dispatch({ type: 'APPLY_MATCHUP', attacker, formations: picks });
-    if (visualizeToggle) {
-      setStep('visualize');
-    } else {
-      onClose();
+    if (visualizeToggle && onVisualize) {
+      onVisualize(attacker);
     }
+    onClose();
   };
-
-  if (step === 'visualize') {
-    return (
-      <div className="formation-modal__backdrop" onClick={onClose}>
-        <div
-          className="formation-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Visualize"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <header className="formation-modal__header">
-            <h2>Visualize</h2>
-            <button type="button" aria-label="Close" onClick={onClose}>
-              ×
-            </button>
-          </header>
-          <VisualizeStep attacker={attacker} setAttacker={setAttacker} />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="formation-modal__backdrop" onClick={onClose}>
@@ -278,8 +394,7 @@ function FormationModal({
         </header>
 
         <div className="formation-modal__teams">
-          <span className="formation-modal__teams-label">Apply to</span>
-          <div role="group" aria-label="Apply to">
+          <div className='formation-tabs' role="group" aria-label="Apply to">
             <button
               type="button"
               className={mode === 'mine' ? 'is-active' : undefined}
@@ -318,25 +433,6 @@ function FormationModal({
           </ul>
         ) : (
           <div className="formation-modal__matchup">
-            <div className="formation-modal__teams">
-              <span className="formation-modal__teams-label">Attacker</span>
-              <div role="group" aria-label="Attacker">
-                <button
-                  type="button"
-                  className={attacker === 'mine' ? 'is-active' : undefined}
-                  onClick={() => setAttacker('mine')}
-                >
-                  My Team attacks
-                </button>
-                <button
-                  type="button"
-                  className={attacker === 'opponent' ? 'is-active' : undefined}
-                  onClick={() => setAttacker('opponent')}
-                >
-                  Opponent attacks
-                </button>
-              </div>
-            </div>
             <FormationPicker
               team="mine"
               value={picks.mine}
@@ -347,16 +443,40 @@ function FormationModal({
               value={picks.opponent}
               onChange={(name) => setPicks((p) => ({ ...p, opponent: name }))}
             />
+            <div className="formation-modal__teams">
+              <span className="formation-modal__teams-label">Attacking side</span>
+              <div className='attacking-side-picker' role="group" aria-label="Attacker">
+                <button
+                  type="button"
+                  className={attacker === 'mine' ? 'is-active' : undefined}
+                  onClick={() => setAttacker('mine')}
+                >
+                  Mine
+                </button>
+                <button
+                  type="button"
+                  className={attacker === 'opponent' ? 'is-active' : undefined}
+                  onClick={() => setAttacker('opponent')}
+                >
+                  Opponent
+                </button>
+              </div>
+            </div>
+            
             <button
               type="button"
-              className={visualizeToggle ? 'is-active' : undefined}
+              className={
+                visualizeToggle
+                  ? 'formation-modal__visualize-toggle is-active'
+                  : 'formation-modal__visualize-toggle'
+              }
               aria-pressed={visualizeToggle}
               onClick={() => setVisualizeToggle((v) => !v)}
             >
               Visualize
             </button>
             <button type="button" className="formation-modal__apply" onClick={applyMatchup}>
-              Apply
+              Apply matchup
             </button>
           </div>
         )}
@@ -799,7 +919,7 @@ export function TopBar() {
   const { theme, toggleTheme } = useTheme();
   const { renaming, toggleRenaming } = useNameEditor();
   const [modalOpen, setModalOpen] = useState(false);
-  const [visualizeOpen, setVisualizeOpen] = useState(false);
+  const [visualizeAttacker, setVisualizeAttacker] = useState<Team | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [loadOpen, setLoadOpen] = useState(false);
@@ -877,7 +997,12 @@ export function TopBar() {
   const mineAvgY = minePlaced.length
     ? minePlaced.reduce((sum, p) => sum + p.position!.y, 0) / minePlaced.length
     : 0;
-  const inferredAttacker: Team = mineAvgY < PITCH_H / 2 ? 'mine' : 'opponent';
+  const attackingHalfGuess: Team = mineAvgY < PITCH_H / 2 ? 'mine' : 'opponent';
+  const inferredAttacker: Team = hasPlacedPlayers(board, attackingHalfGuess)
+    ? attackingHalfGuess
+    : attackingHalfGuess === 'mine'
+      ? 'opponent'
+      : 'mine';
 
   const totalPlaced = board.pieces.filter(
     (p) => p.type === 'player' && p.position !== undefined,
@@ -956,12 +1081,12 @@ export function TopBar() {
                 Reset
               </button>
               {formationButton}
-              {!modalOpen && !visualizeOpen && (
+              {!modalOpen && !visualizeAttacker && (
                 <button
                   type="button"
-                  className="top-bar__action"
+                  className="top-bar__action top-bar__action--visualize"
                   disabled={!visualizeEnabled}
-                  onClick={() => setVisualizeOpen(true)}
+                  onClick={() => setVisualizeAttacker(inferredAttacker)}
                 >
                   Visualize
                 </button>
@@ -1041,11 +1166,17 @@ export function TopBar() {
         />
       )}
       <ShareLinkErrorBanner />
-      {modalOpen && <FormationModal onClose={() => setModalOpen(false)} />}
-      {visualizeOpen && (
+      {modalOpen && (
         <FormationModal
-          onClose={() => setVisualizeOpen(false)}
-          startInVisualize={{ attacker: inferredAttacker }}
+          onClose={() => setModalOpen(false)}
+          onVisualize={(attacker) => setVisualizeAttacker(attacker)}
+        />
+      )}
+      {visualizeAttacker && (
+        <VisualizePanel
+          attacker={visualizeAttacker}
+          setAttacker={setVisualizeAttacker}
+          onClose={() => setVisualizeAttacker(null)}
         />
       )}
       {resetOpen && <ResetConfirmModal onClose={() => setResetOpen(false)} />}

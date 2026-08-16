@@ -28,12 +28,17 @@ html[data-theme='dark'] {
 body {
     background: var(--body-bg);
     color: var(--text-color);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Figtree', sans-serif;
     transition: background 0.3s ease-out;
 }
 
 button {
     cursor: pointer;
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
 }
 
 .app {
