@@ -1,0 +1,188 @@
+.formation-modal__backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+}
+
+.formation-modal {
+    width: min(26rem, calc(100vw - 2rem));
+    background: var(--body-bg);
+    border-radius: 0.4rem;
+    box-shadow: var(--drag-shadow);
+}
+
+.formation-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--border-color);
+
+    h2 {
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+
+    button {
+        border: none;
+        background: none;
+        font-size: 1.2rem;
+        color: var(--muted-text);
+    }
+}
+
+.formation-modal__teams {
+    padding: 1rem 1.2rem;
+
+    div[role='group'] {
+        display: flex;
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            justify-content: center;
+            border: none;
+            padding: 0.7rem 1rem;
+            font: inherit;
+            font-size: 0.8rem;
+            background: var(--control-idle-bg);
+            color: var(--text-color);
+            transition: background-color 0.5s ease-out, color 0.5s ease-out;
+
+            &.is-active {
+                background: var(--control-bg);
+                color: var(--control-text);
+            }
+            &:hover, &:focus {
+                color: var(--visualize-accent);
+            }
+            &:first-of-type {
+                border-top-left-radius: 1rem;
+                border-bottom-left-radius: 1rem;
+            }
+            &:last-of-type {
+                border-top-right-radius: 1rem;
+                border-bottom-right-radius: 1rem;
+            }
+        }
+    }
+}
+
+.reset-confirm__actions {
+    display: flex;
+    gap: 0.6rem;
+    padding: 0 1.2rem 1.2rem;
+
+    button {
+        flex: 1;
+        border: none;
+        border-radius: 0.3rem;
+        padding: 0.7rem 1rem;
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    .reset-confirm__cancel {
+        background: var(--control-idle-bg);
+        color: var(--text-color);
+    }
+
+    .reset-confirm__confirm {
+        background: var(--control-bg);
+        color: var(--control-text);
+    }
+}
+
+.slot-panel {
+    width: min(26rem, calc(100vw - 2rem));
+    background: var(--body-bg);
+    border-radius: 0.4rem;
+    box-shadow: var(--drag-shadow);
+}
+
+.slot-panel__list {
+    list-style: none;
+    padding: 0.4rem 0;
+
+    button {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: none;
+        padding: 0.7rem 1.2rem;
+        font: inherit;
+        color: var(--text-color);
+
+        &:hover {
+            background: var(--control-idle-bg);
+        }
+
+        &.is-active {
+            background: var(--control-idle-bg);
+        }
+    }
+}
+
+.slot-panel__row-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.slot-panel__row-time {
+    font-size: 0.75rem;
+    color: var(--muted-text);
+}
+
+.slot-panel__hint {
+    padding: 0 1.2rem 0.6rem;
+    font-size: 0.78rem;
+    color: var(--muted-text);
+}
+
+.slot-panel__name {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.4rem 1.2rem 0.8rem;
+
+    label {
+        font-size: 0.75rem;
+        color: var(--muted-text);
+    }
+
+    input {
+        border: 1px solid var(--border-color);
+        border-radius: 0.3rem;
+        padding: 0.5rem 0.7rem;
+        font: inherit;
+        font-size: 0.85rem;
+        background: var(--panel-bg);
+        color: var(--text-color);
+
+        &:disabled {
+            opacity: 0.5;
+        }
+    }
+}
+
+.slot-panel__error {
+    margin: 0 1.2rem 0.8rem;
+    font-size: 0.78rem;
+    color: var(--team-opponent);
+}

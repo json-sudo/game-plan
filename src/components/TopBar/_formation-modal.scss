@@ -1,0 +1,136 @@
+.formation-modal__dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+}
+
+.formation-modal__matchup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding-bottom: 1.2rem;
+
+    .formation-modal__teams {
+        width: 90%;
+        margin: 1rem auto;
+        padding: 0.8rem 0.8rem;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        background-color: var(--control-idle-bg);
+    }
+
+    .formation-modal__teams-label {
+       font-size: 0.8rem;
+       font-family: 'Barlow Semi Condensed', sans-serif;
+    }
+
+    div[role=group].attacking-side-picker {
+        margin-left: auto;
+        border-radius: 1.2rem;
+        gap: 0;
+        background-color: var(--control-idle-bg);
+
+        button {
+            all: unset;
+            padding: 0.5rem 1rem;
+            font-size: 0.6rem;
+            transition: color 0.3s ease-out, background-color 0.8s ease-out;
+            &:hover, &:focus {
+                color: var(--visualize-accent);
+            }
+            &.is-active {
+                background-color: var(--visualize-accent);
+                border-radius: 1.2rem;
+                color: var(--control-text);
+            }
+        }
+    }
+}
+
+.formation-modal__visualize-toggle {
+    align-self: flex-start;
+    margin: 0 1.2rem 0.6rem;
+    border-radius: 999px !important;
+    padding: 0.45rem 1rem !important;
+    background: var(--visualize-accent-idle-bg) !important;
+    color: var(--visualize-accent) !important;
+    font-weight: 600;
+
+    &.is-active {
+        background: var(--visualize-accent) !important;
+        color: var(--visualize-accent-text) !important;
+    }
+}
+
+.formation-modal__picker {
+    padding: 0.4rem 1.2rem 0;
+    display: flex;
+    flex-direction: column;
+
+    .formation-modal__picker-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.8rem;
+        color: var(--muted-text);
+        text-transform: uppercase;
+    }
+
+    div[role='group'] {
+        display: flex;
+        gap: 0.4rem;
+    }
+
+    select {
+        flex: 1;
+        border: 1px solid transparent;
+        border-radius: 1rem;
+        padding: 0.5rem;
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background: var(--control-idle-bg);
+        color: var(--text-color);
+        transition: border-color 0.3s ease-out;
+
+        &:hover, &:focus {
+            border-color: var(--visualize-accent);
+        }
+    }
+}
+
+.formation-modal__apply {
+    margin: 0.8rem 1.2rem 0;
+    border: none;
+    border-radius: 1rem;
+    padding: 0.7rem 1rem;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: var(--control-bg);
+    color: var(--control-text);
+}
+
+.formation-modal__list {
+    list-style: none;
+    padding: 0.4rem 0 0.8rem;
+
+    button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: none;
+        padding: 0.7rem 1.4rem;
+        font: inherit;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-color);
+
+        &:hover, &:focus {
+            background: var(--control-idle-bg);
+        }
+    }
+}
