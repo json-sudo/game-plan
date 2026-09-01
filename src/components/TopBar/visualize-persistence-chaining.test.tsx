@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import {
   BoardProvider,
+  FORMATION_ANIMATION_MS,
   useBoard,
   useBoardDispatch,
   VISUALIZE_PRE_ANIMATION_DELAY_MS,
@@ -82,6 +83,9 @@ function confirmADribbleRun() {
   const panel = screen.getByRole('region', { name: 'Visualize' });
   const carrier = screen.getAllByLabelText('my team CB')[0];
   fireEvent.pointerDown(carrier);
+  act(() => {
+    vi.advanceTimersByTime(FORMATION_ANIMATION_MS);
+  });
 
   fireEvent.click(within(panel).getByRole('button', { name: 'Dribble' }));
   const directionGroup = screen.getByRole('group', { name: /direction/i });

@@ -59,12 +59,10 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   const [animatingDuration, setAnimatingDuration] = useState<number | null>(null);
   const timeoutRef = useRef<number | undefined>(undefined);
   const visualizeDelayRef = useRef<number | undefined>(undefined);
-  const visualizeBallHopRef = useRef<number | undefined>(undefined);
 
   const dispatchWithAnimation = useCallback((action: BoardAction) => {
     window.clearTimeout(timeoutRef.current);
     window.clearTimeout(visualizeDelayRef.current);
-    window.clearTimeout(visualizeBallHopRef.current);
 
     if (
       action.type === 'APPLY_FORMATION' ||
@@ -105,7 +103,6 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     () => () => {
       window.clearTimeout(timeoutRef.current);
       window.clearTimeout(visualizeDelayRef.current);
-      window.clearTimeout(visualizeBallHopRef.current);
     },
     [],
   );

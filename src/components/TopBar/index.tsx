@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { BoardState, Piece, Team } from '../../board/types';
 import { FORMATIONS } from '../../board/formations';
-import { PITCH_H } from '../../board/pitchGeometry';
+import { ballAtopPosition, PITCH_H } from '../../board/pitchGeometry';
 import { useBoard, useBoardDispatch, useShareLinkError } from '../../board/BoardContext';
 import { TEAM_COLORS } from '../../board/boardReducer';
 import { useVisualize, type DribbleDirection } from '../../board/VisualizeContext';
@@ -197,6 +197,11 @@ function VisualizeStep({
       action: visualize.action,
       passTargetId: visualize.passTargetId,
       dribbleDirection: visualize.dribbleDirection,
+    });
+    const carrierPreRunPosition = board.pieces.find((p) => p.id === carrierId)!.position!;
+    dispatch({
+      type: 'PLACE_VISUALIZE_BALL_HOP',
+      position: ballAtopPosition(carrierPreRunPosition),
     });
     dispatch({
       type: 'APPLY_VISUALIZE_OUTCOME',

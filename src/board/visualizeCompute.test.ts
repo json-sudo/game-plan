@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { boardReducer, createInitialBoard } from './boardReducer';
-import { PITCH_H, PITCH_W } from './pitchGeometry';
+import { ballAtopPosition, PITCH_H, PITCH_W } from './pitchGeometry';
+import { MIN_SEP } from './separation';
 import type { BoardState } from './types';
 import {
   ATTACKING_DISTANT_REACTION_DISTANCE,
@@ -60,7 +61,7 @@ describe('computeVisualizeOutcome', () => {
         action: 'pass',
         passTargetId: 'mine-8',
       });
-      expect(outcome.get('ball')).toEqual(outcome.get('mine-8'));
+      expect(outcome.get('ball')).toEqual(ballAtopPosition(outcome.get('mine-8')!));
     });
   });
 
@@ -119,7 +120,7 @@ describe('computeVisualizeOutcome', () => {
         action: 'dribble',
         dribbleDirection: 'forward',
       });
-      expect(outcome.get('ball')).toEqual(outcome.get('mine-9'));
+      expect(outcome.get('ball')).toEqual(ballAtopPosition(outcome.get('mine-9')!));
     });
 
     it('uses the compact DEFENDER_DRIBBLE_DISTANCE / DEFENDER_ROLE_ALLOWED_DRIBBLE_DIRECTIONS tables when the carrier is on the non-attacking (defending) team', () => {
@@ -197,9 +198,21 @@ describe('computeVisualizeOutcome', () => {
       const farMove = dist(before('opponent-3'), outcome.get('opponent-3')!);
 
       expect(nearMove).toBeGreaterThan(0);
-      expect(nearMove).toBeLessThanOrEqual(NEAR_PLAY_REACTION_DISTANCE);
       expect(farMove).toBeLessThanOrEqual(DISTANT_REACTION_DISTANCE);
       expect(nearMove).toBeGreaterThan(farMove);
+    });
+
+    it('separates a tightly marking piece from the carrier by at least MIN_SEP, even when that requires moving past its raw reaction distance', () => {
+      const board = baseBoard();
+      const outcome = computeVisualizeOutcome(board, {
+        attacker: 'mine',
+        carrierId: 'mine-9',
+        action: 'pass',
+        passTargetId: 'mine-8',
+      });
+      const carrierFinal = outcome.get('mine-9')!;
+      const markerFinal = outcome.get('opponent-1')!;
+      expect(dist(markerFinal, carrierFinal)).toBeGreaterThanOrEqual(MIN_SEP - 1e-9);
     });
 
     it('never moves the goalkeeper', () => {
@@ -253,7 +266,7 @@ describe('computeVisualizeOutcome', () => {
       expect(farMove).toBeLessThanOrEqual(ATTACKING_DISTANT_REACTION_DISTANCE);
       expect(nearMove).toBeGreaterThan(farMove);
       expect(nearMove).toBeGreaterThan(NEAR_PLAY_REACTION_DISTANCE);
-      expect(farMove).toBeGreaterThan(DISTANT_REACTION_DISTANCE);
+      expect(farMove).toBeLessThanOrEqual(DISTANT_REACTION_DISTANCE);
     });
   });
 });

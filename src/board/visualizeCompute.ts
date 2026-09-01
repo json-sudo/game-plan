@@ -1,9 +1,10 @@
-import { PITCH_H, PITCH_W } from './pitchGeometry';
+import { ballAtopPosition, PITCH_H, PITCH_W } from './pitchGeometry';
+import { separateMutually, type MovablePoint, type SeparationPoint } from './separation';
 import type { BoardState, Piece, Team } from './types';
 import type { VisualizeAction } from './visualizeActions';
 import type { DribbleDirection } from './VisualizeContext';
 
-export type Role = 'fullback' | 'centerBack' | 'midfielder' | 'winger' | 'striker' | 'keeper';
+export type Role = 'fullback' | 'centerBack' | 'defensiveMidfielder' | 'midfielder' | 'winger' | 'striker' | 'keeper';
 
 export interface VisualizeSelections {
   attacker: Team;
@@ -20,7 +21,7 @@ const LABEL_TO_ROLE: Record<string, Role> = {
   RB: 'fullback',
   CB: 'centerBack',
   CM: 'midfielder',
-  DM: 'midfielder',
+  DM: 'defensiveMidfielder',
   LW: 'winger',
   RW: 'winger',
   ST: 'striker',
@@ -34,24 +35,27 @@ function roleForLabel(label: string): Role {
 export const DRIBBLE_DISTANCE: Record<Role, number> = {
   fullback: 8,
   centerBack: 6,
+  defensiveMidfielder: 7,
   midfielder: 9,
   winger: 11,
   striker: 10,
-  keeper: 0,
+  keeper: 2,
 };
 
 export const ROLE_ALLOWED_DRIBBLE_DIRECTIONS: Record<Role, DribbleDirection[]> = {
   fullback: ['forward', 'left', 'right'],
   centerBack: ['forward', 'left', 'right'],
+  defensiveMidfielder: ['forward', 'left', 'right', 'back'],
   midfielder: ['forward', 'left', 'right', 'back'],
   winger: ['forward', 'left', 'right'],
   striker: ['forward', 'left', 'right'],
-  keeper: [],
+  keeper: ['forward'],
 };
 
 export const DEFENDER_DRIBBLE_DISTANCE: Record<Role, number> = {
   fullback: 4,
   centerBack: 3,
+  defensiveMidfielder: 3,
   midfielder: 4,
   winger: 5,
   striker: 5,
@@ -61,17 +65,18 @@ export const DEFENDER_DRIBBLE_DISTANCE: Record<Role, number> = {
 export const DEFENDER_ROLE_ALLOWED_DRIBBLE_DIRECTIONS: Record<Role, DribbleDirection[]> = {
   fullback: ['forward'],
   centerBack: ['forward'],
+  defensiveMidfielder: ['forward', 'back'],
   midfielder: ['forward', 'back'],
   winger: ['forward'],
   striker: ['forward'],
   keeper: [],
 };
 
-export const NEAR_PLAY_RADIUS = 20;
-export const NEAR_PLAY_REACTION_DISTANCE = 5;
+export const NEAR_PLAY_RADIUS = 15;
+export const NEAR_PLAY_REACTION_DISTANCE = 3;
 export const DISTANT_REACTION_DISTANCE = 1.5;
-export const ATTACKING_NEAR_PLAY_REACTION_DISTANCE = 7;
-export const ATTACKING_DISTANT_REACTION_DISTANCE = 2.5;
+export const ATTACKING_NEAR_PLAY_REACTION_DISTANCE = 4;
+export const ATTACKING_DISTANT_REACTION_DISTANCE = 1.5;
 
 export const SHOOT_ADVANCE = 8;
 export const CLEAR_ADVANCE = 8;
@@ -106,6 +111,14 @@ function moveAway(
   if (len === 0) return { x: from.x, y: from.y };
   const scale = (distance * DISTANCE_EPSILON) / len;
   return { x: from.x + dx * scale, y: from.y + dy * scale };
+}
+
+const PRIORITY_DISTANCE_EPSILON = 0.01;
+const ATTACKER_TIE_BONUS = 1e-9;
+
+function priorityWeight(distanceToTarget: number, isAttackingSide: boolean): number {
+  const base = 1 / (distanceToTarget + PRIORITY_DISTANCE_EPSILON);
+  return isAttackingSide ? base + ATTACKER_TIE_BONUS : base;
 }
 
 function directionVector(team: Team, direction: DribbleDirection): { x: number; y: number } {
@@ -178,6 +191,8 @@ export function computeVisualizeOutcome(
     if (target) referencePoints.push(target.position);
   }
 
+  const movable: MovablePoint[] = [];
+
   for (const piece of placed) {
     if (piece.id === carrier.id || piece.type === 'ball' || piece.label === 'GK') continue;
 
@@ -196,14 +211,34 @@ export function computeVisualizeOutcome(
     const towardPoint = referencePoints.reduce((closest, ref) =>
       dist(piece.position, ref) < dist(piece.position, closest) ? ref : closest,
     );
-    outcome.set(piece.id, moveToward(piece.position, towardPoint, reactionDistance));
+    const rawPosition = moveToward(piece.position, towardPoint, reactionDistance);
+    outcome.set(piece.id, rawPosition);
+    movable.push({
+      id: piece.id,
+      x: rawPosition.x,
+      y: rawPosition.y,
+      weight: priorityWeight(dist(piece.position, towardPoint), isAttackingSide),
+    });
+  }
+
+  const anchors: SeparationPoint[] = [];
+  const carrierFinal = outcome.get(carrier.id);
+  if (carrierFinal) anchors.push({ id: carrier.id, x: carrierFinal.x, y: carrierFinal.y });
+  for (const piece of placed) {
+    if (piece.label === 'GK') anchors.push({ id: piece.id, x: piece.position.x, y: piece.position.y });
+  }
+
+  const separated = separateMutually(movable, anchors);
+  for (const point of movable) {
+    const resolved = separated.get(point.id);
+    if (resolved) outcome.set(point.id, resolved);
   }
 
   if (selections.action === 'pass' && selections.passTargetId) {
     const targetEnd = outcome.get(selections.passTargetId);
-    if (targetEnd) outcome.set('ball', targetEnd);
+    if (targetEnd) outcome.set('ball', ballAtopPosition(targetEnd));
   } else {
-    outcome.set('ball', outcome.get(carrier.id) ?? carrierEnd);
+    outcome.set('ball', ballAtopPosition(outcome.get(carrier.id) ?? carrierEnd));
   }
 
   return outcome;

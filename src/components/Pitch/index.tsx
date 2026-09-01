@@ -5,11 +5,10 @@ import {
   useBoard,
   useBoardAnimating,
   useBoardAnimatingDuration,
-  useBoardDispatch,
 } from '../../board/BoardContext';
 import { useDrag } from '../../board/DragContext';
 import { useVisualize } from '../../board/VisualizeContext';
-import { PITCH_H, PITCH_W } from '../../board/pitchGeometry';
+import { ballAtopPosition, PITCH_H, PITCH_W } from '../../board/pitchGeometry';
 import { useNameEditor } from '../NameEditor';
 import ballImg from '../../assets/ball.png';
 import './pitch.scss';
@@ -26,7 +25,6 @@ function PitchPiece({ piece }: { piece: Piece }) {
   const { startDrag, draggingId } = useDrag();
   const { renaming, openNameEditor } = useNameEditor();
   const visualize = useVisualize();
-  const dispatch = useBoardDispatch();
   if (!piece.position) return null;
   const { x, y } = piece.position;
   const color = piece.fill.kind === 'solid' ? piece.fill.color : piece.fill.primary;
@@ -41,7 +39,6 @@ function PitchPiece({ piece }: { piece: Piece }) {
       if (!isBall && piece.team === visualize.attacker) {
         e.preventDefault();
         visualize.selectCarrier(piece.id);
-        dispatch({ type: 'PLACE_VISUALIZE_BALL_HOP', position: { x, y } });
       }
       return;
     }
@@ -92,7 +89,7 @@ export function Pitch() {
   const animatingDuration = useBoardAnimatingDuration();
   const { pitchRef } = useDrag();
   const visualize = useVisualize();
-  const placed = board.pieces.filter((p) => p.position !== undefined);
+  const placed = board.pieces.filter((p) => p.position !== undefined && p.type !== 'ball');
   const cx = PITCH_W / 2;
 
   const carrierPiece =
@@ -103,6 +100,13 @@ export function Pitch() {
     visualize.active && visualize.action === 'pass' && visualize.passTargetId
       ? board.pieces.find((p) => p.id === visualize.passTargetId)
       : undefined;
+
+  // Preview-only: shows where the ball would go without touching board state, so
+  // dismissing the panel before Confirm leaves the ball exactly where it was.
+  const ballPiece = board.pieces.find((p) => p.type === 'ball');
+  const ballRenderPosition = carrierPiece?.position
+    ? ballAtopPosition(carrierPiece.position)
+    : ballPiece?.position;
 
   return (
     <svg
@@ -178,6 +182,9 @@ export function Pitch() {
       {placed.map((p) => (
         <PitchPiece key={p.id} piece={p} />
       ))}
+      {ballPiece && ballRenderPosition && (
+        <PitchPiece key={ballPiece.id} piece={{ ...ballPiece, position: ballRenderPosition }} />
+      )}
     </svg>
   );
 }

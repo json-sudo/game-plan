@@ -69,6 +69,9 @@ function confirmADribbleRun() {
 
   const panel = screen.getByRole('region', { name: 'Visualize' });
   fireEvent.pointerDown(screen.getAllByLabelText('my team CB')[0]);
+  act(() => {
+    vi.advanceTimersByTime(FORMATION_ANIMATION_MS);
+  });
 
   fireEvent.click(within(panel).getByRole('button', { name: 'Dribble' }));
   const directionGroup = screen.getByRole('group', { name: /direction/i });
