@@ -180,14 +180,14 @@ describe('APPLY_MATCHUP', () => {
     expect(gk.position).toEqual({ x: 76.19 / 2, y: 94 });
 
     const placedPositions = placed.filter((p) => !p.isKeeper).map((p) => p.position!);
-    for (const slot of slots) {
-      const expected = { x: slot.x, y: slot.y - MATCHUP_OFFSET };
-      const isFarFromEveryDefender = defenderPositions.every(
-        (d) => Math.hypot(d.x - expected.x, d.y - expected.y) >= MIN_SEP,
+    const farExpected = slots
+      .map((slot) => ({ x: slot.x, y: slot.y - MATCHUP_OFFSET }))
+      .filter((expected) =>
+        defenderPositions.every((d) => Math.hypot(d.x - expected.x, d.y - expected.y) >= MIN_SEP),
       );
-      if (isFarFromEveryDefender) {
-        expect(placedPositions.some((p) => p.x === expected.x && p.y === expected.y)).toBe(true);
-      }
+    expect(farExpected.length).toBeGreaterThan(0);
+    for (const expected of farExpected) {
+      expect(placedPositions.some((p) => p.x === expected.x && p.y === expected.y)).toBe(true);
     }
   });
 
