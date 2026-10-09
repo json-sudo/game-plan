@@ -9,7 +9,9 @@ import { Pitch } from '../Pitch';
 import { TopBar } from '.';
 
 function mockMatchMedia(matches: boolean) {
-  window.matchMedia = vi.fn().mockReturnValue({ matches }) as unknown as typeof window.matchMedia;
+  window.matchMedia = vi
+    .fn<(query: string) => { matches: boolean }>()
+    .mockReturnValue({ matches }) as unknown as typeof window.matchMedia;
 }
 
 beforeEach(() => {
@@ -106,12 +108,7 @@ describe('Action selection', () => {
     const dialog = await placeScenarioAndOpenVisualize({ count: 1, y: 40 }, { count: 6, y: 60 });
     clickPiece('my team CB');
     const actionGroup = within(dialog).getByRole('group', { name: 'Action' });
-    const passButton = within(actionGroup).queryByRole('button', { name: 'Pass' });
-    if (passButton) {
-      expect(passButton).toBeDisabled();
-    } else {
-      expect(passButton).toBeNull();
-    }
+    expect(within(actionGroup).queryByRole('button', { name: 'Pass' })).toBeNull();
     expect(within(actionGroup).getByRole('button', { name: 'Dribble' })).toBeEnabled();
   });
 

@@ -14,7 +14,9 @@ import { Pitch } from '../Pitch';
 import { TopBar } from '.';
 
 function mockMatchMedia(matches: boolean) {
-  window.matchMedia = vi.fn().mockReturnValue({ matches }) as unknown as typeof window.matchMedia;
+  window.matchMedia = vi
+    .fn<(query: string) => { matches: boolean }>()
+    .mockReturnValue({ matches }) as unknown as typeof window.matchMedia;
 }
 
 function ScenarioButton({

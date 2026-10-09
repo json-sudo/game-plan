@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type MouseEvent } from 'react';
 import { useBoardDispatch } from '../../board/BoardContext';
 
 export function ResetConfirmModal({ onClose }: { onClose: () => void }) {
@@ -17,15 +17,13 @@ export function ResetConfirmModal({ onClose }: { onClose: () => void }) {
     onClose();
   };
 
+  const dismissOnBackdrop = (e: MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
   return (
-    <div className="formation-modal__backdrop" onClick={onClose}>
-      <div
-        className="formation-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Reset board"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="formation-modal__backdrop" role="presentation" onClick={dismissOnBackdrop}>
+      <div className="formation-modal" role="dialog" aria-modal="true" aria-label="Reset board">
         <header className="formation-modal__header">
           <h2>Reset Board</h2>
           <button type="button" aria-label="Close" onClick={onClose}>
