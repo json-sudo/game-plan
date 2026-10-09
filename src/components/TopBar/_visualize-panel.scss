@@ -176,7 +176,9 @@
         background 0.2s ease-out,
         color 0.2s ease-out;
 
-    &.is-active, &:focus, &:hover {
+    &.is-active,
+    &:focus,
+    &:hover {
         background: var(--visualize-accent);
         color: var(--visualize-accent-text);
     }

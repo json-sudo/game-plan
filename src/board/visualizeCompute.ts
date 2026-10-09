@@ -4,7 +4,14 @@ import type { BoardState, Piece, Team } from './types';
 import type { VisualizeAction } from './visualizeActions';
 import type { DribbleDirection } from './VisualizeContext';
 
-export type Role = 'fullback' | 'centerBack' | 'defensiveMidfielder' | 'midfielder' | 'winger' | 'striker' | 'keeper';
+export type Role =
+  | 'fullback'
+  | 'centerBack'
+  | 'defensiveMidfielder'
+  | 'midfielder'
+  | 'winger'
+  | 'striker'
+  | 'keeper';
 
 export interface VisualizeSelections {
   attacker: Team;
@@ -225,7 +232,8 @@ export function computeVisualizeOutcome(
   const carrierFinal = outcome.get(carrier.id);
   if (carrierFinal) anchors.push({ id: carrier.id, x: carrierFinal.x, y: carrierFinal.y });
   for (const piece of placed) {
-    if (piece.label === 'GK') anchors.push({ id: piece.id, x: piece.position.x, y: piece.position.y });
+    if (piece.label === 'GK')
+      anchors.push({ id: piece.id, x: piece.position.x, y: piece.position.y });
   }
 
   const separated = separateMutually(movable, anchors);

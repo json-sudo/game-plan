@@ -24,7 +24,7 @@ function FormationPicker({
         {TEAM_NAMES[team]}
       </span>
       <select
-      id={`${TEAM_NAMES[team].replaceAll(' ', '-').toLowerCase()}-select`}
+        id={`${TEAM_NAMES[team].replaceAll(' ', '-').toLowerCase()}-select`}
         aria-label={TEAM_NAMES[team]}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -94,7 +94,7 @@ export function FormationModal({
         </header>
 
         <div className="formation-modal__teams">
-          <div className='formation-tabs' role="group" aria-label="Apply to">
+          <div className="formation-tabs" role="group" aria-label="Apply to">
             <button
               type="button"
               className={mode === 'mine' ? 'is-active' : undefined}
@@ -145,7 +145,7 @@ export function FormationModal({
             />
             <div className="formation-modal__teams">
               <span className="formation-modal__teams-label">Attacking side</span>
-              <div className='attacking-side-picker' role="group" aria-label="Attacker">
+              <div className="attacking-side-picker" role="group" aria-label="Attacker">
                 <button
                   type="button"
                   className={attacker === 'mine' ? 'is-active' : undefined}

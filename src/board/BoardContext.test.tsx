@@ -17,7 +17,10 @@ function Probe() {
     <div>
       <span data-testid="placed-mine">{placedMine}</span>
       <span data-testid="share-link-error">{String(shareLinkError)}</span>
-      <button type="button" onClick={() => dispatch({ type: 'LOAD_BOARD', board: createInitialBoard() })}>
+      <button
+        type="button"
+        onClick={() => dispatch({ type: 'LOAD_BOARD', board: createInitialBoard() })}
+      >
         load
       </button>
     </div>

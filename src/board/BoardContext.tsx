@@ -70,7 +70,10 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       action.type === 'PLACE_VISUALIZE_BALL_HOP'
     ) {
       setAnimatingDuration(FORMATION_ANIMATION_MS);
-      timeoutRef.current = window.setTimeout(() => setAnimatingDuration(null), FORMATION_ANIMATION_MS);
+      timeoutRef.current = window.setTimeout(
+        () => setAnimatingDuration(null),
+        FORMATION_ANIMATION_MS,
+      );
       dispatch(action);
       return;
     }

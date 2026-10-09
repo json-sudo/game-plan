@@ -121,4 +121,3 @@ export function matchupAttackerPlacement(
 export function getFormation(name: string): Formation | undefined {
   return FORMATIONS.find((f) => f.name === name);
 }
-

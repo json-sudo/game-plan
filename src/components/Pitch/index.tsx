@@ -64,9 +64,7 @@ function PitchPiece({ piece }: { piece: Piece }) {
         <image href={ballImg} x={-1.2} y={-1.2} width={2.4} height={2.4} />
       ) : (
         <>
-          {(isCarrierRing || isTargetRing) && (
-            <circle r={3.1} className="pitch__visualize-ring" />
-          )}
+          {(isCarrierRing || isTargetRing) && <circle r={3.1} className="pitch__visualize-ring" />}
           <circle r={2.2} fill={color} />
           <text className="pitch__label">{piece.label}</text>
           {piece.name && (

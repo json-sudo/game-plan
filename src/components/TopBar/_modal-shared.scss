@@ -56,13 +56,16 @@
             font-size: 0.8rem;
             background: var(--control-idle-bg);
             color: var(--text-color);
-            transition: background-color 0.5s ease-out, color 0.5s ease-out;
+            transition:
+                background-color 0.5s ease-out,
+                color 0.5s ease-out;
 
             &.is-active {
                 background: var(--control-bg);
                 color: var(--control-text);
             }
-            &:hover, &:focus {
+            &:hover,
+            &:focus {
                 color: var(--visualize-accent);
             }
             &:first-of-type {
