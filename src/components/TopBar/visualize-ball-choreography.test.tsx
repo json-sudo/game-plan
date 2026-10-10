@@ -2,11 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import {
   BoardProvider,
-  useBoard,
-  useBoardDispatch,
   VISUALIZE_PRE_ANIMATION_DELAY_MS,
   VISUALIZE_ANIMATION_MS,
 } from '../../board/BoardContext';
+import { useBoard, useBoardDispatch } from '../../board/useBoard';
 import { DragProvider } from '../../board/DragContext';
 import { NameEditorProvider } from '../NameEditor';
 import { VisualizeProvider } from '../../board/VisualizeContext';

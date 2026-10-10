@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BoardProvider, useBoardDispatch } from '../../board/BoardContext';
+import { BoardProvider } from '../../board/BoardContext';
+import { useBoardDispatch } from '../../board/useBoard';
 import { DragProvider } from '../../board/DragContext';
 import { NameEditorProvider } from '../NameEditor';
 import { VisualizeProvider } from '../../board/VisualizeContext';

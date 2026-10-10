@@ -1,15 +1,11 @@
 import type { CSSProperties } from 'react';
 import type { Piece } from '../../board/types';
-import {
-  FORMATION_ANIMATION_MS,
-  useBoard,
-  useBoardAnimating,
-  useBoardAnimatingDuration,
-} from '../../board/BoardContext';
-import { useDrag } from '../../board/DragContext';
-import { useVisualize } from '../../board/VisualizeContext';
+import { FORMATION_ANIMATION_MS } from '../../board/BoardContext';
+import { useBoard, useBoardAnimating, useBoardAnimatingDuration } from '../../board/useBoard';
+import { useDrag } from '../../board/useDrag';
+import { useVisualize } from '../../board/useVisualize';
 import { ballAtopPosition, PITCH_H, PITCH_W } from '../../board/pitchGeometry';
-import { useNameEditor } from '../NameEditor';
+import { useNameEditor } from '../NameEditor/useNameEditor';
 import ballImg from '../../assets/ball.png';
 import './pitch.scss';
 
@@ -116,7 +112,6 @@ export function Pitch() {
         } as CSSProperties
       }
       viewBox={`0 0 ${PITCH_W} ${PITCH_H}`}
-      role="img"
       aria-label="pitch"
     >
       <rect width={PITCH_W} height={PITCH_H} fill="var(--pitch)" />

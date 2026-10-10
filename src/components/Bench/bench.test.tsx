@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BoardProvider, useBoardDispatch } from '../../board/BoardContext';
+import { BoardProvider } from '../../board/BoardContext';
+import { useBoardDispatch } from '../../board/useBoard';
 import { DragProvider } from '../../board/DragContext';
 import { NameEditorProvider } from '../NameEditor';
 import { Bench } from '.';

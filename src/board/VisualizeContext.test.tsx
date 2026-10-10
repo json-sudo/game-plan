@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { ReactNode } from 'react';
 import { act, renderHook } from '@testing-library/react';
-import { VisualizeProvider, useVisualize } from './VisualizeContext';
+import { VisualizeProvider } from './VisualizeContext';
+import { useVisualize } from './useVisualize';
 
 function wrapper({ children }: { children: ReactNode }) {
   return <VisualizeProvider>{children}</VisualizeProvider>;

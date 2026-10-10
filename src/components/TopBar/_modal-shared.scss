@@ -1,19 +1,19 @@
-.formation-modal__backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.35);
-    backdrop-filter: blur(2px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 20;
-}
-
-.formation-modal {
+.formation-modal,
+.slot-panel {
     width: min(26rem, calc(100vw - 2rem));
+    max-width: none;
+    margin: auto;
+    padding: 0;
+    border: none;
+    color: inherit;
     background: var(--body-bg);
     border-radius: 0.4rem;
     box-shadow: var(--drag-shadow);
+
+    &::backdrop {
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(2px);
+    }
 }
 
 .formation-modal__header {
@@ -41,7 +41,7 @@
 .formation-modal__teams {
     padding: 1rem 1.2rem;
 
-    div[role='group'] {
+    fieldset {
         display: flex;
 
         button {
@@ -106,13 +106,6 @@
         background: var(--control-bg);
         color: var(--control-text);
     }
-}
-
-.slot-panel {
-    width: min(26rem, calc(100vw - 2rem));
-    background: var(--body-bg);
-    border-radius: 0.4rem;
-    box-shadow: var(--drag-shadow);
 }
 
 .slot-panel__list {

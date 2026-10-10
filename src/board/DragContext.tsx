@@ -1,31 +1,9 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-  type RefObject,
-} from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Piece } from './types';
-import { useBoardDispatch } from './BoardContext';
+import { useBoardDispatch } from './useBoard';
+import { DragContext } from './useDrag';
 import { PieceToken } from '../components/PieceToken';
 import { PITCH_W, PITCH_H } from './pitchGeometry';
-
-interface DragApi {
-  pitchRef: RefObject<SVGSVGElement | null>;
-  startDrag: (piece: Piece, e: React.PointerEvent) => void;
-  draggingId: string | null;
-}
-
-const DragContext = createContext<DragApi | null>(null);
-
-export function useDrag(): DragApi {
-  const api = useContext(DragContext);
-  if (!api) throw new Error('useDrag must be used within DragProvider');
-  return api;
-}
 
 interface DragState {
   piece: Piece;

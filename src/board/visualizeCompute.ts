@@ -2,7 +2,7 @@ import { ballAtopPosition, PITCH_H, PITCH_W } from './pitchGeometry';
 import { separateMutually, type MovablePoint, type SeparationPoint } from './separation';
 import type { BoardState, Piece, Team } from './types';
 import type { VisualizeAction } from './visualizeActions';
-import type { DribbleDirection } from './VisualizeContext';
+import type { DribbleDirection } from './useVisualize';
 
 export type Role =
   | 'fullback'

@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
-import type { BoardState, Piece, Team } from '../../board/types';
+import type { Piece, Team } from '../../board/types';
 import { ballAtopPosition } from '../../board/pitchGeometry';
-import { useBoard, useBoardDispatch } from '../../board/BoardContext';
-import { useVisualize, type DribbleDirection } from '../../board/VisualizeContext';
+import { hasPlacedPlayers } from './hasPlacedPlayers';
+import { useBoard, useBoardDispatch } from '../../board/useBoard';
+import { useVisualize, type DribbleDirection } from '../../board/useVisualize';
 import { getAvailableActions } from '../../board/visualizeActions';
 import { computeVisualizeOutcome } from '../../board/visualizeCompute';
 
@@ -21,12 +22,6 @@ const ACTION_LABELS = {
 } as const;
 
 const NO_PIECES_TITLE = 'This team has no pieces on the pitch.';
-
-export function hasPlacedPlayers(board: BoardState, team: Team): boolean {
-  return board.pieces.some(
-    (p) => p.team === team && p.type === 'player' && p.position !== undefined,
-  );
-}
 
 const DRIBBLE_DIRECTION_ARROWS: Record<DribbleDirection, string> = {
   forward: '▲',
@@ -51,8 +46,8 @@ function DribbleDirectionPanel({ carrierPiece }: { carrierPiece: Piece | undefin
     : undefined;
 
   return (
-    <div className="dribble-panel" role="region" aria-label="Dribble direction">
-      <div role="group" aria-label="Direction" className="dribble-panel__grid">
+    <section className="dribble-panel" aria-label="Dribble direction">
+      <fieldset aria-label="Direction" className="dribble-panel__grid">
         {DRIBBLE_DIRECTIONS.map((d) => (
           <button
             key={d.value}
@@ -75,13 +70,13 @@ function DribbleDirectionPanel({ carrierPiece }: { carrierPiece: Piece | undefin
             </span>
           )}
         </div>
-      </div>
+      </fieldset>
       <p className="dribble-panel__hint">
         {visualize.dribbleDirection
           ? DRIBBLE_DIRECTION_HINT[visualize.dribbleDirection]
           : 'Choose a direction.'}
       </p>
-    </div>
+    </section>
   );
 }
 
@@ -158,7 +153,7 @@ function VisualizeStep({
     <div className="formation-modal__visualize">
       <div className="formation-modal__teams">
         <span className="formation-modal__teams-label">Attacking side</span>
-        <div role="group" aria-label="Attacker">
+        <fieldset aria-label="Attacker">
           <button
             type="button"
             className={attacker === 'mine' ? 'is-active' : undefined}
@@ -177,7 +172,7 @@ function VisualizeStep({
           >
             Opponent
           </button>
-        </div>
+        </fieldset>
       </div>
 
       {!carrierId ? (
@@ -201,8 +196,7 @@ function VisualizeStep({
             </div>
           )}
 
-          <div
-            role="group"
+          <fieldset
             aria-label="Action"
             className="formation-modal__visualize-actions visualize-panel__pills"
           >
@@ -218,10 +212,10 @@ function VisualizeStep({
                   {ACTION_LABELS[a]}
                 </button>
               ))}
-          </div>
+          </fieldset>
 
           {visualize.action === 'pass' && (
-            <div role="group" aria-label="Pass target" className="visualize-panel__list">
+            <fieldset aria-label="Pass target" className="visualize-panel__list">
               {teammates.map((t) => (
                 <button
                   key={t.id}
@@ -238,7 +232,7 @@ function VisualizeStep({
                   {t.label}
                 </button>
               ))}
-            </div>
+            </fieldset>
           )}
 
           {visualize.action && (
@@ -274,7 +268,7 @@ export function VisualizePanel({
 
   return (
     <>
-      <div className="visualize-panel" role="region" aria-label="Visualize">
+      <section className="visualize-panel" aria-label="Visualize">
         <header className="formation-modal__header">
           <h2>Visualize</h2>
           <button type="button" aria-label="Close" onClick={onClose}>
@@ -282,7 +276,7 @@ export function VisualizePanel({
           </button>
         </header>
         <VisualizeStep attacker={attacker} setAttacker={setAttacker} onConfirm={onClose} />
-      </div>
+      </section>
       {visualize.action === 'dribble' && <DribbleDirectionPanel carrierPiece={carrierPiece} />}
     </>
   );

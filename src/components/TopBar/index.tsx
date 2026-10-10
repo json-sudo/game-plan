@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Team } from '../../board/types';
 import { PITCH_H } from '../../board/pitchGeometry';
-import { useBoard, useBoardDispatch } from '../../board/BoardContext';
+import { useBoard, useBoardDispatch } from '../../board/useBoard';
 import { canSaveBoard } from '../../board/persistence';
 import { usePersistedBoards } from '../../board/usePersistedBoards';
 import { buildShareHash } from '../../board/shareCodec';
-import { useNameEditor } from '../NameEditor';
+import { useNameEditor } from '../NameEditor/useNameEditor';
 import { FormationModal } from './FormationModal';
-import { VisualizePanel, hasPlacedPlayers } from './VisualizePanel';
+import { VisualizePanel } from './VisualizePanel';
+import { hasPlacedPlayers } from './hasPlacedPlayers';
 import { ResetConfirmModal } from './ResetConfirmModal';
 import { SavePanel } from './SavePanel';
 import { LoadPanel } from './LoadPanel';
@@ -313,11 +314,7 @@ export function TopBar() {
         />
       )}
       {shareUrl && <SharePanel url={shareUrl} onClose={() => setShareUrl(null)} />}
-      {toast && (
-        <div className="top-bar__toast" role="status">
-          {toast}
-        </div>
-      )}
+      {toast && <output className="top-bar__toast">{toast}</output>}
     </>
   );
 }

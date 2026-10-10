@@ -25,7 +25,7 @@
         font-family: 'Barlow Semi Condensed', sans-serif;
     }
 
-    div[role='group'].attacking-side-picker {
+    fieldset.attacking-side-picker {
         margin-left: auto;
         border-radius: 1.2rem;
         gap: 0;
@@ -81,7 +81,7 @@
         text-transform: uppercase;
     }
 
-    div[role='group'] {
+    fieldset {
         display: flex;
         gap: 0.4rem;
     }

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { BoardProvider, FORMATION_ANIMATION_MS, useBoardDispatch } from '../../board/BoardContext';
+import { BoardProvider, FORMATION_ANIMATION_MS } from '../../board/BoardContext';
+import { useBoardDispatch } from '../../board/useBoard';
 import { DragProvider } from '../../board/DragContext';
 import { NameEditorProvider } from '../NameEditor';
 import { Pitch } from '.';
@@ -50,7 +51,7 @@ function renderPitch() {
   );
 }
 
-const pitchSvg = () => screen.getByRole('img', { name: 'pitch' });
+const pitchSvg = () => screen.getByLabelText('pitch');
 
 afterEach(() => {
   vi.useRealTimers();

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { BoardProvider, useBoard, useBoardDispatch, useShareLinkError } from './BoardContext';
+import { BoardProvider } from './BoardContext';
+import { useBoard, useBoardDispatch, useShareLinkError } from './useBoard';
 import { boardReducer, createInitialBoard } from './boardReducer';
 import { BOARDS_STORAGE_KEY, type BoardsWrapper } from './persistence';
 import { buildShareHash } from './shareCodec';
