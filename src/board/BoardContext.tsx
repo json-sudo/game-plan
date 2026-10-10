@@ -1,29 +1,20 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useReducer,
-  useRef,
-  useState,
-  type Dispatch,
-  type ReactNode,
-} from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState, type ReactNode } from 'react';
 import type { BoardState } from './types';
 import { boardReducer, createInitialBoard, type BoardAction } from './boardReducer';
 import { loadBoardsWrapper, pickAutoLoadSlot } from './persistence';
+import {
+  BoardAnimatingContext,
+  BoardAnimatingDurationContext,
+  BoardDispatchContext,
+  BoardStateContext,
+  ShareLinkErrorContext,
+} from './useBoard';
 import { decodeShareHash, looksLikeShareHash } from './shareCodec';
 
 export const FORMATION_ANIMATION_MS = 400;
 
 export const VISUALIZE_PRE_ANIMATION_DELAY_MS = 1200;
 export const VISUALIZE_ANIMATION_MS = 4000;
-
-const BoardStateContext = createContext<BoardState | null>(null);
-const BoardDispatchContext = createContext<Dispatch<BoardAction> | null>(null);
-const BoardAnimatingContext = createContext(false);
-const BoardAnimatingDurationContext = createContext<number | null>(null);
-const ShareLinkErrorContext = createContext<[boolean, () => void]>([false, () => {}]);
 
 function normalBootBoard(): BoardState {
   const result = loadBoardsWrapper();
@@ -125,28 +116,4 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       </BoardDispatchContext.Provider>
     </BoardStateContext.Provider>
   );
-}
-
-export function useBoard(): BoardState {
-  const state = useContext(BoardStateContext);
-  if (!state) throw new Error('useBoard must be used within BoardProvider');
-  return state;
-}
-
-export function useBoardDispatch(): Dispatch<BoardAction> {
-  const dispatch = useContext(BoardDispatchContext);
-  if (!dispatch) throw new Error('useBoardDispatch must be used within BoardProvider');
-  return dispatch;
-}
-
-export function useBoardAnimating(): boolean {
-  return useContext(BoardAnimatingContext);
-}
-
-export function useBoardAnimatingDuration(): number | null {
-  return useContext(BoardAnimatingDurationContext);
-}
-
-export function useShareLinkError(): [boolean, () => void] {
-  return useContext(ShareLinkErrorContext);
 }

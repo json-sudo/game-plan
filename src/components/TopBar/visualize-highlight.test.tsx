@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BoardProvider, useBoardDispatch } from '../../board/BoardContext';
+import { BoardProvider } from '../../board/BoardContext';
+import { useBoardDispatch } from '../../board/useBoard';
 import { DragProvider } from '../../board/DragContext';
 import { NameEditorProvider } from '../NameEditor';
 import { VisualizeProvider } from '../../board/VisualizeContext';
@@ -9,7 +10,9 @@ import { Pitch } from '../Pitch';
 import { TopBar } from '.';
 
 function mockMatchMedia(matches: boolean) {
-  window.matchMedia = vi.fn().mockReturnValue({ matches }) as unknown as typeof window.matchMedia;
+  window.matchMedia = vi
+    .fn<(query: string) => { matches: boolean }>()
+    .mockReturnValue({ matches }) as unknown as typeof window.matchMedia;
 }
 
 beforeEach(() => {

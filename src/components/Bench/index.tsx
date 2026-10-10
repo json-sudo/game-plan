@@ -1,9 +1,9 @@
 import type { Piece, SquadSize, Team } from '../../board/types';
 import { TEAM_COLORS } from '../../board/boardReducer';
 import { subNumber } from '../../board/pieces';
-import { useBoard, useBoardDispatch } from '../../board/BoardContext';
-import { useDrag } from '../../board/DragContext';
-import { useNameEditor } from '../NameEditor';
+import { useBoard, useBoardDispatch } from '../../board/useBoard';
+import { useDrag } from '../../board/useDrag';
+import { useNameEditor } from '../NameEditor/useNameEditor';
 import { PieceToken } from '../PieceToken';
 import './bench.scss';
 
@@ -66,7 +66,7 @@ function TeamPool({ team, title }: { team: Team; title: string }) {
       </div>
 
       <div className="bench__controls">
-        <div className="bench__sizes" role="group" aria-label={`${title} squad size`}>
+        <fieldset className="bench__sizes" aria-label={`${title} squad size`}>
           {SQUAD_SIZES.map((size) => (
             <button
               key={size}
@@ -77,7 +77,7 @@ function TeamPool({ team, title }: { team: Team; title: string }) {
               {size}
             </button>
           ))}
-        </div>
+        </fieldset>
         <button
           type="button"
           className={`bench__keeper${keeperOn ? ' is-active' : ''}`}

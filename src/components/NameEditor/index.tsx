@@ -1,23 +1,10 @@
-import { createContext, useContext, useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import type { Piece } from '../../board/types';
-import { useBoardDispatch } from '../../board/BoardContext';
+import { useBoardDispatch } from '../../board/useBoard';
+import { NameEditorContext } from './useNameEditor';
 import './name-editor.scss';
 
 export const PIECE_NAME_MAX_LENGTH = 24;
-
-interface NameEditorApi {
-  renaming: boolean;
-  toggleRenaming: () => void;
-  openNameEditor: (piece: Piece, anchor: DOMRect) => void;
-}
-
-const NameEditorContext = createContext<NameEditorApi | null>(null);
-
-export function useNameEditor(): NameEditorApi {
-  const api = useContext(NameEditorContext);
-  if (!api) throw new Error('useNameEditor must be used within NameEditorProvider');
-  return api;
-}
 
 interface EditorState {
   pieceId: string;

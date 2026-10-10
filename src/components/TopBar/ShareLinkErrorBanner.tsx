@@ -1,4 +1,4 @@
-import { useShareLinkError } from '../../board/BoardContext';
+import { useShareLinkError } from '../../board/useBoard';
 
 export function ShareLinkErrorBanner() {
   const [hasError, dismiss] = useShareLinkError();

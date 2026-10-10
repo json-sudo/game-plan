@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { BoardProvider, useBoardDispatch } from '../../board/BoardContext';
+import { BoardProvider } from '../../board/BoardContext';
+import { useBoardDispatch } from '../../board/useBoard';
 import { DragProvider } from '../../board/DragContext';
 import { Bench } from '../Bench';
-import { NameEditorProvider, useNameEditor } from '.';
+import { NameEditorProvider } from '.';
+import { useNameEditor } from './useNameEditor';
 
 function RenameToggle() {
   const { renaming, toggleRenaming } = useNameEditor();

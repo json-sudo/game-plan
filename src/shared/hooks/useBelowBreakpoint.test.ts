@@ -3,7 +3,9 @@ import { renderHook } from '@testing-library/react';
 import { useBelowBreakpoint } from './useBelowBreakpoint';
 
 function mockMatchMedia(matches: boolean) {
-  window.matchMedia = vi.fn().mockReturnValue({ matches }) as unknown as typeof window.matchMedia;
+  window.matchMedia = vi
+    .fn<(query: string) => { matches: boolean }>()
+    .mockReturnValue({ matches }) as unknown as typeof window.matchMedia;
 }
 
 beforeEach(() => {

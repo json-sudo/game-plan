@@ -25,6 +25,11 @@ html[data-theme='dark'] {
     box-sizing: border-box;
 }
 
+fieldset {
+    border: none;
+    min-width: 0;
+}
+
 body {
     background: var(--body-bg);
     color: var(--text-color);
