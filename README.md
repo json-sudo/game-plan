@@ -23,3 +23,4 @@ State (`src/state`), persistence (`src/persistence`) and share links (`src/share
 | `npm test`              | Vitest unit and integration tests                       |
 | `npm run test:coverage` | Vitest with the 80% coverage thresholds                 |
 | `npm run test:e2e`      | Playwright end to end tests (builds and previews first) |
+| `npm run generate:data` | Regenerate `src/data/fm26` from `scripts/fm26-source`   |
