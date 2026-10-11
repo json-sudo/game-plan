@@ -4,3 +4,4 @@ node_modules
 coverage
 playwright-report
 test-results
+scripts/fm26-source

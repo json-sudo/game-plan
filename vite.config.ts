@@ -12,7 +12,12 @@ export default defineConfig({
     exclude: ['e2e/**', 'node_modules/**'],
     coverage: {
       provider: 'v8',
-      include: ['src/engine/**/*.ts', 'src/persistence/**/*.ts', 'src/shared/hooks/**/*.ts'],
+      include: [
+        'src/data/**/*.ts',
+        'src/engine/**/*.ts',
+        'src/persistence/**/*.ts',
+        'src/shared/hooks/**/*.ts',
+      ],
       exclude: ['**/*.test.ts', 'src/persistence/fixtures.ts', 'src/persistence/types.ts'],
       thresholds: {
         statements: 80,
