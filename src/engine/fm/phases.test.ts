@@ -4,7 +4,7 @@ import type { FormationDef, RoleDef, Side } from '../../data/types';
 import { ZONE_IDS } from '../../data/zones';
 import { PITCH_W } from '../geometry/pitch';
 import { layoutFormation } from '../layout/formations';
-import { PITCH_TARGET_MARGIN } from './movement';
+import { PITCH_TARGET_MARGIN, offsetFor } from './movement';
 import {
   PHASES,
   PHASE_PROGRESS,
@@ -116,14 +116,40 @@ describe('computePhases', () => {
     expect(none.final.size).toBe(scenario.players.length);
   });
 
-  it('keeps players without a role on their base position', () => {
+  it('keeps attackers without a role on their base position', () => {
     const roleless = {
       ...scenario,
       players: scenario.players.map((p) => ({ ...p, roleId: undefined })),
     };
     const result = computePhases(roleless);
-    const other = scenario.players.find((p) => p.id !== scenario.carrierId)!;
-    expect(result.final.get(other.id)).toEqual(other.base);
+    const attackers = scenario.players.filter(
+      (p) => p.team === 'mine' && p.id !== scenario.carrierId,
+    );
+    for (const attacker of attackers) expect(result.final.get(attacker.id)).toEqual(attacker.base);
+  });
+
+  it('shifts every outfield defender by the line shift and adds role offsets only where set', () => {
+    const central = input('mine', 'C-F');
+    const players = central.players.map((p) =>
+      p.team === 'opponent' && p.id !== 'opponent:DCL' ? { ...p, roleId: undefined } : p,
+    );
+    const targets = computeTargets({ ...central, players });
+    const shift = FM26_DATA.lineShift['C-F'].dy;
+    for (const player of players) {
+      if (player.team !== 'opponent' || player.id === 'opponent:DCL') continue;
+      const target = targets.get(player.id)!;
+      if (player.isKeeper) {
+        expect(target).toEqual(player.base);
+        continue;
+      }
+      expect(target.x).toBeCloseTo(player.base.x);
+      expect(target.y).toBeCloseTo(player.base.y + shift);
+    }
+    const dcl = players.find((p) => p.id === 'opponent:DCL')!;
+    const [, wide, depth] = offsetFor(FM26_DATA.movement, dcl.roleId!, 'C-F', 'ball')!;
+    const target = targets.get(dcl.id)!;
+    expect(target.x).toBeCloseTo(dcl.base.x + wide * Math.sign(dcl.base.x - PITCH_W / 2));
+    expect(target.y).toBeCloseTo(dcl.base.y + shift + depth);
   });
 
   it('keeps every target inside the pitch margin for every formation, zone and attacker', () => {

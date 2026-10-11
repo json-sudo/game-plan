@@ -57,14 +57,15 @@ function centreSign(x: number): -1 | 0 | 1 {
 
 export function targetFor(input: TargetInput): Point {
   const { base, team, attacker, roleId, isKeeper, zone, tables, grid = ZONE_GRID } = input;
-  if (!roleId) return base;
-  const frameBase = toAttackerFrame(base, attacker);
-  const offset = offsetFor(tables.movement, roleId, zone, ballSideOf(frameBase, zone, grid));
-  if (!offset) return base;
-
-  const [side, wide, depth] = offset;
   const attacking = team === attacker;
+  const frameBase = toAttackerFrame(base, attacker);
   const shift = attacking || isKeeper ? 0 : lineShift(zone, tables.lineShift);
+  const offset = roleId
+    ? offsetFor(tables.movement, roleId, zone, ballSideOf(frameBase, zone, grid))
+    : null;
+  if (!offset && shift === 0) return base;
+
+  const [side, wide, depth] = offset ?? [0, 0, 0];
   const dx = side * laneSignOf(zone) + wide * centreSign(frameBase.x);
   const dy = attacking ? -depth : depth;
   const target = clampToPitch(
