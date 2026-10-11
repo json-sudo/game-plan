@@ -1,28 +1,14 @@
-import { BoardProvider } from './board/BoardContext';
-import { DragProvider } from './board/DragContext';
-import { VisualizeProvider } from './board/VisualizeContext';
-import { Bench } from './components/Bench';
-import { NameEditorProvider } from './components/NameEditor';
-import { Pitch } from './components/Pitch';
-import { TopBar } from './components/TopBar';
-import './App.scss';
+import { useTheme } from './shared/hooks/useTheme';
 
 export default function App() {
+  const { theme, toggleTheme } = useTheme();
+
   return (
-    <BoardProvider>
-      <DragProvider>
-        <NameEditorProvider>
-          <VisualizeProvider>
-            <TopBar />
-            <main className="app">
-              <div className="app__pitch-area">
-                <Pitch />
-              </div>
-              <Bench />
-            </main>
-          </VisualizeProvider>
-        </NameEditorProvider>
-      </DragProvider>
-    </BoardProvider>
+    <main style={{ padding: '2rem', fontFamily: 'Figtree, sans-serif' }}>
+      <h1>Game Plan is being rebuilt</h1>
+      <button type="button" onClick={toggleTheme}>
+        Theme: {theme}
+      </button>
+    </main>
   );
 }
