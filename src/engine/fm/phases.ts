@@ -56,7 +56,7 @@ export function computePhases(input: PhaseInput): Record<Phase, Map<string, Poin
         player.id,
         player.id === input.carrierId
           ? input.ball
-          : positionAt(player.base, targets.get(player.id) ?? player.base, PHASE_PROGRESS[phase]),
+          : positionAt(player.base, targets.get(player.id)!, PHASE_PROGRESS[phase]),
       ]),
     );
   return { shape: phaseMap('shape'), runs: phaseMap('runs'), final: phaseMap('final') };
