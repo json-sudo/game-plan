@@ -18,6 +18,12 @@ describe('clampToPitch', () => {
     expect(clampToPitch({ x: -3, y: 50 })).toEqual({ x: 0, y: 50 });
   });
 
+  it('keeps points a margin away from the edges when asked', () => {
+    expect(clampToPitch({ x: -5, y: 120 }, 3)).toEqual({ x: 3, y: PITCH_H - 3 });
+    expect(clampToPitch({ x: PITCH_W, y: 50 }, 3)).toEqual({ x: PITCH_W - 3, y: 50 });
+    expect(clampToPitch({ x: 20, y: 50 }, 3)).toEqual({ x: 20, y: 50 });
+  });
+
   it('does not mutate its input', () => {
     const point = { x: -1, y: 200 };
     clampToPitch(point);

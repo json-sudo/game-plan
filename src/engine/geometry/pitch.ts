@@ -12,9 +12,12 @@ export function ballAtopPosition(piecePosition: { x: number; y: number }): {
   return { x: piecePosition.x, y: piecePosition.y + BALL_ATOP_OFFSET_Y };
 }
 
-export function clampToPitch(point: { x: number; y: number }): { x: number; y: number } {
+export function clampToPitch(
+  point: { x: number; y: number },
+  margin = 0,
+): { x: number; y: number } {
   return {
-    x: Math.min(PITCH_W, Math.max(0, point.x)),
-    y: Math.min(PITCH_H, Math.max(0, point.y)),
+    x: Math.min(PITCH_W - margin, Math.max(margin, point.x)),
+    y: Math.min(PITCH_H - margin, Math.max(margin, point.y)),
   };
 }
