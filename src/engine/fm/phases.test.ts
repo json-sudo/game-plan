@@ -135,13 +135,12 @@ describe('computePhases', () => {
     );
     const targets = computeTargets({ ...central, players });
     const shift = FM26_DATA.lineShift['C-F'].dy;
-    for (const player of players) {
-      if (player.team !== 'opponent' || player.id === 'opponent:DCL') continue;
+    const others = players.filter((p) => p.team === 'opponent' && p.id !== 'opponent:DCL');
+    for (const keeper of others.filter((p) => p.isKeeper)) {
+      expect(targets.get(keeper.id)).toEqual(keeper.base);
+    }
+    for (const player of others.filter((p) => !p.isKeeper)) {
       const target = targets.get(player.id)!;
-      if (player.isKeeper) {
-        expect(target).toEqual(player.base);
-        continue;
-      }
       expect(target.x).toBeCloseTo(player.base.x);
       expect(target.y).toBeCloseTo(player.base.y + shift);
     }
