@@ -94,7 +94,7 @@ function Sheet({ items, title = DEFAULT_TITLE, onClose }: PhoneMenuProps) {
 }
 
 function ModalSheet(props: PhoneMenuProps) {
-  const dialogRef = useModalDialog(props.onClose);
+  const { dialogRef, dismiss } = useModalDialog(props.onClose);
   return (
     <dialog
       ref={dialogRef}
@@ -102,7 +102,7 @@ function ModalSheet(props: PhoneMenuProps) {
       aria-label={props.title ?? DEFAULT_TITLE}
       data-phone="true"
     >
-      <Sheet {...props} />
+      <Sheet {...props} onClose={props.onClose ?? dismiss} />
     </dialog>
   );
 }

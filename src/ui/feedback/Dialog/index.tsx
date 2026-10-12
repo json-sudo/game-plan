@@ -41,11 +41,11 @@ function InlineDialog(props: DialogProps) {
 
 function ModalDialog(props: DialogProps) {
   const titleId = useId();
-  const dialogRef = useModalDialog(props.onClose);
+  const { dialogRef, dismiss } = useModalDialog(props.onClose);
   return (
     <dialog ref={dialogRef} className={styles.modal} aria-labelledby={titleId}>
       <div className={styles.panel}>
-        <Panel {...props} titleId={titleId} />
+        <Panel {...props} titleId={titleId} onClose={props.onClose ?? dismiss} />
       </div>
     </dialog>
   );

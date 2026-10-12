@@ -18,8 +18,7 @@ describe('interface copy', () => {
 
   it('uses pitch and tactic labels in TopBar', () => {
     render(<TopBar canUndo canRedo canReset />);
-    expect(screen.getByRole('radio', { name: 'Open pitch' })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'FM mode' })).toBeInTheDocument();
+    expect(screen.getByText('Open pitch')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Share tactic' })).toBeInTheDocument();
     const text = document.body.textContent ?? '';
     expect(text).not.toMatch(/\bboard\b/i);

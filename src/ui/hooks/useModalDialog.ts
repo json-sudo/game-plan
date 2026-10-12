@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 export function useModalDialog(onClose?: () => void) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -8,6 +8,13 @@ export function useModalDialog(onClose?: () => void) {
     onCloseRef.current = onClose;
   }, [onClose]);
 
+  const dismiss = useCallback(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (onCloseRef.current) onCloseRef.current();
+    else dialog.close();
+  }, []);
+
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -16,13 +23,13 @@ export function useModalDialog(onClose?: () => void) {
 
     const requestClose = (event: Event) => {
       event.preventDefault();
-      onCloseRef.current?.();
+      dismiss();
     };
     const trackPress = (event: Event) => {
       pressedOnBackdrop = event.target === dialog;
     };
     const closeOnBackdrop = (event: Event) => {
-      if (pressedOnBackdrop && event.target === dialog) onCloseRef.current?.();
+      if (pressedOnBackdrop && event.target === dialog) dismiss();
       pressedOnBackdrop = false;
     };
 
@@ -38,7 +45,7 @@ export function useModalDialog(onClose?: () => void) {
       if (dialog.open) dialog.close();
       if (opener?.isConnected) opener.focus();
     };
-  }, []);
+  }, [dismiss]);
 
-  return dialogRef;
+  return { dialogRef, dismiss };
 }

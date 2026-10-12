@@ -5,7 +5,7 @@ import { TopBar } from '.';
 
 describe('TopBar on desktop', () => {
   it('is the banner with both team names and the mode', () => {
-    render(<TopBar mine="Arsenal" opp="Chelsea" mode="fm" />);
+    render(<TopBar mine="Arsenal" opp="Chelsea" mode="fm" onModeChange={vi.fn()} />);
     expect(screen.getByRole('banner')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'My team name' })).toHaveValue('Arsenal');
     expect(screen.getByRole('textbox', { name: 'Opponent name' })).toHaveValue('Chelsea');
@@ -17,7 +17,8 @@ describe('TopBar on desktop', () => {
     render(<TopBar />);
     expect(screen.getByRole('textbox', { name: 'My team name' })).toHaveValue('My team');
     expect(screen.getByRole('textbox', { name: 'Opponent name' })).toHaveValue('Opponent');
-    expect(screen.getByRole('radio', { name: 'Open pitch' })).toBeChecked();
+    expect(screen.getByText('Open pitch')).toBeInTheDocument();
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
   });
 
   it('offers the full action set with copy-deck names', () => {

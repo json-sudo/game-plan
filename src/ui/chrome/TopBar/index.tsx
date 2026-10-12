@@ -101,12 +101,16 @@ export function TopBar(props: TopBarProps) {
           onChange={props.onOppChange}
         />
       </div>
-      <SegmentedControl
-        label="Mode"
-        value={mode}
-        options={MODE_OPTIONS}
-        onChange={(value) => props.onModeChange?.(value as PitchMode)}
-      />
+      {props.onModeChange ? (
+        <SegmentedControl
+          label="Mode"
+          value={mode}
+          options={MODE_OPTIONS}
+          onChange={(value) => props.onModeChange?.(value as PitchMode)}
+        />
+      ) : (
+        <span className={styles.mode}>{MODE_LABELS[mode]}</span>
+      )}
       <div className={styles.spacer} />
       <UndoControl
         canUndo={canUndo}

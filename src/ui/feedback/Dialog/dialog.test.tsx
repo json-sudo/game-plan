@@ -46,6 +46,19 @@ describe('Dialog', () => {
     expect(container.querySelectorAll('button')).toHaveLength(1);
   });
 
+  it('closes with Escape and the close button when onClose is omitted', async () => {
+    const user = userEvent.setup();
+    render(<Dialog title="Load tactic">Body</Dialog>);
+    const dialog = screen.getByRole('dialog', { name: 'Load tactic' });
+    expect(dialog).toHaveAttribute('open');
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(dialog).not.toHaveAttribute('open');
+    render(<Dialog title="Share tactic">Body</Dialog>);
+    const second = screen.getByRole('dialog', { name: 'Share tactic' });
+    await user.keyboard('{Escape}');
+    expect(second).not.toHaveAttribute('open');
+  });
+
   it('closes from the close button', async () => {
     const onClose = vi.fn<() => void>();
     render(
