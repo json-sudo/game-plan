@@ -8,7 +8,6 @@ Build nothing that depends on these until the captain confirms.
 
 | ID | Item | Notes |
 |---|---|---|
-| O-16 | Pair labels | Still unconfirmed in the PRD. Nothing in the design depends on it: the token fits any label up to five characters. Working default: D(C), M(C), ST and AM(C) pairs share one label; wide AM slots take AM(L)/AM(R) from x. |
 | O-14 | New dependencies | `@vitest/coverage-v8` and `fflate` were not named in round 5. Working default: add both. |
 | O-17 | Wide midfield roles | Four Wide Midfielder roles have no slot in the twelve formations. Working default: stay hidden until a formation with wide midfield is added. |
 | F30 | Redo | Should priority; may be cut. If cut, hide the button (`redo={false}`) and nothing else moves. |
@@ -86,6 +85,12 @@ One pitch, one pitch component, two modes.
 | First-run step 3 | "Step through with Next, or tap a player to see its role." |
 | Dribble direction | Hidden |
 | Copy board JSON | Hidden |
+
+## Settled design decisions
+
+| ID | Item | Decision |
+|---|---|---|
+| O-16 | Pair labels | Confirmed. D(C), M(C), ST and AM(C) pairs share one label; wide AM slots take AM(L)/AM(R) from x position. |
 
 ## Copy rules (settled)
 

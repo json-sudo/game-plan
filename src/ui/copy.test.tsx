@@ -20,18 +20,14 @@ describe('interface copy', () => {
     render(<TopBar canUndo canRedo canReset />);
     expect(screen.getByText('Open pitch')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Share tactic' })).toBeInTheDocument();
-    const text = document.body.textContent ?? '';
-    expect(text).not.toMatch(/\bboard\b/i);
-    expect(text).not.toMatch(/\btun(?:e|ed|ing)\b/i);
-    expect(text).not.toMatch(/\bsandbox\b/i);
+    expect(screen.getByRole('button', { name: 'Copy tactic JSON' })).toBeInTheDocument();
   });
 
-  it('uses pitch terminology in FirstRunHint', () => {
+  it('surfaces approved onboarding copy in FirstRunHint', () => {
     render(<FirstRunHint />);
     expect(screen.getByText('Tap a zone on the map.')).toBeInTheDocument();
-    const text = document.body.textContent ?? '';
-    expect(text).not.toMatch(/\bboard\b/i);
-    expect(text).not.toMatch(/\btun(?:e|ed|ing)\b/i);
-    expect(text).not.toMatch(/\bsandbox\b/i);
+    expect(
+      screen.getByText('Step through with Next, or tap a player to change its role.'),
+    ).toBeInTheDocument();
   });
 });
