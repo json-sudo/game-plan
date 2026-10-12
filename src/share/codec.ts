@@ -6,7 +6,7 @@ import {
   SIDES,
   documentIssues,
   type AppliedLayout,
-  type BoardDocument,
+  type PitchDocument,
   type Mode,
   type Player,
   type TeamMeta,
@@ -15,7 +15,7 @@ import { fromBase64Url, toBase64Url } from './base64url';
 import { sharePayloadSchema, type SharePayload, type SharePlayerTuple } from './schema';
 
 export const SHARE_PARAM = 's';
-export const SHARE_VERSION = 'v2';
+export const SHARE_VERSION = 'v3';
 export const SHARE_PREFIX = `${SHARE_PARAM}=${SHARE_VERSION}.`;
 export const MAX_SHARE_HASH_LENGTH = 8000;
 export const MAX_SHARE_PAYLOAD_BYTES = 65536;
@@ -24,16 +24,17 @@ export type ShareErrorCode =
   'not-a-link' | 'old-version' | 'unknown-version' | 'unknown-data' | 'malformed' | 'invalid';
 
 export type DecodeResult =
-  | { status: 'ok'; doc: BoardDocument; phase: Phase; mode: Mode }
+  | { status: 'ok'; doc: PitchDocument; phase: Phase; mode: Mode }
   | { status: 'error'; code: ShareErrorCode; message: string };
 
 const MESSAGES: Record<ShareErrorCode, string> = {
   'not-a-link': 'This address does not contain a Game Plan link.',
-  'old-version': 'This link is from an older version of Game Plan and cannot be opened.',
+  'old-version':
+    'This link is from the old Game Plan. Old links cannot be opened in this version. Ask for a new link.',
   'unknown-version': 'This link was made by a newer version of Game Plan and cannot be opened.',
   'unknown-data': 'This link uses role and formation data this version does not have.',
   malformed: 'This link is damaged and cannot be opened.',
-  invalid: 'This link does not describe a valid board and cannot be opened.',
+  invalid: 'This share link could not be opened. Your pitch has not changed.',
 };
 
 const APPLIED_CODES: readonly AppliedLayout[] = [null, 'formation', 'matchup'];
@@ -65,7 +66,7 @@ function encodePlayer(player: Player, data: DataSet): SharePlayerTuple {
   ];
 }
 
-function encodePayload(doc: BoardDocument, phase: Phase, data: DataSet): SharePayload {
+function encodePayload(doc: PitchDocument, phase: Phase, data: DataSet): SharePayload {
   const pair = <T>(pick: (meta: TeamMeta) => T): [T, T] => [
     pick(doc.teams.mine),
     pick(doc.teams.opponent),
@@ -86,7 +87,7 @@ function encodePayload(doc: BoardDocument, phase: Phase, data: DataSet): SharePa
 }
 
 export function encodeShareHash(
-  doc: BoardDocument,
+  doc: PitchDocument,
   phase: Phase,
   data: DataSet = FM26_DATA,
 ): string {
@@ -119,7 +120,7 @@ function decodePlayer(tuple: SharePlayerTuple, data: DataSet): Player | null {
   };
 }
 
-function decodeTeams(payload: SharePayload): BoardDocument['teams'] {
+function decodeTeams(payload: SharePayload): PitchDocument['teams'] {
   const teamAt = (index: 0 | 1): TeamMeta => ({
     name: payload[2][index],
     formationId: payload[3][index] === 0 ? null : payload[3][index],
@@ -130,7 +131,7 @@ function decodeTeams(payload: SharePayload): BoardDocument['teams'] {
   return { mine: teamAt(0), opponent: teamAt(1) };
 }
 
-function buildDocument(payload: SharePayload, data: DataSet): BoardDocument | null {
+function buildDocument(payload: SharePayload, data: DataSet): PitchDocument | null {
   const players = payload[7].map((tuple) => decodePlayer(tuple, data));
   if (players.some((player) => player === null)) return null;
   const scenario = payload[9];
@@ -156,7 +157,7 @@ function inflatePayload(text: string): unknown {
 }
 
 function versionFailure(tag: string): DecodeResult {
-  return failure(tag === 'v1' ? 'old-version' : 'unknown-version');
+  return failure(tag === 'v1' || tag === 'v2' ? 'old-version' : 'unknown-version');
 }
 
 export function decodeShareHash(hash: string, data: DataSet = FM26_DATA): DecodeResult {
@@ -171,6 +172,6 @@ export function decodeShareHash(hash: string, data: DataSet = FM26_DATA): Decode
 
   const doc = buildDocument(parsed.data, data);
   if (!doc || documentIssues(doc, data) !== null) return failure('invalid');
-  const mode: Mode = doc.players.some((player) => player.role !== undefined) ? 'fm' : 'sandbox';
+  const mode: Mode = doc.players.some((player) => player.role !== undefined) ? 'fm' : 'openPitch';
   return { status: 'ok', doc, phase: PHASES[parsed.data[10]], mode };
 }

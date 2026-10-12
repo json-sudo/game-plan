@@ -2,11 +2,11 @@ import { FM26_DATA } from '../data/fm26';
 import type { DataSet, Point, Side } from '../data/types';
 import type { ZoneId } from '../data/zones';
 import type { DribbleDirection } from '../engine';
-import type { BoardDocument, SquadSize } from './document';
+import type { PitchDocument, SquadSize } from './document';
 import {
   applyFormation,
   applyMatchup,
-  resetBoard,
+  resetPitch,
   setKeeper,
   setSquadSize,
 } from './layout-actions';
@@ -34,13 +34,13 @@ export type Action =
   | { type: 'dribble'; direction: DribbleDirection }
   | { type: 'clearScenario' }
   | { type: 'reset' }
-  | { type: 'loadDocument'; doc: BoardDocument };
+  | { type: 'loadDocument'; doc: PitchDocument };
 
 export function applyAction(
-  doc: BoardDocument,
+  doc: PitchDocument,
   action: Action,
   data: DataSet = FM26_DATA,
-): BoardDocument {
+): PitchDocument {
   switch (action.type) {
     case 'applyFormation':
       return applyFormation(doc, action.team, action.formationId, data);
@@ -77,7 +77,7 @@ export function applyAction(
     case 'clearScenario':
       return clearScenario(doc);
     case 'reset':
-      return resetBoard(doc, data);
+      return resetPitch(doc, data);
     case 'loadDocument':
       return documentIssues(action.doc, data) === null ? action.doc : doc;
   }

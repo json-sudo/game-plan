@@ -88,7 +88,7 @@ describe('pass', () => {
   it('uses the receiver current position when given', () => {
     const result = pass(context, 'st', new Map([['st', { x: 55, y: 30 }]]));
     expect(result.ball).toEqual({ x: 55, y: 30 });
-    expect(result.zone).toBe('R-F');
+    expect(result.zone).toBe('RH-F');
   });
 
   it('refuses a pass to the carrier, a defender or an unknown player', () => {

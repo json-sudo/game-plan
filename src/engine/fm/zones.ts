@@ -1,5 +1,5 @@
 import type { Point, Side } from '../../data/types';
-import { GRID, type Lane, type Third, type ZoneId } from '../../data/zones';
+import { GRID, LANE_EDGE_FRACTIONS, type Lane, type Third, type ZoneId } from '../../data/zones';
 import { PITCH_H, PITCH_W } from '../geometry/pitch';
 
 export interface ZoneGrid {
@@ -14,7 +14,13 @@ export interface ZoneBounds {
   y1: number;
 }
 
-const LANE_NAMES: Record<Lane, string> = { L: 'Left flank', C: 'Centre', R: 'Right flank' };
+const LANE_NAMES: Record<Lane, string> = {
+  L: 'Left flank',
+  LH: 'Left half-space',
+  C: 'Centre',
+  RH: 'Right half-space',
+  R: 'Right flank',
+};
 const THIRD_NAMES: Record<Third, string> = {
   D: 'defensive third',
   M: 'middle third',
@@ -28,7 +34,7 @@ function evenEdges(length: number, count: number): number[] {
 }
 
 export const ZONE_GRID: ZoneGrid = {
-  laneEdges: evenEdges(PITCH_W, GRID.lanes.length),
+  laneEdges: LANE_EDGE_FRACTIONS.map((fraction) => fraction * PITCH_W),
   thirdEdges: evenEdges(PITCH_H, GRID.thirds.length),
 };
 
@@ -49,19 +55,34 @@ export function zoneOf(ball: Point, attacker: Side, grid: ZoneGrid = ZONE_GRID):
   return `${lane}-${third}`;
 }
 
-function parseZone(zone: ZoneId): { laneIndex: number; thirdIndex: number } {
+function parseZone(zone: ZoneId): {
+  lane: Lane;
+  third: Third;
+  laneIndex: number;
+  thirdIndex: number;
+} {
   const [lane, third] = zone.split('-') as [Lane, Third];
   return {
+    lane,
+    third,
     laneIndex: GRID.lanes.indexOf(lane),
     thirdIndex: FRONT_TO_BACK_THIRDS.indexOf(third),
   };
 }
 
+export function laneOf(zone: ZoneId): Lane {
+  return parseZone(zone).lane;
+}
+
+export function thirdOf(zone: ZoneId): Third {
+  return parseZone(zone).third;
+}
+
 export function laneSignOf(zone: ZoneId): -1 | 0 | 1 {
   const { laneIndex } = parseZone(zone);
-  const last = GRID.lanes.length - 1;
-  if (laneIndex === 0) return -1;
-  return laneIndex === last ? 1 : 0;
+  const middle = (GRID.lanes.length - 1) / 2;
+  if (laneIndex === middle) return 0;
+  return laneIndex < middle ? -1 : 1;
 }
 
 function bandBounds(
@@ -85,6 +106,6 @@ export function zoneCentre(zone: ZoneId, attacker: Side, grid: ZoneGrid = ZONE_G
 }
 
 export function zoneName(zone: ZoneId): string {
-  const [lane, third] = zone.split('-') as [Lane, Third];
+  const { lane, third } = parseZone(zone);
   return `${LANE_NAMES[lane]} - ${THIRD_NAMES[third]}`;
 }

@@ -15,11 +15,13 @@ export type BallSide = 'ball' | 'far';
 
 export interface MovementTables {
   movement: MovementTable;
+  shapeLineShift: LineShiftTable;
   lineShift: LineShiftTable;
 }
 
 export interface TargetInput {
   base: Point;
+  start: Point;
   team: Side;
   attacker: Side;
   roleId: string | undefined;
@@ -29,7 +31,10 @@ export interface TargetInput {
   grid?: ZoneGrid;
 }
 
+export type TargetResult = { status: 'ok'; target: Point } | { status: 'setup-not-finished' };
+
 export const PITCH_TARGET_MARGIN = 3;
+
 const CENTRE_TOLERANCE = 0.5;
 
 export function offsetFor(
@@ -55,22 +60,23 @@ function centreSign(x: number): -1 | 0 | 1 {
   return delta < 0 ? -1 : 1;
 }
 
-export function targetFor(input: TargetInput): Point {
-  const { base, team, attacker, roleId, isKeeper, zone, tables, grid = ZONE_GRID } = input;
+export function targetFor(input: TargetInput): TargetResult {
+  const { base, start, team, attacker, roleId, isKeeper, zone, tables, grid = ZONE_GRID } = input;
+  if (isKeeper) return { status: 'ok', target: start };
   const attacking = team === attacker;
   const frameBase = toAttackerFrame(base, attacker);
+  const frameStart = toAttackerFrame(start, attacker);
   const shift = attacking || isKeeper ? 0 : lineShift(zone, tables.lineShift);
   const offset = roleId
-    ? offsetFor(tables.movement, roleId, zone, ballSideOf(frameBase, zone, grid))
-    : null;
-  if (!offset && shift === 0) return base;
-
-  const [side, wide, depth] = offset ?? [0, 0, 0];
+    ? offsetFor(tables.movement, roleId, zone, ballSideOf(frameStart, zone, grid))
+    : ([0, 0, 0] as const);
+  if (!offset) return { status: 'setup-not-finished' };
+  const [side, wide, depth] = offset;
   const dx = side * laneSignOf(zone) + wide * centreSign(frameBase.x);
   const dy = attacking ? -depth : depth;
   const target = clampToPitch(
-    { x: frameBase.x + dx, y: frameBase.y + shift + dy },
+    { x: frameStart.x + dx, y: frameStart.y + shift + dy },
     PITCH_TARGET_MARGIN,
   );
-  return fromAttackerFrame(target, attacker);
+  return { status: 'ok', target: fromAttackerFrame(target, attacker) };
 }

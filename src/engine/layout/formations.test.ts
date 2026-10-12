@@ -9,7 +9,7 @@ import {
   layoutMatchup,
   mirrorPoint,
 } from './formations';
-import { MIN_SEP } from './separation';
+import { MIN_TOKEN_SPACING } from './spacing';
 
 const distance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.hypot(a.x - b.x, a.y - b.y);
@@ -64,10 +64,14 @@ describe('layoutFormation', () => {
 describe('layoutMatchup', () => {
   const def = formation('4_3_3_dm_wide');
 
-  it('leaves the defender on the standard layout', () => {
+  it('leaves the defender on the standard layout when spacing allows', () => {
     const result = layoutMatchup('mine', { mine: def, opponent: def });
     const standard = layoutFormation(def, 'opponent');
-    for (const [slot, point] of standard) expect(result.opponent.get(slot)).toEqual(point);
+    for (const [slot, point] of standard) {
+      const placed = result.opponent.get(slot)!;
+      expect(placed.x).toBeCloseTo(point.x);
+      expect(Math.hypot(placed.x - point.x, placed.y - point.y)).toBeLessThan(MIN_TOKEN_SPACING);
+    }
   });
 
   it('keeps the attacking keeper and advances the outfield towards the opponent goal', () => {
@@ -81,7 +85,7 @@ describe('layoutMatchup', () => {
     const result = layoutMatchup('mine', { mine: def, opponent: def });
     const standard = layoutFormation(def, 'mine');
     expect(standard.get('ST')!.y - result.mine.get('ST')!.y).toBeLessThanOrEqual(
-      MATCHUP_MAX_ADVANCE + MIN_SEP,
+      MATCHUP_MAX_ADVANCE + MIN_TOKEN_SPACING,
     );
   });
 
@@ -135,7 +139,7 @@ describe('layoutMatchup', () => {
           for (const slot of attackers) {
             const point = result[attacker].get(slot.id)!;
             for (const other of result[defender].values()) {
-              if (distance(point, other) < MIN_SEP - 0.01) {
+              if (distance(point, other) < MIN_TOKEN_SPACING - 0.01) {
                 offenders.push(
                   `${attacker} ${attackerFormation.id} v ${defenderFormation.id} ${slot.id}`,
                 );

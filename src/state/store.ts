@@ -2,10 +2,10 @@ import { createStore, type StoreApi } from 'zustand/vanilla';
 import type { Phase } from '../engine';
 import type { Point } from '../data/types';
 import { applyAction, type Action } from './actions';
-import { createInitialDocument, type BoardDocument } from './document';
+import { createInitialDocument, type PitchDocument } from './document';
 import { commit, emptyHistory, redo, undo, type History } from './history';
 
-export type Mode = 'sandbox' | 'fm';
+export type Mode = 'openPitch' | 'fm';
 export type ArrowMode = 'all' | 'selected';
 export type Theme = 'light' | 'dark';
 export type DragTarget = { kind: 'player'; id: string } | { kind: 'ball' };
@@ -26,9 +26,9 @@ export interface UiState {
   drag: DragState | null;
 }
 
-export interface BoardStore {
-  doc: BoardDocument;
-  history: History<BoardDocument>;
+export interface PitchStore {
+  doc: PitchDocument;
+  history: History<PitchDocument>;
   ui: UiState;
   dispatch: (action: Action) => void;
   undo: () => void;
@@ -41,8 +41,8 @@ export interface BoardStore {
   cancelDrag: () => void;
 }
 
-export interface BoardStoreOptions {
-  doc?: BoardDocument;
+export interface PitchStoreOptions {
+  doc?: PitchDocument;
   ui?: Partial<UiState>;
 }
 
@@ -52,7 +52,7 @@ export function initialUi(mode: Mode): UiState {
     phase: 'shape',
     playing: false,
     selectedPlayerId: null,
-    arrows: 'all',
+    arrows: 'selected',
     setupStep: null,
     theme: 'light',
     drag: null,
@@ -65,9 +65,9 @@ function dragAction(drag: DragState): Action {
     : { type: 'movePlayer', playerId: drag.target.id, point: drag.point };
 }
 
-export function createBoardStore(options: BoardStoreOptions = {}): StoreApi<BoardStore> {
+export function createPitchStore(options: PitchStoreOptions = {}): StoreApi<PitchStore> {
   const { doc = createInitialDocument(), ui = {} } = options;
-  return createStore<BoardStore>()((set, get) => {
+  return createStore<PitchStore>()((set, get) => {
     const dispatch = (action: Action) => {
       const { doc: current, history } = get();
       const next = applyAction(current, action);
@@ -76,8 +76,8 @@ export function createBoardStore(options: BoardStoreOptions = {}): StoreApi<Boar
     };
     return {
       doc,
-      history: emptyHistory<BoardDocument>(),
-      ui: { ...initialUi('sandbox'), ...ui },
+      history: emptyHistory<PitchDocument>(),
+      ui: { ...initialUi('openPitch'), ...ui },
       dispatch,
       undo: () => {
         const step = undo(get().history, get().doc);
@@ -93,7 +93,7 @@ export function createBoardStore(options: BoardStoreOptions = {}): StoreApi<Boar
         const { doc: current, history, ui: currentUi } = get();
         const ui = { ...currentUi, mode };
         if (mode !== 'fm') return set({ ui });
-        const fill = (entry: BoardDocument) => applyAction(entry, { type: 'fillDefaultRoles' });
+        const fill = (entry: PitchDocument) => applyAction(entry, { type: 'fillDefaultRoles' });
         set({
           ui,
           doc: fill(current),

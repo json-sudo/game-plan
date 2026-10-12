@@ -6,7 +6,7 @@ import {
   createExampleDocument,
   createInitialDocument,
   type Action,
-  type BoardDocument,
+  type PitchDocument,
 } from '../state';
 import { SHARE_PREFIX, decodeShareHash, encodeShareHash, type DecodeResult } from './codec';
 
@@ -24,7 +24,7 @@ function rawHash(payload: unknown): string {
   return `#${SHARE_PREFIX}${toBase64Url(deflateSync(strToU8(JSON.stringify(payload))))}`;
 }
 
-function payloadOf(doc: BoardDocument, phase: 'shape' | 'runs' | 'final' = 'shape'): unknown[] {
+function payloadOf(doc: PitchDocument, phase: 'shape' | 'runs' | 'final' = 'shape'): unknown[] {
   const hash = encodeShareHash(doc, phase);
   const encoded = hash.slice(`#${SHARE_PREFIX}`.length);
   const binary = atob(encoded.replace(/-/g, '+').replace(/_/g, '/'));
@@ -42,12 +42,12 @@ function rejected(code: string) {
   return { status: 'error', code, message: expect.stringMatching(/.{10,}/) };
 }
 
-function run(doc: BoardDocument, ...actions: Action[]): BoardDocument {
+function run(doc: PitchDocument, ...actions: Action[]): PitchDocument {
   return actions.reduce((current, action) => applyAction(current, action), doc);
 }
 
 describe('round trip', () => {
-  it('rebuilds the example board, the phase and FM mode', () => {
+  it('rebuilds the example pitch, the phase and FM mode', () => {
     const result = decodeShareHash(encodeShareHash(example, 'runs'));
     expect(result).toEqual({ status: 'ok', doc: example, phase: 'runs', mode: 'fm' });
   });
@@ -65,14 +65,14 @@ describe('round trip', () => {
     expect(decodeShareHash(hash.slice(1))).toEqual(decodeShareHash(hash));
   });
 
-  it('opens a board without roles in sandbox mode', () => {
-    const sandbox = run(
+  it('opens a pitch without roles in openPitch mode', () => {
+    const openPitch = run(
       createInitialDocument(),
       { type: 'applyFormation', team: 'mine', formationId: '4_3_3_dm_wide' },
       { type: 'movePlayer', playerId: 'mine-ST', point: { x: 12.34, y: 56.78 } },
     );
-    const result = decodeShareHash(encodeShareHash(sandbox, 'shape'));
-    expect(result).toEqual({ status: 'ok', doc: sandbox, phase: 'shape', mode: 'sandbox' });
+    const result = decodeShareHash(encodeShareHash(openPitch, 'shape'));
+    expect(result).toEqual({ status: 'ok', doc: openPitch, phase: 'shape', mode: 'openPitch' });
   });
 
   it('keeps team names, piece names, squad sizes, keepers and the attacker', () => {
@@ -92,7 +92,7 @@ describe('round trip', () => {
     });
   });
 
-  it('keeps benched pieces and a board with no scenario', () => {
+  it('keeps benched pieces and a pitch with no scenario', () => {
     const doc = run(
       example,
       { type: 'benchPlayer', playerId: 'mine-DM' },
@@ -102,10 +102,10 @@ describe('round trip', () => {
     expect(result.status === 'ok' && result.doc).toEqual(doc);
   });
 
-  it('keeps a blank board', () => {
+  it('keeps a blank pitch', () => {
     const blank = createInitialDocument();
     const result = decodeShareHash(encodeShareHash(blank, 'shape'));
-    expect(result).toEqual({ status: 'ok', doc: blank, phase: 'shape', mode: 'sandbox' });
+    expect(result).toEqual({ status: 'ok', doc: blank, phase: 'shape', mode: 'openPitch' });
   });
 });
 
@@ -119,8 +119,8 @@ describe('size budget', () => {
     }).join('');
   }
 
-  it('keeps a full FM board with every name at 24 characters under 2,000 characters', () => {
-    const named = example.players.reduce<BoardDocument>(
+  it('keeps a full FM pitch with every name at 24 characters under 2,000 characters', () => {
+    const named = example.players.reduce<PitchDocument>(
       (doc, player, index) =>
         applyAction(doc, {
           type: 'setPieceName',
@@ -151,12 +151,13 @@ describe('rejected links', () => {
     expect(decodeShareHash('#s=v1.AAAA')).toEqual({
       status: 'error',
       code: 'old-version',
-      message: 'This link is from an older version of Game Plan and cannot be opened.',
+      message:
+        'This link is from the old Game Plan. Old links cannot be opened in this version. Ask for a new link.',
     });
   });
 
   it('rejects other version tags', () => {
-    expect(decodeShareHash('#s=v3.AAAA')).toMatchObject(rejected('unknown-version'));
+    expect(decodeShareHash('#s=v4.AAAA')).toMatchObject(rejected('unknown-version'));
     expect(decodeShareHash('#s=AAAA')).toMatchObject(rejected('unknown-version'));
   });
 

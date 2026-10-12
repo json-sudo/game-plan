@@ -7,7 +7,7 @@ import {
   createInitialDocument,
   placedPlayers,
   playersOf,
-  type BoardDocument,
+  type PitchDocument,
   type Player,
 } from './document';
 import { documentIssues } from './validate';
@@ -15,11 +15,11 @@ import { documentIssues } from './validate';
 const MINE = '4_3_3_dm_wide';
 const OPPONENT = '4_2_3_1_dm_wide';
 
-function run(doc: BoardDocument, ...actions: Action[]): BoardDocument {
+function run(doc: PitchDocument, ...actions: Action[]): PitchDocument {
   return actions.reduce((current, action) => applyAction(current, action), doc);
 }
 
-function matchup(): BoardDocument {
+function matchup(): PitchDocument {
   return run(
     createInitialDocument(),
     { type: 'applyFormation', team: 'mine', formationId: MINE },
@@ -28,7 +28,7 @@ function matchup(): BoardDocument {
   );
 }
 
-function player(doc: BoardDocument, id: string): Player {
+function player(doc: PitchDocument, id: string): Player {
   const found = doc.players.find((candidate) => candidate.id === id);
   if (!found) throw new Error(`no player ${id}`);
   return found;
@@ -438,7 +438,7 @@ describe('scenario actions', () => {
 });
 
 describe('reset', () => {
-  it('returns a matchup board to the matchup layout and drops the scenario', () => {
+  it('returns a matchup pitch to the matchup layout and drops the scenario', () => {
     const base = matchup();
     const dirty = run(
       base,
@@ -465,7 +465,7 @@ describe('reset', () => {
     expect(applyAction(dirty, { type: 'reset' }).players).toEqual(base.players);
   });
 
-  it('returns a blank board to its starting pieces while keeping team names', () => {
+  it('returns a blank pitch to its starting pieces while keeping team names', () => {
     const dirty = run(
       createInitialDocument(),
       { type: 'renameTeam', team: 'mine', name: 'Reds' },
@@ -487,7 +487,7 @@ describe('loadDocument', () => {
 
   it('refuses an invalid document', () => {
     const doc = createInitialDocument();
-    const broken: BoardDocument = { ...matchup(), scenario: { zone: 'C-F', carrierId: 'ghost' } };
+    const broken: PitchDocument = { ...matchup(), scenario: { zone: 'C-F', carrierId: 'ghost' } };
     expect(applyAction(doc, { type: 'loadDocument', doc: broken })).toBe(doc);
   });
 });

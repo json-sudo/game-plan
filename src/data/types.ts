@@ -101,5 +101,6 @@ export interface DataSet {
   roles: readonly RoleDef[];
   formations: readonly FormationDef[];
   movement: MovementTable;
+  shapeLineShift: LineShiftTable;
   lineShift: LineShiftTable;
 }

@@ -2,22 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { FM26_DATA } from '../data/fm26';
 import { applyAction } from './actions';
 import { createExampleDocument } from './example';
-import { createInitialDocument, type BoardDocument, type Player } from './document';
+import { createInitialDocument, type PitchDocument, type Player } from './document';
 import { MAX_PIECES_PER_TEAM, documentIssues } from './validate';
 
 const valid = createExampleDocument();
 
-function withPlayer(update: Partial<Player>, id = 'mine-ST'): BoardDocument {
+function withPlayer(update: Partial<Player>, id = 'mine-ST'): PitchDocument {
   return {
     ...valid,
     players: valid.players.map((player) => (player.id === id ? { ...player, ...update } : player)),
   };
 }
 
-const issue = (doc: BoardDocument) => documentIssues(doc, FM26_DATA);
+const issue = (doc: PitchDocument) => documentIssues(doc, FM26_DATA);
 
 describe('documentIssues', () => {
-  it('accepts the example board and a blank board', () => {
+  it('accepts the example pitch and a blank pitch', () => {
     expect(issue(valid)).toBeNull();
     expect(issue(createInitialDocument())).toBeNull();
   });

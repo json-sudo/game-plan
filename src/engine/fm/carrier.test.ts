@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { PITCH_W } from '../geometry/pitch';
+import { ZONE_GRID } from './zones';
 import { nearestCarrier, nearestCarrierInLane, resolveCarrier } from './carrier';
 
 const candidate = (id: string, x: number, y: number, isKeeper = false) => ({
@@ -34,21 +36,34 @@ describe('nearestCarrier', () => {
 });
 
 describe('nearestCarrierInLane', () => {
-  const mine = [candidate('l', 10, 60), candidate('c', 38, 60), candidate('r', 66, 60)];
+  const bounds = [0, ...ZONE_GRID.laneEdges, PITCH_W];
+  const laneX = (index: number) => (bounds[index] + bounds[index + 1]) / 2;
+  const mine = [
+    candidate('l', laneX(0), 60),
+    candidate('lh', laneX(1) - 2, 70),
+    candidate('c', laneX(2), 60),
+    candidate('rh', laneX(3), 60),
+    candidate('r', laneX(4), 60),
+  ];
 
   it('prefers candidates in the ball lane', () => {
-    expect(nearestCarrierInLane({ x: 62, y: 20 }, mine, 'mine')).toBe('r');
-    expect(nearestCarrierInLane({ x: 12, y: 20 }, mine, 'mine')).toBe('l');
+    expect(nearestCarrierInLane({ x: laneX(4), y: 20 }, mine, 'mine')).toBe('r');
+    expect(nearestCarrierInLane({ x: laneX(0), y: 20 }, mine, 'mine')).toBe('l');
+  });
+
+  it('keeps the half-space as its own lane', () => {
+    expect(nearestCarrierInLane({ x: laneX(1), y: 10 }, mine, 'mine')).toBe('lh');
+    expect(nearestCarrierInLane({ x: laneX(3), y: 10 }, mine, 'mine')).toBe('rh');
   });
 
   it('matches lanes by screen side for the opponent too', () => {
-    expect(nearestCarrierInLane({ x: 12, y: 20 }, mine, 'opponent')).toBe('l');
-    expect(nearestCarrierInLane({ x: 62, y: 80 }, mine, 'opponent')).toBe('r');
+    expect(nearestCarrierInLane({ x: laneX(0), y: 20 }, mine, 'opponent')).toBe('l');
+    expect(nearestCarrierInLane({ x: laneX(4), y: 80 }, mine, 'opponent')).toBe('r');
   });
 
   it('falls back to all candidates when the lane is empty', () => {
     const noRight = mine.filter((c) => c.id !== 'r');
-    expect(nearestCarrierInLane({ x: 70, y: 20 }, noRight, 'mine')).toBe('c');
+    expect(nearestCarrierInLane({ x: laneX(4), y: 20 }, noRight, 'mine')).toBe('rh');
   });
 
   it('returns null with no candidates', () => {

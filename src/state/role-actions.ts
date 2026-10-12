@@ -3,7 +3,7 @@ import {
   defaultRoleFor,
   isRoleValidFor,
   possessionOf,
-  type BoardDocument,
+  type PitchDocument,
   type Player,
 } from './document';
 import { refreshScenario } from './scenario-actions';
@@ -13,14 +13,14 @@ function withRole(player: Player, role: string | undefined): Player {
   return role === undefined ? rest : { ...rest, role };
 }
 
-function mapPlayers(doc: BoardDocument, update: (player: Player) => Player): BoardDocument {
+function mapPlayers(doc: PitchDocument, update: (player: Player) => Player): PitchDocument {
   const players = doc.players.map(update);
   return players.every((player, index) => player === doc.players[index])
     ? doc
     : { ...doc, players };
 }
 
-export function reconcileRoles(doc: BoardDocument, data: DataSet): BoardDocument {
+export function reconcileRoles(doc: PitchDocument, data: DataSet): PitchDocument {
   return mapPlayers(doc, (player) => {
     if (player.role === undefined) return player;
     const possession = possessionOf(doc, player.team);
@@ -29,7 +29,7 @@ export function reconcileRoles(doc: BoardDocument, data: DataSet): BoardDocument
   });
 }
 
-export function fillDefaultRoles(doc: BoardDocument, data: DataSet): BoardDocument {
+export function fillDefaultRoles(doc: PitchDocument, data: DataSet): PitchDocument {
   return mapPlayers(reconcileRoles(doc, data), (player) => {
     if (player.role !== undefined || player.base === undefined) return player;
     const role = defaultRoleFor(data, player.family, possessionOf(doc, player.team));
@@ -38,11 +38,11 @@ export function fillDefaultRoles(doc: BoardDocument, data: DataSet): BoardDocume
 }
 
 export function setRole(
-  doc: BoardDocument,
+  doc: PitchDocument,
   playerId: string,
   roleId: string | null,
   data: DataSet,
-): BoardDocument {
+): PitchDocument {
   const target = doc.players.find((player) => player.id === playerId);
   if (!target) return doc;
   if (roleId === null)
@@ -51,7 +51,7 @@ export function setRole(
   return mapPlayers(doc, (player) => (player === target ? withRole(player, roleId) : player));
 }
 
-export function setAttacker(doc: BoardDocument, attacker: Side, data: DataSet): BoardDocument {
+export function setAttacker(doc: PitchDocument, attacker: Side, data: DataSet): PitchDocument {
   if (doc.attacker === attacker) return doc;
   return refreshScenario(reconcileRoles({ ...doc, attacker }, data));
 }

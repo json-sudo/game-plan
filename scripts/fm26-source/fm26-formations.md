@@ -27,7 +27,7 @@ Coordinates are the site units: x runs 0 to 100 across the pitch, y runs 0 to 10
 
 ## 2. Slot ids, labels and families
 
-Each slot keeps the site code as its **id**. The id is unique inside a formation and keeps the side (L, R, C), so it is the value the engine, saves and share links use. The **label** is what the board shows. The **family** is the label without the side, and roles are matched to slots by family, as the role data prints them (for example `AM(L/R)` matches the family `AM(L)` and `AM(R)`).
+Each slot keeps the site code as its **id**. The id is unique inside a formation and keeps the side (L, R, C), so it is the value the engine, saves and share links use. The **label** is what the pitch shows. The **family** is the label without the side, and roles are matched to slots by family, as the role data prints them (for example `AM(L/R)` matches the family `AM(L)` and `AM(R)`).
 
 | Site id | Family (label) | Note |
 |---|---|---|
@@ -257,6 +257,6 @@ Coordinates are site units, as the API returns them. Family is the label family 
 2. **No M(L) or M(R) slot in the 12 formations.** Four Wide Midfielder roles (`wide_midfielder_ip`, `wide_midfielder_oop`, `tracking_wide_midfielder_oop`, `wide_outlet_wide_midfielder_oop`) have no slot to sit in. See `PRD.md` section 12, O-17.
 3. **Pairs share a label.** Each pair (DM, D(C), M(C), ST, and AM(C) when two sit in the centre) shows one label. This extends the O-13 answer ("DM for both") to the other pairs. O-16 asks the captain to confirm the extension.
 4. **Labels are not checked against the in-game picker.** The site codes are the only source here. The spike listed these labels as unverified (spike item U4, `PRD.md` section 12, O-16).
-5. **Ids and labels differ.** `4_3_3_dm_wide` is the id and `4-3-3 DM Wide` is the label. Storage and share links use the id, and the board shows the label.
-6. **Two defensive midfielders in 8 of 12 formations.** Each such formation shows DM twice on the board, so the board needs a non-label cue to tell them apart (`ARCHITECTURE.md` section 5.4).
+5. **Ids and labels differ.** `4_3_3_dm_wide` is the id and `4-3-3 DM Wide` is the label. Storage and share links use the id, and the pitch shows the label.
+6. **Two defensive midfielders in 8 of 12 formations.** Each such formation shows DM twice on the pitch, so the pitch needs a non-label cue to tell them apart (`ARCHITECTURE.md` section 5.4).
 

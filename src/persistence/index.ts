@@ -1,22 +1,20 @@
-export { MIGRATIONS, V1_LABEL_FAMILIES, migrateV1Board, runMigrations } from './migrations';
 export {
-  BOARDS_STORAGE_KEY,
-  CURRENT_BOARDS_VERSION,
-  LEGACY_BOARDS_STORAGE_KEY,
+  CURRENT_TACTICS_VERSION,
   MAX_SLOTS,
   SLOT_NAME_MAX_LENGTH,
+  TACTICS_STORAGE_KEY,
   documentSchema,
   savedSlotSchema,
 } from './schema';
-export type { BoardsWrapper, SavedSlot } from './schema';
+export type { TacticsWrapper, SavedSlot } from './schema';
 export {
-  canSaveBoard,
+  canSaveTactic,
   deleteSlot,
   isStorageAvailable,
-  loadBoards,
+  loadTactics,
   pickAutoLoadSlot,
   saveSlot,
-  skippedBoardsMessage,
+  skippedTacticsMessage,
 } from './slots';
-export type { DeleteResult, LoadBoardsResult, SaveResult } from './slots';
+export type { DeleteResult, LoadTacticsResult, SaveResult } from './slots';
 export { VISITED_STORAGE_KEY, isFirstVisit, markVisited } from './visited';
