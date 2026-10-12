@@ -90,8 +90,15 @@ export function createBoardStore(options: BoardStoreOptions = {}): StoreApi<Boar
       patchUi: (patch) => set({ ui: { ...get().ui, ...patch } }),
       setMode: (mode) => {
         if (get().ui.mode === mode) return;
-        set({ ui: { ...get().ui, mode } });
-        if (mode === 'fm') dispatch({ type: 'fillDefaultRoles' });
+        const { doc: current, history, ui: currentUi } = get();
+        const ui = { ...currentUi, mode };
+        if (mode !== 'fm') return set({ ui });
+        const fill = (entry: BoardDocument) => applyAction(entry, { type: 'fillDefaultRoles' });
+        set({
+          ui,
+          doc: fill(current),
+          history: { past: history.past.map(fill), future: history.future.map(fill) },
+        });
       },
       beginDrag: (target, point) => set({ ui: { ...get().ui, drag: { target, point } } }),
       updateDrag: (point) => {

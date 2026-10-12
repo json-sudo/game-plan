@@ -83,4 +83,19 @@ describe('store selectors', () => {
     expect(dragged.get('mine-ST')).toEqual({ x: 5, y: 6 });
     expect(dragged.get('mine-GK')).toEqual(selectPhasePositions(state.doc).final.get('mine-GK'));
   });
+
+  it('returns the same drag positions until the drag or phase changes', () => {
+    const store = createBoardStore({ doc: createExampleDocument(), ui: { phase: 'final' } });
+    store.getState().beginDrag({ kind: 'player', id: 'mine-ST' }, { x: 5, y: 6 });
+    const dragged = selectDisplayPositions(store.getState());
+    expect(selectDisplayPositions(store.getState())).toBe(dragged);
+    store.getState().patchUi({ phase: 'shape' });
+    const shape = selectDisplayPositions(store.getState());
+    expect(shape).not.toBe(dragged);
+    expect(selectDisplayPositions(store.getState())).toBe(shape);
+    store.getState().updateDrag({ x: 7, y: 8 });
+    const moved = selectDisplayPositions(store.getState());
+    expect(moved).not.toBe(shape);
+    expect(moved.get('mine-ST')).toEqual({ x: 7, y: 8 });
+  });
 });

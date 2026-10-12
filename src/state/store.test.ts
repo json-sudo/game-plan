@@ -179,6 +179,26 @@ describe('ui state', () => {
     expect(playersOf(store.getState().doc, 'mine').some((p) => p.role !== undefined)).toBe(true);
   });
 
+  it('fills roles on entering fm without its own undo step', () => {
+    const store = blankStore();
+    const { dispatch } = store.getState();
+    dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_3_3_dm_wide' });
+    dispatch({ type: 'renameTeam', team: 'mine', name: 'Reds' });
+    store.getState().setMode('fm');
+    expect(store.getState().history.past).toHaveLength(2);
+    store.getState().undo();
+    const state = store.getState();
+    expect(state.ui.mode).toBe('fm');
+    expect(state.doc.teams.mine.name).toBe('My team');
+    expect(
+      playersOf(state.doc, 'mine')
+        .filter((p) => p.base)
+        .every((p) => p.role !== undefined),
+    ).toBe(true);
+    store.getState().redo();
+    expect(store.getState().doc.teams.mine.name).toBe('Reds');
+  });
+
   it('setMode to the current mode does nothing', () => {
     const store = exampleStore();
     const before = store.getState();

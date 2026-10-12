@@ -3,12 +3,13 @@ import type { Point, Side } from '../data/types';
 import { PHASES, computePhases, type Phase } from '../engine';
 import { phasePlayersOf } from './context';
 import type { BoardDocument, Player } from './document';
-import type { BoardStore } from './store';
+import type { BoardStore, DragState } from './store';
 
 export type PhasePositions = Record<Phase, Map<string, Point>>;
 
 const phaseCache = new WeakMap<BoardDocument, PhasePositions>();
 const teamCache = new WeakMap<BoardDocument, Record<Side, Player[]>>();
+const dragCache = new WeakMap<DragState, { base: Map<string, Point>; result: Map<string, Point> }>();
 
 function basePositions(doc: BoardDocument): PhasePositions {
   const base = new Map(
@@ -51,7 +52,11 @@ export function selectDisplayPositions(state: BoardStore): Map<string, Point> {
   const positions = selectPhasePositions(state.doc)[state.ui.phase];
   const { drag } = state.ui;
   if (!drag || drag.target.kind !== 'player') return positions;
-  return new Map(positions).set(drag.target.id, drag.point);
+  const cached = dragCache.get(drag);
+  if (cached?.base === positions) return cached.result;
+  const result = new Map(positions).set(drag.target.id, drag.point);
+  dragCache.set(drag, { base: positions, result });
+  return result;
 }
 
 export function selectCanUndo(state: BoardStore): boolean {
