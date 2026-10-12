@@ -1,46 +1,99 @@
+import { FM26_DATA } from '../data/fm26';
+import { documentIssues, placedPlayers, type BoardDocument } from '../state';
 import { MIGRATIONS, runMigrations } from './migrations';
 import {
   BOARDS_STORAGE_KEY,
   CURRENT_BOARDS_VERSION,
+  LEGACY_BOARDS_STORAGE_KEY,
   MAX_SLOTS,
   SLOT_NAME_MAX_LENGTH,
-  isRawWrapper,
-  isValidWrapper,
+  savedSlotSchema,
+  wrapperHeadSchema,
   type BoardsWrapper,
   type SavedSlot,
+  type SlotEntry,
 } from './schema';
-import type { BoardState } from './types';
 
-export type LoadWrapperResult =
-  { status: 'empty' } | { status: 'ok'; wrapper: BoardsWrapper } | { status: 'corrupt' };
+export const MIN_PLACED_TO_SAVE = 9;
 
-/** Reads and migrates the boards wrapper from storage. Never throws. */
-export function loadBoardsWrapper(storage: Storage = localStorage): LoadWrapperResult {
-  let raw: string | null;
+export type LoadBoardsResult =
+  | { status: 'empty' }
+  | { status: 'unavailable' }
+  | { status: 'corrupt' }
+  | { status: 'ok'; wrapper: BoardsWrapper; skipped: number };
+
+export type SaveResult =
+  { status: 'ok'; wrapper: BoardsWrapper; slotId: string } | { status: 'error'; message: string };
+
+export type DeleteResult =
+  { status: 'ok'; wrapper: BoardsWrapper } | { status: 'error'; message: string };
+
+interface RawRead {
+  raw: string | null;
+  legacy: boolean;
+}
+
+function readRaw(storage: Storage): RawRead | null {
   try {
-    raw = storage.getItem(BOARDS_STORAGE_KEY);
+    const current = storage.getItem(BOARDS_STORAGE_KEY);
+    if (current !== null) return { raw: current, legacy: false };
+    return { raw: storage.getItem(LEGACY_BOARDS_STORAGE_KEY), legacy: true };
   } catch {
-    return { status: 'empty' };
+    return null;
   }
-  if (raw === null) return { status: 'empty' };
+}
 
+function parseEntry(entry: SlotEntry): SavedSlot | null {
+  const migrated = runMigrations(entry, MIGRATIONS, CURRENT_BOARDS_VERSION);
+  if (!migrated) return null;
+  const parsed = savedSlotSchema.safeParse(migrated.slot);
+  if (!parsed.success) return null;
+  return documentIssues(parsed.data.board, FM26_DATA) === null ? parsed.data : null;
+}
+
+function persistMigrated(storage: Storage, wrapper: BoardsWrapper, skipped: number): void {
+  try {
+    storage.setItem(BOARDS_STORAGE_KEY, JSON.stringify(wrapper));
+    if (skipped === 0) storage.removeItem(LEGACY_BOARDS_STORAGE_KEY);
+  } catch {
+    return;
+  }
+}
+
+function readWrapper(raw: string): { version: number; slots: unknown[] } | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return { status: 'corrupt' };
+    return null;
   }
-
-  if (!isRawWrapper(parsed)) return { status: 'corrupt' };
-  const migrated = runMigrations(parsed, MIGRATIONS, CURRENT_BOARDS_VERSION);
-  if (!migrated || !isValidWrapper(migrated)) return { status: 'corrupt' };
-  return {
-    status: 'ok',
-    wrapper: { version: CURRENT_BOARDS_VERSION, slots: migrated.slots as SavedSlot[] },
-  };
+  const head = wrapperHeadSchema.safeParse(parsed);
+  return head.success && head.data.version <= CURRENT_BOARDS_VERSION ? head.data : null;
 }
 
-/** Picks the slot with the latest savedAt, or null if there are none. */
+export function loadBoards(storage: Storage = localStorage): LoadBoardsResult {
+  const read = readRaw(storage);
+  if (!read) return { status: 'unavailable' };
+  if (read.raw === null) return { status: 'empty' };
+  const head = readWrapper(read.raw);
+  if (!head) return { status: 'corrupt' };
+
+  const parsed = head.slots.map((slot) => parseEntry({ version: head.version, slot }));
+  const valid = parsed.filter((slot): slot is SavedSlot => slot !== null);
+  const kept = valid.slice(0, MAX_SLOTS);
+  const wrapper: BoardsWrapper = { version: CURRENT_BOARDS_VERSION, slots: kept };
+  const skipped = head.slots.length - kept.length;
+  if (read.legacy) persistMigrated(storage, wrapper, skipped);
+  return { status: 'ok', wrapper, skipped };
+}
+
+export function skippedBoardsMessage(count: number): string | null {
+  if (count <= 0) return null;
+  return count === 1
+    ? '1 saved board could not be read and was skipped.'
+    : `${count} saved boards could not be read and were skipped.`;
+}
+
 export function pickAutoLoadSlot(wrapper: BoardsWrapper): SavedSlot | null {
   return wrapper.slots.reduce<SavedSlot | null>(
     (latest, slot) => (!latest || slot.savedAt > latest.savedAt ? slot : latest),
@@ -48,9 +101,8 @@ export function pickAutoLoadSlot(wrapper: BoardsWrapper): SavedSlot | null {
   );
 }
 
-/** True once at least 9 player pieces (either team, combined) are placed on the pitch. */
-export function canSaveBoard(board: BoardState): boolean {
-  return board.pieces.filter((p) => p.type === 'player' && p.position !== undefined).length >= 9;
+export function canSaveBoard(board: BoardDocument): boolean {
+  return placedPlayers(board).length >= MIN_PLACED_TO_SAVE;
 }
 
 function createSlotId(): string {
@@ -60,58 +112,66 @@ function createSlotId(): string {
   return `slot-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export type SaveResult =
-  { status: 'ok'; wrapper: BoardsWrapper; slotId: string } | { status: 'error'; message: string };
+function writeWrapper(storage: Storage, wrapper: BoardsWrapper): boolean {
+  try {
+    storage.setItem(BOARDS_STORAGE_KEY, JSON.stringify(wrapper));
+    return true;
+  } catch {
+    return false;
+  }
+}
 
-/**
- * Saves `board` into the slot identified by `targetSlotId`, or creates a new slot when
- * `targetSlotId` is null. Fails (without touching other slots) when both slots are full
- * and no target was given, or when the underlying write throws (e.g. quota exceeded).
- */
 export function saveSlot(
   wrapper: BoardsWrapper | null,
   targetSlotId: string | null,
   name: string,
-  board: BoardState,
+  board: BoardDocument,
   storage: Storage = localStorage,
   now: number = Date.now(),
 ): SaveResult {
+  if (documentIssues(board, FM26_DATA) !== null) {
+    return { status: 'error', message: "This board can't be saved." };
+  }
   const slots = wrapper ? wrapper.slots : [];
   const trimmedName = name.trim().slice(0, SLOT_NAME_MAX_LENGTH);
-  let nextSlots: SavedSlot[];
-  let slotId: string;
+  const existing = targetSlotId ? slots.find((slot) => slot.id === targetSlotId) : undefined;
 
-  const existingIndex = targetSlotId ? slots.findIndex((s) => s.id === targetSlotId) : -1;
-
-  if (existingIndex !== -1) {
-    slotId = targetSlotId!;
-    nextSlots = slots.map((s, i) =>
-      i === existingIndex ? { ...s, name: trimmedName, savedAt: now, board } : s,
-    );
-  } else {
-    if (slots.length >= MAX_SLOTS) {
-      return {
-        status: 'error',
-        message:
-          'Both save slots are full — choose one to overwrite, or create an account for more.',
-      };
-    }
-    slotId = createSlotId();
-    nextSlots = [...slots, { id: slotId, name: trimmedName, savedAt: now, board }];
+  if (!existing && slots.length >= MAX_SLOTS) {
+    return {
+      status: 'error',
+      message: 'Both save slots are full. Choose one to overwrite.',
+    };
   }
-
+  const slotId = existing ? existing.id : createSlotId();
+  const saved: SavedSlot = { id: slotId, name: trimmedName, savedAt: now, board };
+  const nextSlots = existing
+    ? slots.map((slot) => (slot === existing ? saved : slot))
+    : [...slots, saved];
   const nextWrapper: BoardsWrapper = { version: CURRENT_BOARDS_VERSION, slots: nextSlots };
-
-  try {
-    storage.setItem(BOARDS_STORAGE_KEY, JSON.stringify(nextWrapper));
-  } catch {
-    return { status: 'error', message: "Couldn't save — storage is full" };
+  if (!writeWrapper(storage, nextWrapper)) {
+    return { status: 'error', message: "Couldn't save. Storage is full or unavailable." };
   }
-
   return { status: 'ok', wrapper: nextWrapper, slotId };
 }
 
-/** Probes whether storage is usable (private-browsing / disabled localStorage). */
+export function deleteSlot(
+  wrapper: BoardsWrapper,
+  slotId: string,
+  storage: Storage = localStorage,
+): DeleteResult {
+  if (!wrapper.slots.some((slot) => slot.id === slotId)) {
+    return { status: 'error', message: 'That save no longer exists.' };
+  }
+  const next: BoardsWrapper = {
+    version: CURRENT_BOARDS_VERSION,
+    slots: wrapper.slots.filter((slot) => slot.id !== slotId),
+  };
+  if (!writeWrapper(storage, next)) {
+    return { status: 'error', message: "Couldn't delete. Storage is unavailable." };
+  }
+  return { status: 'ok', wrapper: next };
+}
+
 export function isStorageAvailable(storage: Storage = localStorage): boolean {
   const probeKey = '__gameplan_storage_probe__';
   try {

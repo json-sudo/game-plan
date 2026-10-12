@@ -16,9 +16,16 @@ export default defineConfig({
         'src/data/**/*.ts',
         'src/engine/**/*.ts',
         'src/persistence/**/*.ts',
+        'src/share/**/*.ts',
+        'src/state/**/*.ts',
         'src/shared/hooks/**/*.ts',
       ],
-      exclude: ['**/*.test.ts', 'src/persistence/fixtures.ts', 'src/persistence/types.ts'],
+      exclude: [
+        '**/*.test.ts',
+        '**/index.ts',
+        'src/persistence/fixtures.ts',
+        'src/persistence/types.ts',
+      ],
       thresholds: {
         statements: 80,
         branches: 80,

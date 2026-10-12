@@ -2,12 +2,12 @@ import { z } from 'zod';
 import { FAMILIES, SLOT_IDS } from './types';
 import { ZONE_IDS } from './zones';
 
-const familySchema = z.enum(FAMILIES);
-const slotIdSchema = z.enum(SLOT_IDS);
-const zoneIdSchema = z.enum(ZONE_IDS);
+export const familySchema = z.enum(FAMILIES);
+export const slotIdSchema = z.enum(SLOT_IDS);
+export const zoneIdSchema = z.enum(ZONE_IDS);
 const provenanceSchema = z.enum(['spike', 'initial']);
 const offsetSchema = z.tuple([z.number(), z.number(), z.number()]);
-const pointSchema = z.object({ x: z.number(), y: z.number() });
+export const pointSchema = z.object({ x: z.number(), y: z.number() });
 
 export const roleSchema = z.object({
   id: z.string().min(1),
