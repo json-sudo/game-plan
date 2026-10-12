@@ -14,13 +14,9 @@ import { SetupStepper } from '../ui/setup/SetupStepper';
 import { PhoneMenu } from '../ui/chrome/PhoneMenu';
 import { TopBar } from '../ui/chrome/TopBar';
 import { UndoControl } from '../ui/chrome/UndoControl';
+import { MODE_OPTIONS } from '../ui/copy';
 import { useTheme } from '../shared/hooks/useTheme';
 import styles from './gallery.module.scss';
-
-const MODES = [
-  { value: 'open', label: 'Open pitch' },
-  { value: 'fm', label: 'FM mode' },
-];
 const FORMATIONS = [
   { label: '4-3-3 DM Wide' },
   { label: '4-2-3-1 DM Wide' },
@@ -97,7 +93,7 @@ export default function Gallery() {
           <SegmentedControl
             label="Mode"
             showLabel
-            options={MODES}
+            options={MODE_OPTIONS}
             value={mode}
             onChange={setMode}
           />

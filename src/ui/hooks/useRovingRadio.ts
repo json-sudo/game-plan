@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 
 interface RovingRadioOptions {
   values: string[];
@@ -11,7 +11,21 @@ const PREVIOUS_KEYS = ['ArrowLeft', 'ArrowUp'];
 
 export function useRovingRadio({ values, value, onChange }: RovingRadioOptions) {
   const refs = useRef(new Map<string, HTMLElement>());
-  const tabbable = value !== undefined && values.includes(value) ? value : values[0];
+  const [localValue, setLocalValue] = useState<string | undefined>(undefined);
+  const controlled = value !== undefined;
+
+  const selected = controlled ? value : localValue;
+  const tabbable =
+    controlled && values.includes(value!)
+      ? value!
+      : localValue !== undefined && values.includes(localValue)
+        ? localValue
+        : values[0];
+
+  const select = (target: string) => {
+    if (!controlled) setLocalValue(target);
+    onChange?.(target);
+  };
 
   const register = (optionValue: string) => (node: HTMLElement | null) => {
     if (node) refs.current.set(optionValue, node);
@@ -30,12 +44,14 @@ export function useRovingRadio({ values, value, onChange }: RovingRadioOptions) 
     event.preventDefault();
     const target = values[next];
     refs.current.get(target)?.focus();
-    onChange?.(target);
+    select(target);
   };
 
   return {
     register,
     onKeyDown,
+    select,
     tabIndexFor: (optionValue: string) => (optionValue === tabbable ? 0 : -1),
+    isSelected: (optionValue: string) => optionValue === selected,
   };
 }

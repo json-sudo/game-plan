@@ -90,6 +90,23 @@ describe('SegmentedControl', () => {
     expect(screen.getByRole('radio', { name: '11' })).toHaveFocus();
   });
 
+  it('tracks roving focus and selection when uncontrolled', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn<() => void>();
+    render(<SegmentedControl label="Mode" options={OPTIONS} onChange={onChange} />);
+    await user.tab();
+    expect(screen.getByRole('radio', { name: '11' })).toHaveFocus();
+    expect(screen.getByRole('radio', { name: '11' })).not.toBeChecked();
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('radio', { name: '20' })).toHaveFocus();
+    expect(screen.getByRole('radio', { name: '20' })).toBeChecked();
+    expect(onChange).toHaveBeenLastCalledWith('20');
+    await user.tab();
+    expect(document.body).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(screen.getByRole('radio', { name: '20' })).toHaveFocus();
+  });
+
   it('ignores other keys', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn<() => void>();

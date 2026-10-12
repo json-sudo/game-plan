@@ -39,9 +39,9 @@ export function SegmentedControl({
           type="button"
           role="radio"
           className={styles.option}
-          aria-checked={option.value === value}
+          aria-checked={roving.isSelected(option.value)}
           tabIndex={roving.tabIndexFor(option.value)}
-          onClick={() => onChange?.(option.value)}
+          onClick={() => roving.select(option.value)}
           onKeyDown={roving.onKeyDown}
         >
           {option.label}

@@ -46,9 +46,9 @@ export function ChoiceGrid({ label, mark, options, value, onChange, columns }: C
               type="button"
               role="radio"
               className={styles.choice}
-              aria-checked={optionValue === value}
+              aria-checked={roving.isSelected(optionValue)}
               tabIndex={roving.tabIndexFor(optionValue)}
-              onClick={() => onChange?.(optionValue)}
+              onClick={() => roving.select(optionValue)}
               onKeyDown={roving.onKeyDown}
             >
               {option.label}
