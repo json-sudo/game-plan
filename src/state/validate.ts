@@ -8,7 +8,7 @@ import {
   formationOf,
   isRoleValidFor,
   possessionOf,
-  type BoardDocument,
+  type PitchDocument,
   type Player,
 } from './document';
 
@@ -18,7 +18,7 @@ function insidePitch(point: Point): boolean {
   return point.x >= 0 && point.x <= PITCH_W && point.y >= 0 && point.y <= PITCH_H;
 }
 
-function playerIssue(doc: BoardDocument, player: Player, data: DataSet): string | null {
+function playerIssue(doc: PitchDocument, player: Player, data: DataSet): string | null {
   if (player.base && !insidePitch(player.base)) return `${player.id} is outside the pitch`;
   if (player.customName && player.customName.length > PIECE_NAME_MAX_LENGTH) {
     return `${player.id} has a piece name that is too long`;
@@ -38,7 +38,7 @@ function playerIssue(doc: BoardDocument, player: Player, data: DataSet): string 
   return null;
 }
 
-function teamIssue(doc: BoardDocument, data: DataSet): string | null {
+function teamIssue(doc: PitchDocument, data: DataSet): string | null {
   for (const side of SIDES) {
     const meta = doc.teams[side];
     if (meta.name.length > TEAM_NAME_MAX_LENGTH) return `${side} team name is too long`;
@@ -51,7 +51,7 @@ function teamIssue(doc: BoardDocument, data: DataSet): string | null {
   return null;
 }
 
-function scenarioIssue(doc: BoardDocument): string | null {
+function scenarioIssue(doc: PitchDocument): string | null {
   if (!insidePitch(doc.ball)) return 'ball is outside the pitch';
   if (!doc.scenario) return null;
   const carrier = doc.players.find((player) => player.id === doc.scenario!.carrierId);
@@ -64,7 +64,7 @@ function scenarioIssue(doc: BoardDocument): string | null {
   return null;
 }
 
-export function documentIssues(doc: BoardDocument, data: DataSet): string | null {
+export function documentIssues(doc: PitchDocument, data: DataSet): string | null {
   const ids = new Set(doc.players.map((player) => player.id));
   if (ids.size !== doc.players.length) return 'piece ids are not unique';
   const issue = teamIssue(doc, data) ?? scenarioIssue(doc);

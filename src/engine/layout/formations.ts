@@ -1,7 +1,8 @@
 import type { FormationDef, Point, Side, SlotId } from '../../data/types';
 import { PITCH_H, PITCH_W } from '../geometry/pitch';
-import { separateFromDefenders } from './separation';
+import { enforceSpacing, type SpacingToken } from './spacing';
 
+export const MATCHUP_DEFENDER_HOLD_WEIGHT = 4;
 export const MATCHUP_MAX_ADVANCE = 30;
 export const MATCHUP_FRONT_MARGIN = 8;
 
@@ -55,15 +56,28 @@ export function layoutMatchup(
     attacker,
   );
 
-  const toPoints = (layout: TeamLayout, keep: (slotId: SlotId) => boolean) =>
-    [...layout].filter(([slotId]) => keep(slotId)).map(([id, point]) => ({ id, ...point }));
-  const separated = separateFromDefenders(
-    toPoints(advanced, (slotId) => !isKeeperSlot(formations[attacker], slotId)),
-    toPoints(defending, () => true),
-    attacker === 'mine',
-  );
-  const attacking: TeamLayout = new Map(
-    [...advanced].map(([slotId, point]) => [slotId, separated.get(slotId) ?? point]),
-  );
-  return { [attacker]: attacking, [defender]: defending } as Record<Side, TeamLayout>;
+  const tokens = (
+    layout: TeamLayout,
+    prefix: string,
+    formation: FormationDef,
+    weight: number,
+  ): SpacingToken[] =>
+    [...layout].map(([slotId, point]) => ({
+      id: `${prefix}${slotId}`,
+      point,
+      fixed: isKeeperSlot(formation, slotId),
+      weight,
+    }));
+  const separated = enforceSpacing([
+    ...tokens(defending, 'defender:', formations[defender], MATCHUP_DEFENDER_HOLD_WEIGHT),
+    ...tokens(advanced, 'attacker:', formations[attacker], 1),
+  ]);
+  const pick = (prefix: string, layout: TeamLayout) =>
+    new Map(
+      [...layout].map(([slotId, point]) => [slotId, separated.get(`${prefix}${slotId}`) ?? point]),
+    );
+  return {
+    [attacker]: pick('attacker:', advanced),
+    [defender]: pick('defender:', defending),
+  } as Record<Side, TeamLayout>;
 }

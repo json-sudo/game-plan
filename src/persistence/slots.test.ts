@@ -1,21 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { createExampleDocument, createInitialDocument, type BoardDocument } from '../state';
-import { createInitialBoard } from './fixtures';
+import { createExampleDocument, createInitialDocument, type PitchDocument } from '../state';
 import {
-  BOARDS_STORAGE_KEY,
-  CURRENT_BOARDS_VERSION,
-  LEGACY_BOARDS_STORAGE_KEY,
-  type BoardsWrapper,
+  TACTICS_STORAGE_KEY,
+  CURRENT_TACTICS_VERSION,
+  type TacticsWrapper,
   type SavedSlot,
 } from './schema';
 import {
-  canSaveBoard,
+  canSaveTactic,
   deleteSlot,
   isStorageAvailable,
-  loadBoards,
+  loadTactics,
   pickAutoLoadSlot,
   saveSlot,
-  skippedBoardsMessage,
+  skippedTacticsMessage,
 } from './slots';
 
 function memoryStorage(initial: Record<string, string> = {}): Storage {
@@ -51,153 +49,97 @@ function throwingStorage(failOn: 'get' | 'set' = 'set', error: unknown = new Err
 
 const example = createExampleDocument();
 
-function slot(id: string, savedAt: number, board: BoardDocument = example): SavedSlot {
-  return { id, name: `Slot ${id}`, savedAt, board };
+function slot(id: string, savedAt: number, tactic: PitchDocument = example): SavedSlot {
+  return { id, name: `Slot ${id}`, savedAt, tactic };
 }
 
-function wrapperOf(...slots: SavedSlot[]): BoardsWrapper {
-  return { version: CURRENT_BOARDS_VERSION, slots };
+function wrapperOf(...slots: SavedSlot[]): TacticsWrapper {
+  return { version: CURRENT_TACTICS_VERSION, slots };
 }
 
 function storedWith(raw: unknown): Storage {
-  return memoryStorage({ [BOARDS_STORAGE_KEY]: JSON.stringify(raw) });
+  return memoryStorage({ [TACTICS_STORAGE_KEY]: JSON.stringify(raw) });
 }
 
-describe('canSaveBoard', () => {
+describe('canSaveTactic', () => {
   it('needs at least 9 placed players across both teams', () => {
     const blank = createInitialDocument();
-    const place = (count: number): BoardDocument => ({
+    const place = (count: number): PitchDocument => ({
       ...blank,
       players: blank.players.map((p, i) => (i < count ? { ...p, base: { x: 10, y: 10 } } : p)),
     });
-    expect(canSaveBoard(place(8))).toBe(false);
-    expect(canSaveBoard(place(9))).toBe(true);
-    expect(canSaveBoard(example)).toBe(true);
+    expect(canSaveTactic(place(8))).toBe(false);
+    expect(canSaveTactic(place(9))).toBe(true);
+    expect(canSaveTactic(example)).toBe(true);
   });
 });
 
-describe('loadBoards', () => {
+describe('loadTactics', () => {
   it('is empty when nothing is stored', () => {
-    expect(loadBoards(memoryStorage())).toEqual({ status: 'empty' });
+    expect(loadTactics(memoryStorage())).toEqual({ status: 'empty' });
   });
 
   it('is unavailable when storage cannot be read', () => {
-    expect(loadBoards(throwingStorage('get'))).toEqual({ status: 'unavailable' });
+    expect(loadTactics(throwingStorage('get'))).toEqual({ status: 'unavailable' });
   });
 
   it('is corrupt for malformed JSON, a wrong shape or a newer version', () => {
-    const raw = (value: string) => memoryStorage({ [BOARDS_STORAGE_KEY]: value });
-    expect(loadBoards(raw('{not json'))).toEqual({ status: 'corrupt' });
-    expect(loadBoards(raw('"text"'))).toEqual({ status: 'corrupt' });
-    expect(loadBoards(storedWith({ version: 2, slots: 'no' }))).toEqual({ status: 'corrupt' });
-    expect(loadBoards(storedWith({ version: 999, slots: [] }))).toEqual({ status: 'corrupt' });
-    expect(loadBoards(storedWith({ version: 0, slots: [] }))).toEqual({ status: 'corrupt' });
+    const raw = (value: string) => memoryStorage({ [TACTICS_STORAGE_KEY]: value });
+    expect(loadTactics(raw('{not json'))).toEqual({ status: 'corrupt' });
+    expect(loadTactics(raw('"text"'))).toEqual({ status: 'corrupt' });
+    expect(loadTactics(storedWith({ version: 3, slots: 'no' }))).toEqual({ status: 'corrupt' });
+    expect(loadTactics(storedWith({ version: 999, slots: [] }))).toEqual({ status: 'corrupt' });
+    expect(loadTactics(storedWith({ version: 0, slots: [] }))).toEqual({ status: 'corrupt' });
   });
 
   it('returns valid slots with nothing skipped', () => {
     const wrapper = wrapperOf(slot('a', 1), slot('b', 2));
-    expect(loadBoards(storedWith(wrapper))).toEqual({ status: 'ok', wrapper, skipped: 0 });
+    expect(loadTactics(storedWith(wrapper))).toEqual({ status: 'ok', wrapper, skipped: 0 });
   });
 
   it('skips and counts entries that fail the schema', () => {
     const good = slot('a', 1);
-    const result = loadBoards(storedWith({ version: 2, slots: [good, { nope: true }] }));
+    const result = loadTactics(storedWith({ version: 3, slots: [good, { nope: true }] }));
     expect(result).toEqual({ status: 'ok', wrapper: wrapperOf(good), skipped: 1 });
   });
 
-  it('skips entries whose board breaks a data rule', () => {
-    const broken: BoardDocument = { ...example, scenario: { zone: 'C-F', carrierId: 'ghost' } };
-    const result = loadBoards(storedWith(wrapperOf(slot('a', 1), slot('b', 2, broken))));
+  it('skips entries whose tactic breaks a data rule', () => {
+    const broken: PitchDocument = { ...example, scenario: { zone: 'C-F', carrierId: 'ghost' } };
+    const result = loadTactics(storedWith(wrapperOf(slot('a', 1), slot('b', 2, broken))));
     expect(result).toMatchObject({ status: 'ok', skipped: 1, wrapper: { slots: [{ id: 'a' }] } });
   });
 
   it('skips every entry beyond the slot limit', () => {
-    const result = loadBoards(
-      storedWith({ version: 2, slots: [slot('a', 1), slot('b', 2), slot('c', 3)] }),
+    const result = loadTactics(
+      storedWith({ version: 3, slots: [slot('a', 1), slot('b', 2), slot('c', 3)] }),
     );
     expect(result).toMatchObject({ status: 'ok', skipped: 1 });
   });
 
-  it('round-trips a saved board identically', () => {
+  it('round-trips a saved tactic identically', () => {
     const storage = memoryStorage();
     const saved = saveSlot(null, null, 'Alpha', example, storage, 100);
     expect(saved.status).toBe('ok');
-    const loaded = loadBoards(storage);
+    const loaded = loadTactics(storage);
     expect(loaded).toEqual({
       status: 'ok',
       skipped: 0,
-      wrapper: wrapperOf({ id: expect.any(String), name: 'Alpha', savedAt: 100, board: example }),
+      wrapper: wrapperOf({ id: expect.any(String), name: 'Alpha', savedAt: 100, tactic: example }),
     });
   });
 
   it('keeps custom piece names through a save', () => {
-    const named: BoardDocument = {
+    const named: PitchDocument = {
       ...example,
       players: example.players.map((p) => (p.id === 'mine-ST' ? { ...p, customName: 'Ada' } : p)),
     };
     const storage = memoryStorage();
     saveSlot(null, null, 'Alpha', named, storage, 100);
-    const loaded = loadBoards(storage);
+    const loaded = loadTactics(storage);
     if (loaded.status !== 'ok') throw new Error('expected ok');
-    expect(loaded.wrapper.slots[0].board.players.find((p) => p.id === 'mine-ST')?.customName).toBe(
+    expect(loaded.wrapper.slots[0].tactic.players.find((p) => p.id === 'mine-ST')?.customName).toBe(
       'Ada',
     );
-  });
-});
-
-describe('legacy v1 key', () => {
-  const v1Slot = { id: 'old', name: 'Old board', savedAt: 7, board: createInitialBoard() };
-
-  it('migrates v1 saves once, writes the new key and removes the old one', () => {
-    const storage = memoryStorage({
-      [LEGACY_BOARDS_STORAGE_KEY]: JSON.stringify({ version: 1, slots: [v1Slot] }),
-    });
-    const result = loadBoards(storage);
-    expect(result).toMatchObject({ status: 'ok', skipped: 0 });
-    if (result.status !== 'ok') return;
-    expect(result.wrapper.version).toBe(2);
-    expect(result.wrapper.slots[0]).toMatchObject({ id: 'old', name: 'Old board', savedAt: 7 });
-    expect(storage.getItem(LEGACY_BOARDS_STORAGE_KEY)).toBeNull();
-    expect(JSON.parse(storage.getItem(BOARDS_STORAGE_KEY)!).version).toBe(2);
-    expect(loadBoards(storage)).toMatchObject({ status: 'ok', skipped: 0 });
-  });
-
-  it('skips unreadable v1 entries and counts them', () => {
-    const storage = memoryStorage({
-      [LEGACY_BOARDS_STORAGE_KEY]: JSON.stringify({ version: 1, slots: [v1Slot, { id: 1 }] }),
-    });
-    expect(loadBoards(storage)).toMatchObject({ status: 'ok', skipped: 1 });
-  });
-
-  it('prefers the new key and leaves the old one alone', () => {
-    const wrapper = wrapperOf(slot('a', 1));
-    const storage = memoryStorage({
-      [BOARDS_STORAGE_KEY]: JSON.stringify(wrapper),
-      [LEGACY_BOARDS_STORAGE_KEY]: JSON.stringify({ version: 1, slots: [v1Slot] }),
-    });
-    expect(loadBoards(storage)).toEqual({ status: 'ok', wrapper, skipped: 0 });
-    expect(storage.getItem(LEGACY_BOARDS_STORAGE_KEY)).not.toBeNull();
-  });
-
-  it('treats a corrupt old key as corrupt and keeps it', () => {
-    const storage = memoryStorage({ [LEGACY_BOARDS_STORAGE_KEY]: '{bad' });
-    expect(loadBoards(storage)).toEqual({ status: 'corrupt' });
-    expect(storage.getItem(LEGACY_BOARDS_STORAGE_KEY)).toBe('{bad');
-  });
-
-  it('still returns the migrated boards when the new key cannot be written', () => {
-    const inner = memoryStorage({
-      [LEGACY_BOARDS_STORAGE_KEY]: JSON.stringify({ version: 1, slots: [v1Slot] }),
-    });
-    const readOnly = {
-      getItem: inner.getItem.bind(inner),
-      setItem: () => {
-        throw new Error('full');
-      },
-      removeItem: inner.removeItem.bind(inner),
-    } as unknown as Storage;
-    expect(loadBoards(readOnly)).toMatchObject({ status: 'ok', skipped: 0 });
-    expect(inner.getItem(LEGACY_BOARDS_STORAGE_KEY)).not.toBeNull();
   });
 });
 
@@ -238,8 +180,8 @@ describe('saveSlot', () => {
     expect(saveSlot(full, 'ghost', 'C', example, memoryStorage()).status).toBe('error');
   });
 
-  it('refuses a board that breaks a data rule', () => {
-    const broken: BoardDocument = { ...example, scenario: { zone: 'C-F', carrierId: 'ghost' } };
+  it('refuses a pitch that breaks a data rule', () => {
+    const broken: PitchDocument = { ...example, scenario: { zone: 'C-F', carrierId: 'ghost' } };
     expect(saveSlot(null, null, 'X', broken, memoryStorage())).toMatchObject({ status: 'error' });
   });
 
@@ -268,7 +210,7 @@ describe('deleteSlot', () => {
     expect(result.status).toBe('ok');
     if (result.status !== 'ok') return;
     expect(result.wrapper.slots.map((s) => s.id)).toEqual(['b']);
-    expect(JSON.parse(storage.getItem(BOARDS_STORAGE_KEY)!).slots).toHaveLength(1);
+    expect(JSON.parse(storage.getItem(TACTICS_STORAGE_KEY)!).slots).toHaveLength(1);
   });
 
   it('errors for an unknown slot or a failing write', () => {
@@ -285,11 +227,11 @@ describe('pickAutoLoadSlot', () => {
   });
 });
 
-describe('skippedBoardsMessage', () => {
+describe('skippedTacticsMessage', () => {
   it('words the skipped count for the user', () => {
-    expect(skippedBoardsMessage(0)).toBeNull();
-    expect(skippedBoardsMessage(1)).toBe('1 saved board could not be read and was skipped.');
-    expect(skippedBoardsMessage(2)).toBe('2 saved boards could not be read and were skipped.');
+    expect(skippedTacticsMessage(0)).toBeNull();
+    expect(skippedTacticsMessage(1)).toBe('1 saved tactic was skipped.');
+    expect(skippedTacticsMessage(2)).toBe('2 saved tactics were skipped.');
   });
 });
 

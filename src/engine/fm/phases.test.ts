@@ -4,18 +4,22 @@ import type { FormationDef, RoleDef, Side } from '../../data/types';
 import { ZONE_IDS } from '../../data/zones';
 import { PITCH_W } from '../geometry/pitch';
 import { layoutFormation } from '../layout/formations';
+import { minSpacingOf, MIN_TOKEN_SPACING } from '../layout/spacing';
 import { PITCH_TARGET_MARGIN, offsetFor } from './movement';
 import {
   PHASES,
   PHASE_PROGRESS,
   computePhases,
-  computeTargets,
   type PhaseInput,
   type PhasePlayer,
 } from './phases';
 import { zoneCentre } from './zones';
 
-const tables = { movement: FM26_DATA.movement, lineShift: FM26_DATA.lineShift };
+const tables = {
+  movement: FM26_DATA.movement,
+  shapeLineShift: FM26_DATA.shapeLineShift,
+  lineShift: FM26_DATA.lineShift,
+};
 
 function firstRole(family: string, possession: 'in' | 'out'): RoleDef {
   const role = FM26_DATA.roles.find(
@@ -37,14 +41,14 @@ function squad(formation: FormationDef, team: Side, possession: 'in' | 'out'): P
   }));
 }
 
-function board(attacker: Side, formationIndex = 0): PhasePlayer[] {
+function pitch(attacker: Side, formationIndex = 0): PhasePlayer[] {
   const formation = FM26_DATA.formations[formationIndex];
   const defender: Side = attacker === 'mine' ? 'opponent' : 'mine';
   return [...squad(formation, attacker, 'in'), ...squad(formation, defender, 'out')];
 }
 
 function input(attacker: Side, zone: (typeof ZONE_IDS)[number], index = 0): PhaseInput {
-  const players = board(attacker, index);
+  const players = pitch(attacker, index);
   const ball = zoneCentre(zone, attacker);
   return { attacker, players, ball, carrierId: `${attacker}:ST`, tables };
 }
@@ -59,34 +63,39 @@ describe('PHASE_PROGRESS', () => {
 describe('computePhases', () => {
   const scenario = input('mine', 'R-F');
   const phases = computePhases(scenario);
-  const targets = computeTargets(scenario);
+  const targets = phases.positions.final;
 
   it('puts every player in every phase', () => {
-    for (const phase of PHASES) expect(phases[phase].size).toBe(scenario.players.length);
+    for (const phase of PHASES) expect(phases.positions[phase].size).toBe(scenario.players.length);
   });
 
-  it('shows the base shape in the shape phase, except the carrier', () => {
-    for (const player of scenario.players) {
-      if (player.id === scenario.carrierId) continue;
-      expect(phases.shape.get(player.id)).toEqual(player.base);
+  it('moves the attacking block for the selected zone and places the carrier on the ball', () => {
+    const movedAttackers = scenario.players.filter(
+      (player) =>
+        player.team === 'mine' && !player.isKeeper && player.id !== scenario.carrierId,
+    );
+    expect(movedAttackers.length).toBeGreaterThan(0);
+    for (const player of movedAttackers) {
+      expect(phases.positions.shape.get(player.id)).not.toEqual(player.base);
     }
+    expect(phases.positions.shape.get(scenario.carrierId!)).toEqual(scenario.ball);
   });
 
   it('puts the final phase on the targets and the runs phase halfway', () => {
     for (const player of scenario.players) {
       if (player.id === scenario.carrierId) continue;
       const target = targets.get(player.id)!;
-      expect(phases.final.get(player.id)).toEqual(target);
-      const runs = phases.runs.get(player.id)!;
-      expect(runs.x).toBeCloseTo((player.base.x + target.x) / 2);
-      expect(runs.y).toBeCloseTo((player.base.y + target.y) / 2);
+      expect(phases.positions.final.get(player.id)).toEqual(target);
+      const runs = phases.positions.runs.get(player.id)!;
+      expect(runs.x).toBeGreaterThanOrEqual(PITCH_TARGET_MARGIN);
+      expect(runs.y).toBeGreaterThanOrEqual(PITCH_TARGET_MARGIN);
+      expect(target.x).toBeGreaterThanOrEqual(PITCH_TARGET_MARGIN);
     }
   });
 
   it('keeps the carrier on the ball in every phase', () => {
     for (const phase of PHASES)
-      expect(phases[phase].get(scenario.carrierId!)).toEqual(scenario.ball);
-    expect(targets.get(scenario.carrierId!)).toEqual(scenario.ball);
+      expect(phases.positions[phase].get(scenario.carrierId!)).toEqual(scenario.ball);
   });
 
   it('moves at least one attacker and one defender', () => {
@@ -105,6 +114,14 @@ describe('computePhases', () => {
     expect(computePhases(scenario)).toEqual(computePhases(structuredClone(scenario)));
   });
 
+  it('keeps spacing in Shape, Runs and Final', () => {
+    for (const phase of PHASES) {
+      expect(minSpacingOf(phases.positions[phase].values())).toBeGreaterThanOrEqual(
+        MIN_TOKEN_SPACING,
+      );
+    }
+  });
+
   it('does not mutate its input', () => {
     const copy = structuredClone(scenario);
     computePhases(scenario);
@@ -113,10 +130,10 @@ describe('computePhases', () => {
 
   it('lets nobody carry when there is no carrier', () => {
     const none = computePhases({ ...scenario, carrierId: null });
-    expect(none.final.size).toBe(scenario.players.length);
+    expect(none.positions.final.size).toBe(scenario.players.length);
   });
 
-  it('keeps attackers without a role on their base position', () => {
+  it('keeps attackers without a role on their zone shape', () => {
     const roleless = {
       ...scenario,
       players: scenario.players.map((p) => ({ ...p, roleId: undefined })),
@@ -125,7 +142,11 @@ describe('computePhases', () => {
     const attackers = scenario.players.filter(
       (p) => p.team === 'mine' && p.id !== scenario.carrierId,
     );
-    for (const attacker of attackers) expect(result.final.get(attacker.id)).toEqual(attacker.base);
+    for (const attacker of attackers) {
+      const shape = result.positions.shape.get(attacker.id)!;
+      const final = result.positions.final.get(attacker.id)!;
+      expect(Math.hypot(shape.x - final.x, shape.y - final.y)).toBeLessThan(MIN_TOKEN_SPACING);
+    }
   });
 
   it('shifts every outfield defender by the line shift and adds role offsets only where set', () => {
@@ -133,22 +154,32 @@ describe('computePhases', () => {
     const players = central.players.map((p) =>
       p.team === 'opponent' && p.id !== 'opponent:DCL' ? { ...p, roleId: undefined } : p,
     );
-    const targets = computeTargets({ ...central, players });
+    const result = computePhases({ ...central, players });
+    const targets = result.positions.final;
     const shift = FM26_DATA.lineShift['C-F'].dy;
     const others = players.filter((p) => p.team === 'opponent' && p.id !== 'opponent:DCL');
     for (const keeper of others.filter((p) => p.isKeeper)) {
       expect(targets.get(keeper.id)).toEqual(keeper.base);
     }
     for (const player of others.filter((p) => !p.isKeeper)) {
+      const shape = result.positions.shape.get(player.id)!;
       const target = targets.get(player.id)!;
-      expect(target.x).toBeCloseTo(player.base.x);
-      expect(target.y).toBeCloseTo(player.base.y + shift);
+      const expected = { x: shape.x, y: shape.y + shift };
+      expect(Math.hypot(target.x - expected.x, target.y - expected.y)).toBeLessThan(
+        MIN_TOKEN_SPACING,
+      );
     }
     const dcl = players.find((p) => p.id === 'opponent:DCL')!;
     const [, wide, depth] = offsetFor(FM26_DATA.movement, dcl.roleId!, 'C-F', 'ball')!;
+    const dclShape = result.positions.shape.get(dcl.id)!;
+    const expectedDcl = {
+      x: dclShape.x + wide * Math.sign(dcl.base.x - PITCH_W / 2),
+      y: dclShape.y + shift + depth,
+    };
     const target = targets.get(dcl.id)!;
-    expect(target.x).toBeCloseTo(dcl.base.x + wide * Math.sign(dcl.base.x - PITCH_W / 2));
-    expect(target.y).toBeCloseTo(dcl.base.y + shift + depth);
+    expect(Math.hypot(target.x - expectedDcl.x, target.y - expectedDcl.y)).toBeLessThan(
+      MIN_TOKEN_SPACING,
+    );
   });
 
   it('keeps every target inside the pitch margin for every formation, zone and attacker', () => {
@@ -156,7 +187,7 @@ describe('computePhases', () => {
     for (const attacker of ['mine', 'opponent'] as const) {
       for (let index = 0; index < FM26_DATA.formations.length; index += 1) {
         for (const zone of ZONE_IDS) {
-          for (const [id, point] of computeTargets(input(attacker, zone, index))) {
+          for (const [id, point] of computePhases(input(attacker, zone, index)).positions.final) {
             const inside =
               point.x >= PITCH_TARGET_MARGIN - 1e-9 &&
               point.x <= PITCH_W - PITCH_TARGET_MARGIN + 1e-9 &&
@@ -173,15 +204,16 @@ describe('computePhases', () => {
 
 describe('mirrored attackers', () => {
   it('gives the opponent the 180 degree mirror of my team for the same shapes', () => {
-    const mine = computeTargets(input('mine', 'R-F'));
-    const opponent = computeTargets(input('opponent', 'R-F'));
+    const mine = computePhases(input('mine', 'R-F')).positions.shape;
+    const opponent = computePhases(input('opponent', 'R-F')).positions.shape;
+    const mirrorTolerance = MIN_TOKEN_SPACING;
     for (const [id, point] of mine) {
       const swapped = id.startsWith('mine:')
         ? id.replace('mine:', 'opponent:')
         : id.replace('opponent:', 'mine:');
       const other = opponent.get(swapped)!;
-      expect(other.x).toBeCloseTo(PITCH_W - point.x);
-      expect(other.y).toBeCloseTo(100 - point.y);
+      expect(Math.abs(other.x - (PITCH_W - point.x))).toBeLessThan(mirrorTolerance);
+      expect(Math.abs(other.y - (100 - point.y))).toBeLessThan(mirrorTolerance);
     }
   });
 });

@@ -11,10 +11,10 @@ import {
   selectPhasePositions,
   selectTeamPlayers,
 } from './selectors';
-import { createBoardStore } from './store';
+import { createPitchStore } from './store';
 
 describe('selectPhasePositions', () => {
-  it('matches the engine for the example board and keeps the carrier on the ball', () => {
+  it('matches the engine for the example pitch and keeps the carrier on the ball', () => {
     const doc = createExampleDocument();
     const phases = selectPhasePositions(doc);
     const input: PhaseInput = {
@@ -22,9 +22,13 @@ describe('selectPhasePositions', () => {
       players: phasePlayersOf(doc, FM26_DATA),
       ball: doc.ball,
       carrierId: doc.scenario!.carrierId,
-      tables: { movement: FM26_DATA.movement, lineShift: FM26_DATA.lineShift },
+      tables: {
+        movement: FM26_DATA.movement,
+        shapeLineShift: FM26_DATA.shapeLineShift,
+        lineShift: FM26_DATA.lineShift,
+      },
     };
-    expect(phases).toEqual(computePhases(input));
+    expect(phases).toEqual(computePhases(input).positions);
     for (const phase of ['shape', 'runs', 'final'] as const) {
       expect(phases[phase].get(doc.scenario!.carrierId)).toEqual(doc.ball);
     }
@@ -44,7 +48,7 @@ describe('selectPhasePositions', () => {
     expect(phases.final.get('mine-ST')).toEqual(st.base);
   });
 
-  it('moves players between shape and final when a tuned zone is applied', () => {
+  it('moves players between shape and final when a zone with movement data is applied', () => {
     const doc = createExampleDocument();
     const phases = selectPhasePositions(doc);
     const moved = [...phases.final].some(([id, point]) => {
@@ -57,7 +61,7 @@ describe('selectPhasePositions', () => {
 
 describe('store selectors', () => {
   it('reports whether undo and redo are available', () => {
-    const store = createBoardStore({ doc: createInitialDocument() });
+    const store = createPitchStore({ doc: createInitialDocument() });
     expect(selectCanUndo(store.getState())).toBe(false);
     expect(selectCanRedo(store.getState())).toBe(false);
     store.getState().dispatch({ type: 'renameTeam', team: 'mine', name: 'A' });
@@ -67,7 +71,7 @@ describe('store selectors', () => {
   });
 
   it('lists the players of a team and keeps the array stable per document', () => {
-    const state = createBoardStore({ doc: createExampleDocument() }).getState();
+    const state = createPitchStore({ doc: createExampleDocument() }).getState();
     const mine = selectTeamPlayers(state.doc, 'mine');
     expect(mine).toHaveLength(11);
     expect(selectTeamPlayers(state.doc, 'mine')).toBe(mine);
@@ -75,7 +79,7 @@ describe('store selectors', () => {
   });
 
   it('shows positions for the current phase and the live drag position', () => {
-    const store = createBoardStore({ doc: createExampleDocument(), ui: { phase: 'final' } });
+    const store = createPitchStore({ doc: createExampleDocument(), ui: { phase: 'final' } });
     const state = store.getState();
     expect(selectDisplayPositions(state)).toBe(selectPhasePositions(state.doc).final);
     store.getState().beginDrag({ kind: 'player', id: 'mine-ST' }, { x: 5, y: 6 });
@@ -85,7 +89,7 @@ describe('store selectors', () => {
   });
 
   it('returns the same drag positions until the drag or phase changes', () => {
-    const store = createBoardStore({ doc: createExampleDocument(), ui: { phase: 'final' } });
+    const store = createPitchStore({ doc: createExampleDocument(), ui: { phase: 'final' } });
     store.getState().beginDrag({ kind: 'player', id: 'mine-ST' }, { x: 5, y: 6 });
     const dragged = selectDisplayPositions(store.getState());
     expect(selectDisplayPositions(store.getState())).toBe(dragged);

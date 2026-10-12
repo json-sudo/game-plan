@@ -44,7 +44,7 @@ const FM26_FORMATION_IDS = [
 
 describe('data set', () => {
   it('is versioned and passes the zod schema', () => {
-    expect(DATA_VERSION).toBe('fm26-1');
+    expect(DATA_VERSION).toBe('fm26-3');
     expect(FM26_DATA.version).toBe(DATA_VERSION);
     expect(dataSetSchema.safeParse(FM26_DATA).success).toBe(true);
   });
@@ -199,7 +199,7 @@ describe('movement table', () => {
     expect(unknownZones).toEqual([]);
   });
 
-  it('has an entry for every role in every zone, with both sides and provenance', () => {
+  it('has an entry for every role in all 15 zones, with both sides and provenance', () => {
     const problems = ROLES.flatMap((role) =>
       ZONE_IDS.filter((zone) => {
         const cell = MOVEMENT[role.id]?.[zone];
@@ -216,7 +216,7 @@ describe('movement table', () => {
     expect(problems).toEqual([]);
   });
 
-  it('keeps the spike values for the three tuned zones of spike roles', () => {
+  it('keeps the spike values for the three spike zones of spike roles', () => {
     expect(MOVEMENT.winger_ip?.['R-F']?.ball).toEqual([3, 0, 6]);
     expect(MOVEMENT.winger_ip?.['R-F']?.from.ball).toBe('spike');
     expect(MOVEMENT.winger_ip?.['C-M']?.ball).toEqual([0, 2, 3]);
@@ -226,7 +226,7 @@ describe('movement table', () => {
     expect(MOVEMENT.deep_lying_forward_ip?.['R-F']?.ball).toEqual([-4, 0, -2]);
   });
 
-  it('marks only the three tuned zones of spike roles as spike', () => {
+  it('marks only the three spike zones of spike roles as spike', () => {
     const spikeCells = Object.values(MOVEMENT).flatMap((zones) =>
       Object.entries(zones ?? {}).filter(([, cell]) => cell?.from.ball === 'spike'),
     );
@@ -249,6 +249,30 @@ describe('movement table', () => {
   });
 });
 
+describe('half-space movement', () => {
+  it('derives every half-space cell from its flank and centre neighbours and marks it initial', () => {
+    for (const lane of ['LH', 'RH'] as const) {
+      const flank = lane === 'LH' ? 'L' : 'R';
+      for (const third of ['D', 'M', 'F'] as const) {
+        for (const role of ROLES) {
+          const cell = MOVEMENT[role.id]?.[`${lane}-${third}`];
+          const flankCell = MOVEMENT[role.id]?.[`${flank}-${third}`];
+          expect(cell?.from).toEqual({ ball: 'initial', far: 'initial' });
+          expect(Math.abs(cell!.ball[0])).toBeLessThanOrEqual(Math.abs(flankCell!.ball[0]));
+          expect(cell!.ball[0] * flankCell!.ball[0]).toBeGreaterThanOrEqual(0);
+        }
+      }
+    }
+  });
+  it('mirrors the left half-space onto the right', () => {
+    for (const role of ROLES) {
+      for (const third of ['D', 'M', 'F'] as const) {
+        expect(MOVEMENT[role.id]?.[`RH-${third}`]?.ball).toEqual(MOVEMENT[role.id]?.[`LH-${third}`]?.ball);
+      }
+    }
+  });
+});
+
 describe('line shift table', () => {
   it('has a finite entry for every zone', () => {
     for (const zone of ZONE_IDS) {
@@ -260,6 +284,11 @@ describe('line shift table', () => {
   it('pushes the line up when the ball is deep and drops it when the ball is high', () => {
     expect(LINE_SHIFT['C-D'].dy).toBeGreaterThan(0);
     expect(LINE_SHIFT['C-F'].dy).toBeLessThan(0);
+  });
+  it('sits half-spaces between the flank and the centre', () => {
+    expect(LINE_SHIFT['LH-D'].dy).toBeGreaterThan(LINE_SHIFT['L-D'].dy);
+    expect(LINE_SHIFT['LH-D'].dy).toBeLessThan(LINE_SHIFT['C-D'].dy);
+    expect(LINE_SHIFT['RH-F'].dy).toBe(LINE_SHIFT['LH-F'].dy);
   });
 });
 

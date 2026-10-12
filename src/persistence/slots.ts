@@ -1,63 +1,44 @@
 import { FM26_DATA } from '../data/fm26';
-import { documentIssues, placedPlayers, type BoardDocument } from '../state';
-import { MIGRATIONS, runMigrations } from './migrations';
+import { documentIssues, placedPlayers, type PitchDocument } from '../state';
 import {
-  BOARDS_STORAGE_KEY,
-  CURRENT_BOARDS_VERSION,
-  LEGACY_BOARDS_STORAGE_KEY,
+  CURRENT_TACTICS_VERSION,
   MAX_SLOTS,
   SLOT_NAME_MAX_LENGTH,
+  TACTICS_STORAGE_KEY,
   savedSlotSchema,
   wrapperHeadSchema,
-  type BoardsWrapper,
+  type TacticsWrapper,
   type SavedSlot,
-  type SlotEntry,
 } from './schema';
 
 export const MIN_PLACED_TO_SAVE = 9;
 
-export type LoadBoardsResult =
+export type LoadTacticsResult =
   | { status: 'empty' }
   | { status: 'unavailable' }
   | { status: 'corrupt' }
-  | { status: 'ok'; wrapper: BoardsWrapper; skipped: number };
+  | { status: 'ok'; wrapper: TacticsWrapper; skipped: number };
 
 export type SaveResult =
-  { status: 'ok'; wrapper: BoardsWrapper; slotId: string } | { status: 'error'; message: string };
+  | { status: 'ok'; wrapper: TacticsWrapper; slotId: string }
+  | { status: 'error'; message: string };
 
 export type DeleteResult =
-  { status: 'ok'; wrapper: BoardsWrapper } | { status: 'error'; message: string };
+  | { status: 'ok'; wrapper: TacticsWrapper }
+  | { status: 'error'; message: string };
 
-interface RawRead {
-  raw: string | null;
-  legacy: boolean;
-}
-
-function readRaw(storage: Storage): RawRead | null {
+function readRaw(storage: Storage): string | null | undefined {
   try {
-    const current = storage.getItem(BOARDS_STORAGE_KEY);
-    if (current !== null) return { raw: current, legacy: false };
-    return { raw: storage.getItem(LEGACY_BOARDS_STORAGE_KEY), legacy: true };
+    return storage.getItem(TACTICS_STORAGE_KEY);
   } catch {
-    return null;
+    return undefined;
   }
 }
 
-function parseEntry(entry: SlotEntry): SavedSlot | null {
-  const migrated = runMigrations(entry, MIGRATIONS, CURRENT_BOARDS_VERSION);
-  if (!migrated) return null;
-  const parsed = savedSlotSchema.safeParse(migrated.slot);
+function parseSlot(slot: unknown): SavedSlot | null {
+  const parsed = savedSlotSchema.safeParse(slot);
   if (!parsed.success) return null;
-  return documentIssues(parsed.data.board, FM26_DATA) === null ? parsed.data : null;
-}
-
-function persistMigrated(storage: Storage, wrapper: BoardsWrapper, skipped: number): void {
-  try {
-    storage.setItem(BOARDS_STORAGE_KEY, JSON.stringify(wrapper));
-    if (skipped === 0) storage.removeItem(LEGACY_BOARDS_STORAGE_KEY);
-  } catch {
-    return;
-  }
+  return documentIssues(parsed.data.tactic, FM26_DATA) === null ? parsed.data : null;
 }
 
 function readWrapper(raw: string): { version: number; slots: unknown[] } | null {
@@ -68,41 +49,36 @@ function readWrapper(raw: string): { version: number; slots: unknown[] } | null 
     return null;
   }
   const head = wrapperHeadSchema.safeParse(parsed);
-  return head.success && head.data.version <= CURRENT_BOARDS_VERSION ? head.data : null;
+  return head.success && head.data.version === CURRENT_TACTICS_VERSION ? head.data : null;
 }
 
-export function loadBoards(storage: Storage = localStorage): LoadBoardsResult {
-  const read = readRaw(storage);
-  if (!read) return { status: 'unavailable' };
-  if (read.raw === null) return { status: 'empty' };
-  const head = readWrapper(read.raw);
+export function loadTactics(storage: Storage = localStorage): LoadTacticsResult {
+  const raw = readRaw(storage);
+  if (raw === undefined) return { status: 'unavailable' };
+  if (raw === null) return { status: 'empty' };
+  const head = readWrapper(raw);
   if (!head) return { status: 'corrupt' };
 
-  const parsed = head.slots.map((slot) => parseEntry({ version: head.version, slot }));
+  const parsed = head.slots.map(parseSlot);
   const valid = parsed.filter((slot): slot is SavedSlot => slot !== null);
-  const kept = valid.slice(0, MAX_SLOTS);
-  const wrapper: BoardsWrapper = { version: CURRENT_BOARDS_VERSION, slots: kept };
-  const skipped = head.slots.length - kept.length;
-  if (read.legacy) persistMigrated(storage, wrapper, skipped);
-  return { status: 'ok', wrapper, skipped };
+  const slots = valid.slice(0, MAX_SLOTS);
+  return { status: 'ok', wrapper: { version: CURRENT_TACTICS_VERSION, slots }, skipped: head.slots.length - slots.length };
 }
 
-export function skippedBoardsMessage(count: number): string | null {
+export function skippedTacticsMessage(count: number): string | null {
   if (count <= 0) return null;
-  return count === 1
-    ? '1 saved board could not be read and was skipped.'
-    : `${count} saved boards could not be read and were skipped.`;
+  return count === 1 ? '1 saved tactic was skipped.' : `${count} saved tactics were skipped.`;
 }
 
-export function pickAutoLoadSlot(wrapper: BoardsWrapper): SavedSlot | null {
+export function pickAutoLoadSlot(wrapper: TacticsWrapper): SavedSlot | null {
   return wrapper.slots.reduce<SavedSlot | null>(
     (latest, slot) => (!latest || slot.savedAt > latest.savedAt ? slot : latest),
     null,
   );
 }
 
-export function canSaveBoard(board: BoardDocument): boolean {
-  return placedPlayers(board).length >= MIN_PLACED_TO_SAVE;
+export function canSaveTactic(tactic: PitchDocument): boolean {
+  return placedPlayers(tactic).length >= MIN_PLACED_TO_SAVE;
 }
 
 function createSlotId(): string {
@@ -112,9 +88,9 @@ function createSlotId(): string {
   return `slot-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function writeWrapper(storage: Storage, wrapper: BoardsWrapper): boolean {
+function writeWrapper(storage: Storage, wrapper: TacticsWrapper): boolean {
   try {
-    storage.setItem(BOARDS_STORAGE_KEY, JSON.stringify(wrapper));
+    storage.setItem(TACTICS_STORAGE_KEY, JSON.stringify(wrapper));
     return true;
   } catch {
     return false;
@@ -122,32 +98,29 @@ function writeWrapper(storage: Storage, wrapper: BoardsWrapper): boolean {
 }
 
 export function saveSlot(
-  wrapper: BoardsWrapper | null,
+  wrapper: TacticsWrapper | null,
   targetSlotId: string | null,
   name: string,
-  board: BoardDocument,
+  tactic: PitchDocument,
   storage: Storage = localStorage,
   now: number = Date.now(),
 ): SaveResult {
-  if (documentIssues(board, FM26_DATA) !== null) {
-    return { status: 'error', message: "This board can't be saved." };
+  if (documentIssues(tactic, FM26_DATA) !== null) {
+    return { status: 'error', message: "This tactic can't be saved." };
   }
   const slots = wrapper ? wrapper.slots : [];
   const trimmedName = name.trim().slice(0, SLOT_NAME_MAX_LENGTH);
   const existing = targetSlotId ? slots.find((slot) => slot.id === targetSlotId) : undefined;
 
   if (!existing && slots.length >= MAX_SLOTS) {
-    return {
-      status: 'error',
-      message: 'Both save slots are full. Choose one to overwrite.',
-    };
+    return { status: 'error', message: 'Both save slots are full. Choose one to overwrite.' };
   }
   const slotId = existing ? existing.id : createSlotId();
-  const saved: SavedSlot = { id: slotId, name: trimmedName, savedAt: now, board };
+  const saved: SavedSlot = { id: slotId, name: trimmedName, savedAt: now, tactic };
   const nextSlots = existing
     ? slots.map((slot) => (slot === existing ? saved : slot))
     : [...slots, saved];
-  const nextWrapper: BoardsWrapper = { version: CURRENT_BOARDS_VERSION, slots: nextSlots };
+  const nextWrapper: TacticsWrapper = { version: CURRENT_TACTICS_VERSION, slots: nextSlots };
   if (!writeWrapper(storage, nextWrapper)) {
     return { status: 'error', message: "Couldn't save. Storage is full or unavailable." };
   }
@@ -155,15 +128,15 @@ export function saveSlot(
 }
 
 export function deleteSlot(
-  wrapper: BoardsWrapper,
+  wrapper: TacticsWrapper,
   slotId: string,
   storage: Storage = localStorage,
 ): DeleteResult {
   if (!wrapper.slots.some((slot) => slot.id === slotId)) {
     return { status: 'error', message: 'That save no longer exists.' };
   }
-  const next: BoardsWrapper = {
-    version: CURRENT_BOARDS_VERSION,
+  const next: TacticsWrapper = {
+    version: CURRENT_TACTICS_VERSION,
     slots: wrapper.slots.filter((slot) => slot.id !== slotId),
   };
   if (!writeWrapper(storage, next)) {

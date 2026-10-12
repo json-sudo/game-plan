@@ -1,23 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { FM26_DATA } from '../data/fm26';
 import { createExampleDocument } from './example';
-import { createInitialDocument, playersOf, type BoardDocument } from './document';
+import { createInitialDocument, playersOf, type PitchDocument } from './document';
 import { HISTORY_LIMIT } from './history';
-import { createBoardStore, initialUi } from './store';
+import { createPitchStore, initialUi } from './store';
 
 function blankStore() {
-  return createBoardStore({ doc: createInitialDocument() });
+  return createPitchStore({ doc: createInitialDocument() });
 }
 
 function exampleStore() {
-  return createBoardStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
+  return createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
 }
 
 describe('initial state', () => {
-  it('starts in sandbox mode with an empty history unless told otherwise', () => {
+  it('starts in openPitch mode with an empty history unless told otherwise', () => {
     const store = blankStore();
     const state = store.getState();
-    expect(state.ui).toEqual(initialUi('sandbox'));
+    expect(state.ui).toEqual(initialUi('openPitch'));
     expect(state.history).toEqual({ past: [], future: [] });
     expect(state.doc).toEqual(createInitialDocument());
   });
@@ -140,7 +140,7 @@ describe('undo and redo', () => {
 
   it('loading a document is undoable', () => {
     const store = blankStore();
-    const loaded: BoardDocument = createExampleDocument();
+    const loaded: PitchDocument = createExampleDocument();
     store.getState().dispatch({ type: 'loadDocument', doc: loaded });
     expect(store.getState().doc).toBe(loaded);
     store.getState().undo();
@@ -174,8 +174,8 @@ describe('ui state', () => {
         .filter((p) => p.base)
         .every((p) => p.role !== undefined),
     ).toBe(true);
-    store.getState().setMode('sandbox');
-    expect(store.getState().ui.mode).toBe('sandbox');
+    store.getState().setMode('openPitch');
+    expect(store.getState().ui.mode).toBe('openPitch');
     expect(playersOf(store.getState().doc, 'mine').some((p) => p.role !== undefined)).toBe(true);
   });
 

@@ -9,7 +9,7 @@ import {
   replaceTeamPlayers,
   roundPoint,
   type AppliedLayout,
-  type BoardDocument,
+  type PitchDocument,
   type Player,
   type SquadSize,
 } from './document';
@@ -65,12 +65,12 @@ function slotPlayers(
 }
 
 function placeTeam(
-  doc: BoardDocument,
+  doc: PitchDocument,
   team: Side,
   formation: FormationDef,
   layout: TeamLayout,
   applied: AppliedLayout,
-): BoardDocument {
+): PitchDocument {
   const previous = playersOf(doc, team);
   const placed = slotPlayers(team, formation, layout, previous);
   const spares = spareRoster(
@@ -89,16 +89,16 @@ function placeTeam(
   };
 }
 
-function settle(doc: BoardDocument, data: DataSet): BoardDocument {
+function settle(doc: PitchDocument, data: DataSet): PitchDocument {
   return refreshScenario(reconcileRoles(doc, data));
 }
 
 export function applyFormation(
-  doc: BoardDocument,
+  doc: PitchDocument,
   team: Side,
   formationId: string,
   data: DataSet,
-): BoardDocument {
+): PitchDocument {
   const formation = formationOf(data, formationId);
   if (!formation) return doc;
   return settle(
@@ -107,7 +107,7 @@ export function applyFormation(
   );
 }
 
-export function applyMatchup(doc: BoardDocument, data: DataSet): BoardDocument {
+export function applyMatchup(doc: PitchDocument, data: DataSet): PitchDocument {
   const mine = formationOf(data, doc.teams.mine.formationId);
   const opponent = formationOf(data, doc.teams.opponent.formationId);
   if (!mine || !opponent) return doc;
@@ -120,7 +120,7 @@ export function applyMatchup(doc: BoardDocument, data: DataSet): BoardDocument {
   return settle(placed, data);
 }
 
-function blankTeam(doc: BoardDocument, team: Side): BoardDocument {
+function blankTeam(doc: PitchDocument, team: Side): PitchDocument {
   const meta = doc.teams[team];
   const pieces = spareRoster(team, [], [], meta.squadSize);
   return {
@@ -130,8 +130,8 @@ function blankTeam(doc: BoardDocument, team: Side): BoardDocument {
   };
 }
 
-export function resetBoard(doc: BoardDocument, data: DataSet): BoardDocument {
-  const cleared: BoardDocument = { ...doc, ball: BALL_START, scenario: null };
+export function resetPitch(doc: PitchDocument, data: DataSet): PitchDocument {
+  const cleared: PitchDocument = { ...doc, ball: BALL_START, scenario: null };
   const bothMatchup = SIDES.every((team) => doc.teams[team].applied === 'matchup');
   if (bothMatchup) return applyMatchup(cleared, data);
   return SIDES.reduce((current, team) => {
@@ -141,7 +141,7 @@ export function resetBoard(doc: BoardDocument, data: DataSet): BoardDocument {
   }, cleared);
 }
 
-export function setSquadSize(doc: BoardDocument, team: Side, size: SquadSize): BoardDocument {
+export function setSquadSize(doc: PitchDocument, team: Side, size: SquadSize): PitchDocument {
   const players = playersOf(doc, team);
   const surplus = players.length - size;
   if (surplus > 0) return shrinkSquad(doc, team, players, surplus, size);
@@ -155,12 +155,12 @@ export function setSquadSize(doc: BoardDocument, team: Side, size: SquadSize): B
 }
 
 function shrinkSquad(
-  doc: BoardDocument,
+  doc: PitchDocument,
   team: Side,
   players: Player[],
   surplus: number,
   size: SquadSize,
-): BoardDocument {
+): PitchDocument {
   const removable = players.filter((player) => isSpare(player) && player.base === undefined);
   if (removable.length < surplus) return doc;
   const dropped = new Set(removable.slice(-surplus));
@@ -173,11 +173,11 @@ function shrinkSquad(
 }
 
 function withSquadSize(
-  doc: BoardDocument,
+  doc: PitchDocument,
   team: Side,
   players: Player[],
   squadSize: SquadSize,
-): BoardDocument {
+): PitchDocument {
   return {
     ...doc,
     teams: { ...doc.teams, [team]: { ...doc.teams[team], squadSize } },
@@ -186,16 +186,16 @@ function withSquadSize(
 }
 
 export function setKeeper(
-  doc: BoardDocument,
+  doc: PitchDocument,
   team: Side,
   keeper: boolean,
   data: DataSet,
-): BoardDocument {
+): PitchDocument {
   const players = playersOf(doc, team);
   const next = keeper ? promoteKeeper(players) : demoteKeepers(players);
   const hasKeeper = next.some((player) => player.isKeeper);
   if (next === players && doc.teams[team].keeper === hasKeeper) return doc;
-  const withMeta: BoardDocument = {
+  const withMeta: PitchDocument = {
     ...doc,
     teams: { ...doc.teams, [team]: { ...doc.teams[team], keeper: hasKeeper } },
     players: replaceTeamPlayers(doc, team, next),

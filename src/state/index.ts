@@ -4,10 +4,11 @@ export {
   BALL_START,
   DEFAULT_TEAM_NAMES,
   PIECE_NAME_MAX_LENGTH,
+  PIECE_NAME_ON_TOKEN_MAX_LENGTH,
   SIDES,
   SQUAD_SIZES,
   TEAM_NAME_MAX_LENGTH,
-  clampToBoard,
+  clampToPitch,
   createInitialDocument,
   defaultRoleFor,
   formationOf,
@@ -21,7 +22,7 @@ export {
 } from './document';
 export type {
   AppliedLayout,
-  BoardDocument,
+  PitchDocument,
   Player,
   Scenario,
   SquadSize,
@@ -35,14 +36,15 @@ export {
   selectCanUndo,
   selectDisplayPositions,
   selectPhasePositions,
+  selectPhaseResult,
   selectTeamPlayers,
 } from './selectors';
 export type { PhasePositions } from './selectors';
-export { createBoardStore, initialUi } from './store';
+export { createPitchStore, initialUi } from './store';
 export type {
   ArrowMode,
-  BoardStore,
-  BoardStoreOptions,
+  PitchStore,
+  PitchStoreOptions,
   DragState,
   DragTarget,
   Mode,

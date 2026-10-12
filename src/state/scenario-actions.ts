@@ -12,13 +12,13 @@ import {
   type DribbleDirection,
 } from '../engine';
 import { attackersOf, scenarioContextOf } from './context';
-import { roundPoint, type BoardDocument } from './document';
+import { roundPoint, type PitchDocument } from './document';
 
 function samePoint(a: Point, b: Point): boolean {
   return a.x === b.x && a.y === b.y;
 }
 
-function withBallState(doc: BoardDocument, state: BallState): BoardDocument {
+function withBallState(doc: PitchDocument, state: BallState): PitchDocument {
   const ball = roundPoint(state.ball);
   const scenario = state.carrierId
     ? { zone: zoneOf(ball, doc.attacker), carrierId: state.carrierId }
@@ -30,7 +30,7 @@ function withBallState(doc: BoardDocument, state: BallState): BoardDocument {
   return unchanged ? doc : { ...doc, ball, scenario };
 }
 
-export function refreshScenario(doc: BoardDocument): BoardDocument {
+export function refreshScenario(doc: PitchDocument): PitchDocument {
   if (!doc.scenario) return doc;
   const candidates = attackersOf(doc).map((player) => ({
     id: player.id,
@@ -43,35 +43,35 @@ export function refreshScenario(doc: BoardDocument): BoardDocument {
   return { ...doc, scenario: carrierId ? { zone, carrierId } : null };
 }
 
-export function tapZone(doc: BoardDocument, zone: ZoneId, data: DataSet): BoardDocument {
+export function tapZone(doc: PitchDocument, zone: ZoneId, data: DataSet): PitchDocument {
   return withBallState(doc, engineTapZone(scenarioContextOf(doc, data), zone));
 }
 
-export function dragBall(doc: BoardDocument, point: Point, data: DataSet): BoardDocument {
+export function dragBall(doc: PitchDocument, point: Point, data: DataSet): PitchDocument {
   return withBallState(doc, engineDragBall(scenarioContextOf(doc, data), point));
 }
 
-export function setCarrier(doc: BoardDocument, playerId: string, data: DataSet): BoardDocument {
+export function setCarrier(doc: PitchDocument, playerId: string, data: DataSet): PitchDocument {
   return withBallState(doc, engineSetCarrier(scenarioContextOf(doc, data), playerId));
 }
 
 export function pass(
-  doc: BoardDocument,
+  doc: PitchDocument,
   receiverId: string,
   positions: ReadonlyMap<string, Point> | undefined,
   data: DataSet,
-): BoardDocument {
+): PitchDocument {
   return withBallState(doc, enginePass(scenarioContextOf(doc, data), receiverId, positions));
 }
 
 export function dribble(
-  doc: BoardDocument,
+  doc: PitchDocument,
   direction: DribbleDirection,
   data: DataSet,
-): BoardDocument {
+): PitchDocument {
   return withBallState(doc, engineDribble(scenarioContextOf(doc, data), direction));
 }
 
-export function clearScenario(doc: BoardDocument): BoardDocument {
+export function clearScenario(doc: PitchDocument): PitchDocument {
   return doc.scenario ? { ...doc, scenario: null } : doc;
 }

@@ -4,19 +4,19 @@ import {
   TEAM_NAME_MAX_LENGTH,
   DEFAULT_TEAM_NAMES,
   mapPlayer,
-  clampToBoard,
-  type BoardDocument,
+  clampToPitch,
+  type PitchDocument,
   type Player,
 } from './document';
 import { refreshScenario } from './scenario-actions';
 
-export function renameTeam(doc: BoardDocument, team: Side, name: string): BoardDocument {
+export function renameTeam(doc: PitchDocument, team: Side, name: string): PitchDocument {
   const next = name.trim().slice(0, TEAM_NAME_MAX_LENGTH).trim() || DEFAULT_TEAM_NAMES[team];
   if (doc.teams[team].name === next) return doc;
   return { ...doc, teams: { ...doc.teams, [team]: { ...doc.teams[team], name: next } } };
 }
 
-export function setPieceName(doc: BoardDocument, playerId: string, name: string): BoardDocument {
+export function setPieceName(doc: PitchDocument, playerId: string, name: string): PitchDocument {
   const next = name.trim().slice(0, PIECE_NAME_MAX_LENGTH).trim();
   return mapPlayer(doc, playerId, (player) => {
     if ((player.customName ?? '') === next) return player;
@@ -25,8 +25,8 @@ export function setPieceName(doc: BoardDocument, playerId: string, name: string)
   });
 }
 
-export function movePlayer(doc: BoardDocument, playerId: string, point: Point): BoardDocument {
-  const base = clampToBoard(point);
+export function movePlayer(doc: PitchDocument, playerId: string, point: Point): PitchDocument {
+  const base = clampToPitch(point);
   const moved = mapPlayer(doc, playerId, (player): Player => {
     const unchanged = player.base?.x === base.x && player.base?.y === base.y;
     return unchanged ? player : { ...player, base };
@@ -34,7 +34,7 @@ export function movePlayer(doc: BoardDocument, playerId: string, point: Point): 
   return moved === doc ? doc : refreshScenario(moved);
 }
 
-export function benchPlayer(doc: BoardDocument, playerId: string): BoardDocument {
+export function benchPlayer(doc: PitchDocument, playerId: string): PitchDocument {
   const target = doc.players.find((player) => player.id === playerId);
   if (!target || target.base === undefined) return doc;
   const { base: _base, ...benched } = target;

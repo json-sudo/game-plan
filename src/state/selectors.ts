@@ -1,38 +1,57 @@
 import { FM26_DATA } from '../data/fm26';
 import type { Point, Side } from '../data/types';
 import { PHASES, computePhases, type Phase } from '../engine';
+import type { PhaseResult } from '../engine/fm/phases';
 import { phasePlayersOf } from './context';
-import type { BoardDocument, Player } from './document';
-import type { BoardStore, DragState } from './store';
+import type { PitchDocument, Player } from './document';
+import type { PitchStore, DragState } from './store';
 
 export type PhasePositions = Record<Phase, Map<string, Point>>;
 
-const phaseCache = new WeakMap<BoardDocument, PhasePositions>();
-const teamCache = new WeakMap<BoardDocument, Record<Side, Player[]>>();
+const phaseCache = new WeakMap<PitchDocument, PhasePositions>();
+const resultCache = new WeakMap<PitchDocument, PhaseResult>();
+const teamCache = new WeakMap<PitchDocument, Record<Side, Player[]>>();
 const dragCache = new WeakMap<
   DragState,
   { base: Map<string, Point>; result: Map<string, Point> }
 >();
 
-function basePositions(doc: BoardDocument): PhasePositions {
+function basePositions(doc: PitchDocument): PhasePositions {
   const base = new Map(
     doc.players.flatMap((player) => (player.base ? [[player.id, player.base] as const] : [])),
   );
   return Object.fromEntries(PHASES.map((phase) => [phase, base])) as PhasePositions;
 }
 
-function computeDocumentPhases(doc: BoardDocument): PhasePositions {
+function computeDocumentPhases(doc: PitchDocument): PhasePositions {
   if (!doc.scenario) return basePositions(doc);
+  return computeDocumentPhaseResult(doc).positions;
+}
+
+function computeDocumentPhaseResult(doc: PitchDocument): PhaseResult {
+  if (!doc.scenario) return { status: 'ready', positions: basePositions(doc) };
   return computePhases({
     attacker: doc.attacker,
     players: phasePlayersOf(doc, FM26_DATA),
     ball: doc.ball,
     carrierId: doc.scenario.carrierId,
-    tables: { movement: FM26_DATA.movement, lineShift: FM26_DATA.lineShift },
+    tables: {
+      movement: FM26_DATA.movement,
+      shapeLineShift: FM26_DATA.shapeLineShift,
+      lineShift: FM26_DATA.lineShift,
+    },
   });
 }
 
-export function selectPhasePositions(doc: BoardDocument): PhasePositions {
+export function selectPhaseResult(doc: PitchDocument): PhaseResult {
+  const cached = resultCache.get(doc);
+  if (cached) return cached;
+  const result = computeDocumentPhaseResult(doc);
+  resultCache.set(doc, result);
+  return result;
+}
+
+export function selectPhasePositions(doc: PitchDocument): PhasePositions {
   const cached = phaseCache.get(doc);
   if (cached) return cached;
   const computed = computeDocumentPhases(doc);
@@ -40,7 +59,7 @@ export function selectPhasePositions(doc: BoardDocument): PhasePositions {
   return computed;
 }
 
-export function selectTeamPlayers(doc: BoardDocument, team: Side): Player[] {
+export function selectTeamPlayers(doc: PitchDocument, team: Side): Player[] {
   const cached = teamCache.get(doc);
   if (cached) return cached[team];
   const grouped: Record<Side, Player[]> = {
@@ -51,7 +70,7 @@ export function selectTeamPlayers(doc: BoardDocument, team: Side): Player[] {
   return grouped[team];
 }
 
-export function selectDisplayPositions(state: BoardStore): Map<string, Point> {
+export function selectDisplayPositions(state: PitchStore): Map<string, Point> {
   const positions = selectPhasePositions(state.doc)[state.ui.phase];
   const { drag } = state.ui;
   if (!drag || drag.target.kind !== 'player') return positions;
@@ -62,10 +81,10 @@ export function selectDisplayPositions(state: BoardStore): Map<string, Point> {
   return result;
 }
 
-export function selectCanUndo(state: BoardStore): boolean {
+export function selectCanUndo(state: PitchStore): boolean {
   return state.history.past.length > 0;
 }
 
-export function selectCanRedo(state: BoardStore): boolean {
+export function selectCanRedo(state: PitchStore): boolean {
   return state.history.future.length > 0;
 }

@@ -1,10 +1,9 @@
 import { z } from 'zod';
 import { familySchema, pointSchema, slotIdSchema, zoneIdSchema } from '../data/schemas';
-import { PIECE_NAME_MAX_LENGTH, TEAM_NAME_MAX_LENGTH, type BoardDocument } from '../state';
+import { PIECE_NAME_MAX_LENGTH, TEAM_NAME_MAX_LENGTH, type PitchDocument } from '../state';
 
-export const BOARDS_STORAGE_KEY = 'gameplan:boards';
-export const LEGACY_BOARDS_STORAGE_KEY = 'gameplan:boards:v1';
-export const CURRENT_BOARDS_VERSION = 2;
+export const TACTICS_STORAGE_KEY = 'gameplan:tactics';
+export const CURRENT_TACTICS_VERSION = 3;
 export const MAX_SLOTS = 2;
 export const SLOT_NAME_MAX_LENGTH = 24;
 
@@ -35,13 +34,13 @@ export const documentSchema = z.object({
   players: z.array(playerSchema).max(54),
   ball: pointSchema,
   scenario: z.object({ zone: zoneIdSchema, carrierId: z.string().min(1).max(64) }).nullable(),
-}) satisfies z.ZodType<BoardDocument>;
+}) satisfies z.ZodType<PitchDocument>;
 
 export const savedSlotSchema = z.object({
   id: z.string().min(1).max(64),
   name: z.string().max(SLOT_NAME_MAX_LENGTH),
   savedAt: z.number().finite(),
-  board: documentSchema,
+  tactic: documentSchema,
 });
 
 export const wrapperHeadSchema = z.object({
@@ -53,15 +52,11 @@ export interface SavedSlot {
   id: string;
   name: string;
   savedAt: number;
-  board: BoardDocument;
+  tactic: PitchDocument;
 }
 
-export interface BoardsWrapper {
+export interface TacticsWrapper {
   version: number;
   slots: SavedSlot[];
 }
 
-export interface SlotEntry {
-  version: number;
-  slot: unknown;
-}

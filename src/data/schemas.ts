@@ -45,5 +45,6 @@ export const dataSetSchema = z.object({
   roles: z.array(roleSchema),
   formations: z.array(formationSchema),
   movement: movementTableSchema,
+  shapeLineShift: lineShiftSchema,
   lineShift: lineShiftSchema,
 });

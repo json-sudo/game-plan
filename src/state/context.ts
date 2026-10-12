@@ -4,12 +4,12 @@ import {
   isRoleValidFor,
   placedPlayers,
   possessionOf,
-  type BoardDocument,
+  type PitchDocument,
   type Player,
 } from './document';
 
 export function activeRoleOf(
-  doc: BoardDocument,
+  doc: PitchDocument,
   player: Player,
   data: DataSet,
 ): string | undefined {
@@ -18,7 +18,7 @@ export function activeRoleOf(
   return valid ? player.role : undefined;
 }
 
-export function phasePlayersOf(doc: BoardDocument, data: DataSet): PhasePlayer[] {
+export function phasePlayersOf(doc: PitchDocument, data: DataSet): PhasePlayer[] {
   return placedPlayers(doc).map((player) => ({
     id: player.id,
     team: player.team,
@@ -28,7 +28,7 @@ export function phasePlayersOf(doc: BoardDocument, data: DataSet): PhasePlayer[]
   }));
 }
 
-export function scenarioContextOf(doc: BoardDocument, data: DataSet): ScenarioContext {
+export function scenarioContextOf(doc: PitchDocument, data: DataSet): ScenarioContext {
   return {
     attacker: doc.attacker,
     players: phasePlayersOf(doc, data),
@@ -37,6 +37,6 @@ export function scenarioContextOf(doc: BoardDocument, data: DataSet): ScenarioCo
   };
 }
 
-export function attackersOf(doc: BoardDocument, side: Side = doc.attacker): Player[] {
+export function attackersOf(doc: PitchDocument, side: Side = doc.attacker): Player[] {
   return placedPlayers(doc).filter((player) => player.team === side);
 }
