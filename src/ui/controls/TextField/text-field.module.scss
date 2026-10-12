@@ -1,0 +1,85 @@
+@use 'mixins' as m;
+
+.field {
+    display: inline-flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+}
+
+.label {
+    @include m.type('small');
+
+    color: var(--text-muted);
+    font-weight: 600;
+
+    &[data-hidden='true'] {
+        @include m.visually-hidden;
+    }
+}
+
+.box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input {
+    width: 100%;
+    height: var(--control-height);
+    padding: 0 52px 0 var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--surface-raised);
+    color: var(--text);
+    font: 600 15px/22px var(--font-ui);
+
+    &::placeholder {
+        color: var(--text-muted);
+        font-weight: 400;
+    }
+
+    &:focus-visible {
+        @include m.focus-ring;
+    }
+
+    @include m.phone-context {
+        height: var(--tap-min);
+    }
+}
+
+.count {
+    @include m.type('numeric');
+
+    position: absolute;
+    right: var(--space-3);
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.hint {
+    @include m.type('small');
+
+    color: var(--text-muted);
+}
+
+.field[data-variant='team'] .input {
+    padding: 0 var(--space-2);
+    border-color: transparent;
+    background: transparent;
+    font: var(--type-title-2);
+
+    &:hover {
+        border-color: var(--border-strong);
+    }
+}
+
+.field[data-invalid='true'] {
+    .input {
+        border-color: var(--error);
+    }
+
+    .hint {
+        color: var(--error);
+    }
+}

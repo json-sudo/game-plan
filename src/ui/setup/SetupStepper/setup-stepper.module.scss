@@ -1,0 +1,122 @@
+@use 'mixins' as m;
+
+$number-size: 28px;
+
+.stepper {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+}
+
+.steps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.step {
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-panel);
+
+    &:last-child {
+        border-bottom: 0;
+    }
+
+    &[data-reopened='true'] {
+        background: var(--surface-body);
+    }
+}
+
+.head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 60px;
+    padding: var(--space-3) var(--space-4);
+}
+
+.number {
+    @include m.type('numeric');
+
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: $number-size;
+    height: $number-size;
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-full);
+    color: var(--text-muted);
+    line-height: 1;
+}
+
+.step[data-state='active'] .number {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-text);
+}
+
+.step[data-state='done'] .number {
+    border-color: var(--accent-ink);
+    background: var(--surface-body);
+    color: var(--accent-ink);
+}
+
+.text {
+    flex: 1;
+    min-width: 0;
+}
+
+.eyebrow {
+    @include m.type('eyebrow');
+
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 14px;
+    text-transform: uppercase;
+}
+
+.title {
+    color: var(--text);
+    font: 700 17px/20px var(--font-display);
+}
+
+.step[data-state='todo'] .title {
+    color: var(--text-muted);
+}
+
+.summary {
+    @include m.type('small');
+    @include m.truncate;
+
+    color: var(--text-muted);
+}
+
+.body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: 0 var(--space-4) var(--space-4) calc(var(--space-4) + #{$number-size} + var(--space-3));
+}
+
+.nav {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.stepper[data-phone='true'] {
+    .body {
+        padding-left: var(--space-4);
+        background: inherit;
+    }
+
+    .nav {
+        position: sticky;
+        bottom: 0;
+        padding-top: var(--space-2);
+        background: inherit;
+    }
+}

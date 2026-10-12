@@ -1,0 +1,41 @@
+@use 'mixins' as m;
+
+.wrap {
+    position: relative;
+    display: inline-flex;
+}
+
+.tip {
+    @include m.type('small');
+
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 8px);
+    z-index: 20;
+    width: max-content;
+    max-width: 240px;
+    padding: 6px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-raised);
+    color: var(--text);
+    text-align: left;
+    transform: translateX(-50%);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        opacity var(--ui-transition),
+        visibility var(--ui-transition);
+}
+
+.wrap[data-placement='top'] .tip {
+    top: auto;
+    bottom: calc(100% + 8px);
+}
+
+.wrap[data-visible='true'] .tip {
+    opacity: 1;
+    visibility: visible;
+}

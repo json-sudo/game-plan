@@ -5,3 +5,7 @@ coverage
 playwright-report
 test-results
 scripts/fm26-source
+
+design/tokens.json
+src/shared/styles/tokens.scss
+src/shared/styles/_breakpoints.scss
