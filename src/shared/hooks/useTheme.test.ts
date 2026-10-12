@@ -55,4 +55,19 @@ describe('useTheme', () => {
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
     expect(document.documentElement.dataset.theme).toBe('light');
   });
+
+  it('survives unavailable storage on read and write', () => {
+    const getSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
+    const setSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
+    const { result } = renderHook(() => useTheme());
+    expect(result.current.theme).toBe('light');
+    act(() => result.current.toggleTheme());
+    expect(result.current.theme).toBe('dark');
+    getSpy.mockRestore();
+    setSpy.mockRestore();
+  });
 });

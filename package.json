@@ -6,19 +6,26 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint && stylelint \"src/**/*.scss\" && node scripts/check-structure.mjs",
+    "lint": "oxlint && stylelint \"src/**/*.scss\" --allow-empty-input && node scripts/check-structure.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "generate:data": "node scripts/generate-fm26-data.mjs"
   },
   "dependencies": {
+    "fflate": "^0.8.3",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "sass": "^1.101.0"
+    "sass": "^1.101.0",
+    "zod": "^4.6.6",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -26,6 +33,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/coverage-v8": "^4.1.10",
     "jsdom": "^29.1.1",
     "oxlint": "^1.71.0",
     "postcss-scss": "^4.0.9",

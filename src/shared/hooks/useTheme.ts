@@ -4,8 +4,24 @@ export type Theme = 'light' | 'dark';
 
 export const THEME_STORAGE_KEY = 'game-plan:theme';
 
+function readStoredTheme(): string | null {
+  try {
+    return localStorage.getItem(THEME_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredTheme(theme: Theme): void {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch {
+    return;
+  }
+}
+
 function initialTheme(): Theme {
-  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  const stored = readStoredTheme();
   if (stored === 'light' || stored === 'dark') return stored;
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
@@ -16,7 +32,7 @@ export function useTheme() {
   const toggleTheme = useCallback(() => {
     const next: Theme = theme === 'light' ? 'dark' : 'light';
     document.documentElement.dataset.theme = next;
-    localStorage.setItem(THEME_STORAGE_KEY, next);
+    writeStoredTheme(next);
     setTheme(next);
   }, [theme]);
 

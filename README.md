@@ -1,32 +1,26 @@
-# React + TypeScript + Vite
+# Game Plan
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Game Plan is being rebuilt from the ground up. The app entry is a placeholder page until the new UI lands.
 
-Currently, two official plugins are available:
+## Architecture
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Code is split into three layers, and imports only point downward:
 
-## React Compiler
+- **data** (`src/data`) - typed constants and zod schemas for the role, formation and movement tables. Imports no other layer.
+- **engine** (`src/engine`) - pure functions for geometry, layout, separation, zones and movement. May import data. No React, DOM or storage.
+- **UI** (`src/ui`) - React components and SCSS modules. May import the state, engine and data layers.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+State (`src/state`), persistence (`src/persistence`) and share links (`src/share`) sit between the engine and the UI. `scripts/check-structure.mjs` fails the lint script on a forbidden import.
 
-## Expanding the Oxlint configuration
+## Scripts
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+| Command                 | What it does                                            |
+| ----------------------- | ------------------------------------------------------- |
+| `npm run dev`           | Start the Vite dev server                               |
+| `npm run build`         | Type-check and build for production                     |
+| `npm run lint`          | Oxlint, Stylelint and the structure and layer check     |
+| `npm run format:check`  | Prettier check                                          |
+| `npm test`              | Vitest unit and integration tests                       |
+| `npm run test:coverage` | Vitest with the 80% coverage thresholds                 |
+| `npm run test:e2e`      | Playwright end to end tests (builds and previews first) |
+| `npm run generate:data` | Regenerate `src/data/fm26` from `scripts/fm26-source`   |

@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 
 CLAUDE.md
+
+coverage
+playwright-report
+test-results

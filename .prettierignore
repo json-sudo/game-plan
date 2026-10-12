@@ -1,3 +1,7 @@
 dist
 node_modules
 .claude/settings.local.json
+coverage
+playwright-report
+test-results
+scripts/fm26-source
