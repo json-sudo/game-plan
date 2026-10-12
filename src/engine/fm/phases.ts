@@ -2,7 +2,7 @@ import type { Point, Side } from '../../data/types';
 import { positionAt } from '../anim/interpolate';
 import { enforceSpacing, type SpacingToken } from '../layout/spacing';
 import { PITCH_TARGET_MARGIN, targetFor, type MovementTables } from './movement';
-import { computeZoneShape } from './shape';
+import { OPPONENT_HOLD_WEIGHT, computeZoneShape } from './shape';
 import { ZONE_GRID, zoneOf, type ZoneGrid } from './zones';
 
 export type Phase = 'shape' | 'runs' | 'final';
@@ -41,14 +41,22 @@ function separate(
   positions: ReadonlyMap<string, Point>,
   carrierId: string | null,
   fixedIds: ReadonlySet<string>,
+  attacker: Side,
+  players: readonly PhasePlayer[],
 ): Map<string, Point> {
+  const playerById = new Map(players.map((player) => [player.id, player]));
   const tokens = Array.from(
     positions,
-    ([id, point]): SpacingToken => ({
-      id,
-      point,
-      fixed: id === carrierId || fixedIds.has(id),
-    }),
+    ([id, point]): SpacingToken => {
+      const fixed = id === carrierId || fixedIds.has(id);
+      const player = playerById.get(id);
+      return {
+        id,
+        point,
+        fixed,
+        weight: fixed ? undefined : player?.team === attacker ? 1 : OPPONENT_HOLD_WEIGHT,
+      };
+    },
   );
   return enforceSpacing(tokens, { margin: PITCH_TARGET_MARGIN });
 }
@@ -94,7 +102,7 @@ export function computePhases(input: PhaseInput): PhaseResult {
     if (result.status === 'setup-not-finished') return holdShape(shape);
     goals.set(player.id, result.target);
   }
-  const final = separate(goals, carrierId, fixedIds);
+  const final = separate(goals, carrierId, fixedIds, attacker, players);
   const runs = separate(
     new Map(
       players.map((player) => [
@@ -104,6 +112,8 @@ export function computePhases(input: PhaseInput): PhaseResult {
     ),
     carrierId,
     fixedIds,
+    attacker,
+    players,
   );
   return { status: 'ready', positions: { shape, runs, final } };
 }
