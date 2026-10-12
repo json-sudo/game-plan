@@ -20,12 +20,10 @@ export type LoadTacticsResult =
   | { status: 'ok'; wrapper: TacticsWrapper; skipped: number };
 
 export type SaveResult =
-  | { status: 'ok'; wrapper: TacticsWrapper; slotId: string }
-  | { status: 'error'; message: string };
+  { status: 'ok'; wrapper: TacticsWrapper; slotId: string } | { status: 'error'; message: string };
 
 export type DeleteResult =
-  | { status: 'ok'; wrapper: TacticsWrapper }
-  | { status: 'error'; message: string };
+  { status: 'ok'; wrapper: TacticsWrapper } | { status: 'error'; message: string };
 
 function readRaw(storage: Storage): string | null | undefined {
   try {
@@ -62,7 +60,11 @@ export function loadTactics(storage: Storage = localStorage): LoadTacticsResult 
   const parsed = head.slots.map(parseSlot);
   const valid = parsed.filter((slot): slot is SavedSlot => slot !== null);
   const slots = valid.slice(0, MAX_SLOTS);
-  return { status: 'ok', wrapper: { version: CURRENT_TACTICS_VERSION, slots }, skipped: head.slots.length - slots.length };
+  return {
+    status: 'ok',
+    wrapper: { version: CURRENT_TACTICS_VERSION, slots },
+    skipped: head.slots.length - slots.length,
+  };
 }
 
 export function skippedTacticsMessage(count: number): string | null {

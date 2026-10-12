@@ -53,13 +53,11 @@ export function computeZoneShape(input: ShapeInput): Map<string, Point> {
       attacker,
     );
   };
-  const tokens = players.map(
-    (player): SpacingToken => ({
-      id: player.id,
-      point: player.id === carrierId ? ball : shaped(player),
-      fixed: player.id === carrierId || player.isKeeper,
-      weight: player.team === attacker ? 1 : OPPONENT_HOLD_WEIGHT,
-    }),
-  );
+  const tokens = players.map((player): SpacingToken => ({
+    id: player.id,
+    point: player.id === carrierId ? ball : shaped(player),
+    fixed: player.id === carrierId || player.isKeeper,
+    weight: player.team === attacker ? 1 : OPPONENT_HOLD_WEIGHT,
+  }));
   return enforceSpacing(tokens, { margin: PITCH_TARGET_MARGIN });
 }

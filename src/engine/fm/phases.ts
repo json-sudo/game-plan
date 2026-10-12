@@ -45,19 +45,16 @@ function separate(
   players: readonly PhasePlayer[],
 ): Map<string, Point> {
   const playerById = new Map(players.map((player) => [player.id, player]));
-  const tokens = Array.from(
-    positions,
-    ([id, point]): SpacingToken => {
-      const fixed = id === carrierId || fixedIds.has(id);
-      const player = playerById.get(id);
-      return {
-        id,
-        point,
-        fixed,
-        weight: fixed ? undefined : player?.team === attacker ? 1 : OPPONENT_HOLD_WEIGHT,
-      };
-    },
-  );
+  const tokens = Array.from(positions, ([id, point]): SpacingToken => {
+    const fixed = id === carrierId || fixedIds.has(id);
+    const player = playerById.get(id);
+    return {
+      id,
+      point,
+      fixed,
+      weight: fixed ? undefined : player?.team === attacker ? 1 : OPPONENT_HOLD_WEIGHT,
+    };
+  });
   return enforceSpacing(tokens, { margin: PITCH_TARGET_MARGIN });
 }
 

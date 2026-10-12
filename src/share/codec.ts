@@ -29,7 +29,8 @@ export type DecodeResult =
 
 const MESSAGES: Record<ShareErrorCode, string> = {
   'not-a-link': 'This address does not contain a Game Plan link.',
-  'old-version': 'This link is from the old Game Plan. Old links cannot be opened in this version. Ask for a new link.',
+  'old-version':
+    'This link is from the old Game Plan. Old links cannot be opened in this version. Ask for a new link.',
   'unknown-version': 'This link was made by a newer version of Game Plan and cannot be opened.',
   'unknown-data': 'This link uses role and formation data this version does not have.',
   malformed: 'This link is damaged and cannot be opened.',

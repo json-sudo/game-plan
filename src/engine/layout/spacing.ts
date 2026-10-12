@@ -37,7 +37,10 @@ export function enforceSpacing(
   const mobility = tokens.map(mobilityOf);
   const place = (index: number, x: number, y: number) => {
     if (mobility[index] === 0) return;
-    points[index] = { x: clamp(x, margin, PITCH_W - margin), y: clamp(y, margin, PITCH_H - margin) };
+    points[index] = {
+      x: clamp(x, margin, PITCH_W - margin),
+      y: clamp(y, margin, PITCH_H - margin),
+    };
   };
 
   for (let pass = 0; pass < MAX_PASSES; pass += 1) {
@@ -51,8 +54,16 @@ export function enforceSpacing(
         if (distance >= MIN_TOKEN_SPACING || total === 0) continue;
         const [ux, uy] = distance > 0 ? [dx / distance, dy / distance] : [0, 1];
         const push = MIN_TOKEN_SPACING + CLEARANCE - distance;
-        place(i, points[i].x + ux * push * (mobility[i] / total), points[i].y + uy * push * (mobility[i] / total));
-        place(j, points[j].x - ux * push * (mobility[j] / total), points[j].y - uy * push * (mobility[j] / total));
+        place(
+          i,
+          points[i].x + ux * push * (mobility[i] / total),
+          points[i].y + uy * push * (mobility[i] / total),
+        );
+        place(
+          j,
+          points[j].x - ux * push * (mobility[j] / total),
+          points[j].y - uy * push * (mobility[j] / total),
+        );
         adjusted = true;
       }
     }

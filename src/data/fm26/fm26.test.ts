@@ -267,7 +267,9 @@ describe('half-space movement', () => {
   it('mirrors the left half-space onto the right', () => {
     for (const role of ROLES) {
       for (const third of ['D', 'M', 'F'] as const) {
-        expect(MOVEMENT[role.id]?.[`RH-${third}`]?.ball).toEqual(MOVEMENT[role.id]?.[`LH-${third}`]?.ball);
+        expect(MOVEMENT[role.id]?.[`RH-${third}`]?.ball).toEqual(
+          MOVEMENT[role.id]?.[`LH-${third}`]?.ball,
+        );
       }
     }
   });

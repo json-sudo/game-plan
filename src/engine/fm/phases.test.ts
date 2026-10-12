@@ -6,13 +6,7 @@ import { PITCH_W } from '../geometry/pitch';
 import { layoutFormation } from '../layout/formations';
 import { minSpacingOf, MIN_TOKEN_SPACING } from '../layout/spacing';
 import { PITCH_TARGET_MARGIN, offsetFor } from './movement';
-import {
-  PHASES,
-  PHASE_PROGRESS,
-  computePhases,
-  type PhaseInput,
-  type PhasePlayer,
-} from './phases';
+import { PHASES, PHASE_PROGRESS, computePhases, type PhaseInput, type PhasePlayer } from './phases';
 import { zoneCentre } from './zones';
 
 const tables = {
@@ -71,8 +65,7 @@ describe('computePhases', () => {
 
   it('moves the attacking block for the selected zone and places the carrier on the ball', () => {
     const movedAttackers = scenario.players.filter(
-      (player) =>
-        player.team === 'mine' && !player.isKeeper && player.id !== scenario.carrierId,
+      (player) => player.team === 'mine' && !player.isKeeper && player.id !== scenario.carrierId,
     );
     expect(movedAttackers.length).toBeGreaterThan(0);
     for (const player of movedAttackers) {

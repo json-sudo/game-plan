@@ -59,4 +59,3 @@ export interface TacticsWrapper {
   version: number;
   slots: SavedSlot[];
 }
-

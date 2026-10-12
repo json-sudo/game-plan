@@ -82,7 +82,9 @@ describe('zoneOf', () => {
   it('covers all fifteen zones across the pitch', () => {
     const seen = new Set(
       GRID.lanes.flatMap((lane) =>
-        GRID.thirds.map((third) => zoneOf({ x: laneCentreX(lane), y: THIRD_CENTRE_Y[third] }, 'mine')),
+        GRID.thirds.map((third) =>
+          zoneOf({ x: laneCentreX(lane), y: THIRD_CENTRE_Y[third] }, 'mine'),
+        ),
       ),
     );
     expect([...seen].sort()).toEqual([...ZONE_IDS].sort());

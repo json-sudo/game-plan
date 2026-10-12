@@ -7,7 +7,7 @@ Game Plan is being rebuilt from the ground up. The app entry is a placeholder pa
 Code is split into three layers, and imports only point downward:
 
 - **data** (`src/data`) - typed constants and zod schemas for the role, formation and movement tables. Imports no other layer.
-- **engine** (`src/engine`) - pure functions for geometry, layout, separation, zones and movement. May import data. No React, DOM or storage.
+- **engine** (`src/engine`) - pure functions for geometry, layout, spacing, zones and movement. May import data. No React, DOM or storage.
 - **UI** (`src/ui`) - React components and SCSS modules. May import the state, engine and data layers.
 
 State (`src/state`), persistence (`src/persistence`) and share links (`src/share`) sit between the engine and the UI. `scripts/check-structure.mjs` fails the lint script on a forbidden import.

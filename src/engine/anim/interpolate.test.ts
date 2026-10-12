@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  isTransitionDone,
-  positionAt,
-  positionsAt,
-  progressAt,
-  transitionAt,
-} from './interpolate';
+import { isTransitionDone, positionAt, positionsAt, progressAt, transitionAt } from './interpolate';
 import { MOTION_DURATIONS_MS } from './motion';
 
 const points = (entries: Record<string, [number, number]>) =>
