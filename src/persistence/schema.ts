@@ -1,15 +1,59 @@
-import type { BoardState } from './types';
+import { z } from 'zod';
+import { familySchema, pointSchema, slotIdSchema, zoneIdSchema } from '../data/schemas';
+import { PIECE_NAME_MAX_LENGTH, TEAM_NAME_MAX_LENGTH, type BoardDocument } from '../state';
 
-export const BOARDS_STORAGE_KEY = 'gameplan:boards:v1';
-export const CURRENT_BOARDS_VERSION = 1;
+export const BOARDS_STORAGE_KEY = 'gameplan:boards';
+export const LEGACY_BOARDS_STORAGE_KEY = 'gameplan:boards:v1';
+export const CURRENT_BOARDS_VERSION = 2;
 export const MAX_SLOTS = 2;
 export const SLOT_NAME_MAX_LENGTH = 24;
+
+const sideSchema = z.enum(['mine', 'opponent']);
+
+const playerSchema = z.object({
+  id: z.string().min(1).max(64),
+  team: sideSchema,
+  family: familySchema.nullable(),
+  slot: slotIdSchema.nullable(),
+  customName: z.string().min(1).max(PIECE_NAME_MAX_LENGTH).optional(),
+  isKeeper: z.boolean(),
+  role: z.string().min(1).max(64).optional(),
+  base: pointSchema.optional(),
+});
+
+const teamSchema = z.object({
+  name: z.string().min(1).max(TEAM_NAME_MAX_LENGTH),
+  formationId: z.string().min(1).max(64).nullable(),
+  squadSize: z.union([z.literal(11), z.literal(20), z.literal(26)]),
+  keeper: z.boolean(),
+  applied: z.enum(['formation', 'matchup']).nullable(),
+});
+
+export const documentSchema = z.object({
+  attacker: sideSchema,
+  teams: z.object({ mine: teamSchema, opponent: teamSchema }),
+  players: z.array(playerSchema).max(54),
+  ball: pointSchema,
+  scenario: z.object({ zone: zoneIdSchema, carrierId: z.string().min(1).max(64) }).nullable(),
+}) satisfies z.ZodType<BoardDocument>;
+
+export const savedSlotSchema = z.object({
+  id: z.string().min(1).max(64),
+  name: z.string().max(SLOT_NAME_MAX_LENGTH),
+  savedAt: z.number().finite(),
+  board: documentSchema,
+});
+
+export const wrapperHeadSchema = z.object({
+  version: z.number().int().min(1),
+  slots: z.array(z.unknown()),
+});
 
 export interface SavedSlot {
   id: string;
   name: string;
   savedAt: number;
-  board: BoardState;
+  board: BoardDocument;
 }
 
 export interface BoardsWrapper {
@@ -17,32 +61,7 @@ export interface BoardsWrapper {
   slots: SavedSlot[];
 }
 
-export interface RawWrapper {
+export interface SlotEntry {
   version: number;
-  [key: string]: unknown;
-}
-
-export function isRawWrapper(data: unknown): data is RawWrapper {
-  if (typeof data !== 'object' || data === null) return false;
-  const version = (data as Record<string, unknown>).version;
-  return typeof version === 'number';
-}
-
-function isSavedSlot(data: unknown): data is SavedSlot {
-  if (typeof data !== 'object' || data === null) return false;
-  const slot = data as Record<string, unknown>;
-  return (
-    typeof slot.id === 'string' &&
-    typeof slot.name === 'string' &&
-    typeof slot.savedAt === 'number' &&
-    typeof slot.board === 'object' &&
-    slot.board !== null &&
-    Array.isArray((slot.board as BoardState).pieces)
-  );
-}
-
-export function isValidWrapper(data: RawWrapper): boolean {
-  if (data.version !== CURRENT_BOARDS_VERSION) return false;
-  if (!Array.isArray(data.slots)) return false;
-  return data.slots.length <= MAX_SLOTS && data.slots.every(isSavedSlot);
+  slot: unknown;
 }
