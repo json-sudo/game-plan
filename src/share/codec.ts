@@ -156,7 +156,7 @@ function inflatePayload(text: string): unknown {
 }
 
 function versionFailure(tag: string): DecodeResult {
-  return failure(tag === 'v1' ? 'old-version' : 'unknown-version');
+  return failure(tag === 'v1' || tag === 'v2' ? 'old-version' : 'unknown-version');
 }
 
 export function decodeShareHash(hash: string, data: DataSet = FM26_DATA): DecodeResult {
