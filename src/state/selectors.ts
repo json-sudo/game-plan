@@ -9,7 +9,10 @@ export type PhasePositions = Record<Phase, Map<string, Point>>;
 
 const phaseCache = new WeakMap<BoardDocument, PhasePositions>();
 const teamCache = new WeakMap<BoardDocument, Record<Side, Player[]>>();
-const dragCache = new WeakMap<DragState, { base: Map<string, Point>; result: Map<string, Point> }>();
+const dragCache = new WeakMap<
+  DragState,
+  { base: Map<string, Point>; result: Map<string, Point> }
+>();
 
 function basePositions(doc: BoardDocument): PhasePositions {
   const base = new Map(
