@@ -40,7 +40,7 @@ describe('SegmentedControl', () => {
   });
 
   it('reports a clicked option', async () => {
-    const onChange = vi.fn();
+    const onChange = vi.fn<() => void>();
     render(
       <SegmentedControl label="Squad size" options={OPTIONS} value="20" onChange={onChange} />,
     );
@@ -59,7 +59,7 @@ describe('SegmentedControl', () => {
 
   it('moves and selects with the arrow keys, wrapping at both ends', async () => {
     const user = userEvent.setup();
-    const onChange = vi.fn();
+    const onChange = vi.fn<() => void>();
     render(<Controlled onChange={onChange} />);
     await user.tab();
     await user.keyboard('{ArrowRight}');
@@ -92,7 +92,7 @@ describe('SegmentedControl', () => {
 
   it('ignores other keys', async () => {
     const user = userEvent.setup();
-    const onChange = vi.fn();
+    const onChange = vi.fn<() => void>();
     render(<SegmentedControl label="Mode" options={OPTIONS} value="20" onChange={onChange} />);
     await user.tab();
     await user.keyboard('a');

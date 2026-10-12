@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { PhoneMenu, type PhoneMenuEntry } from '.';
 
-function items(onSelect = vi.fn()): PhoneMenuEntry[] {
+function items(onSelect = vi.fn<() => void>()): PhoneMenuEntry[] {
   return [
     { icon: 'reset', label: 'Reset', disabled: true, note: 'Apply a formation or matchup first.' },
     { icon: 'clear', label: 'Clear', onSelect },
@@ -33,7 +33,7 @@ describe('PhoneMenu', () => {
 
   it('shows a disabled reason inline and keeps the row focusable', async () => {
     const user = userEvent.setup();
-    const onSelect = vi.fn();
+    const onSelect = vi.fn<() => void>();
     render(<PhoneMenu items={items(onSelect)} />);
     const reset = screen.getByRole('menuitem', { name: /Reset/ });
     expect(reset).toHaveAttribute('aria-disabled', 'true');
@@ -45,7 +45,7 @@ describe('PhoneMenu', () => {
   });
 
   it('selects an action', async () => {
-    const onSelect = vi.fn();
+    const onSelect = vi.fn<() => void>();
     render(<PhoneMenu items={items(onSelect)} />);
     await userEvent.click(screen.getByRole('menuitem', { name: 'Clear' }));
     expect(onSelect).toHaveBeenCalledTimes(1);
@@ -74,7 +74,7 @@ describe('PhoneMenu', () => {
 
   it('closes with the close button, Escape and a backdrop press, then returns focus', async () => {
     const user = userEvent.setup();
-    const onClose = vi.fn();
+    const onClose = vi.fn<() => void>();
     render(<PhoneMenu items={items()} onClose={onClose} />);
     await user.click(screen.getByRole('button', { name: 'Close menu' }));
     expect(onClose).toHaveBeenCalledTimes(1);

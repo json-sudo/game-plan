@@ -47,7 +47,7 @@ describe('Dialog', () => {
   });
 
   it('closes from the close button', async () => {
-    const onClose = vi.fn();
+    const onClose = vi.fn<() => void>();
     render(
       <Dialog title="Export PNG" onClose={onClose}>
         Body
@@ -59,7 +59,7 @@ describe('Dialog', () => {
 
   it('closes with Escape and returns focus to the opener', async () => {
     const user = userEvent.setup();
-    const onClose = vi.fn();
+    const onClose = vi.fn<() => void>();
     render(<Harness onClose={onClose} />);
     const opener = screen.getByRole('button', { name: 'Open save' });
     await user.click(opener);
@@ -80,7 +80,7 @@ describe('Dialog', () => {
   });
 
   it('closes when the backdrop is pressed and released, not when a drag ends there', () => {
-    const onClose = vi.fn();
+    const onClose = vi.fn<() => void>();
     render(
       <Dialog title="Save tactic" onClose={onClose}>
         <p>Body</p>
@@ -98,7 +98,7 @@ describe('Dialog', () => {
   });
 
   it('does not report a close under StrictMode remounting', () => {
-    const onClose = vi.fn();
+    const onClose = vi.fn<() => void>();
     render(
       <StrictMode>
         <Dialog title="Save tactic" onClose={onClose}>

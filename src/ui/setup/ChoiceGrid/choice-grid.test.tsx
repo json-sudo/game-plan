@@ -23,7 +23,7 @@ describe('ChoiceGrid', () => {
   });
 
   it('uses the value when a card has one, else the label', async () => {
-    const onChange = vi.fn();
+    const onChange = vi.fn<() => void>();
     render(<ChoiceGrid options={OPTIONS} onChange={onChange} />);
     await userEvent.click(screen.getByRole('radio', { name: 'More' }));
     expect(onChange).toHaveBeenLastCalledWith('more');
@@ -33,7 +33,7 @@ describe('ChoiceGrid', () => {
 
   it('moves between cards with the arrow keys', async () => {
     const user = userEvent.setup();
-    const onChange = vi.fn();
+    const onChange = vi.fn<() => void>();
     render(<ChoiceGrid options={OPTIONS} value="4-3-3 DM Wide" onChange={onChange} />);
     await user.tab();
     await user.keyboard('{ArrowRight}');

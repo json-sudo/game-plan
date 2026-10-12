@@ -16,7 +16,7 @@ describe('Toggle', () => {
 
   it('asks for the opposite state on click and on Space', async () => {
     const user = userEvent.setup();
-    const onChange = vi.fn();
+    const onChange = vi.fn<() => void>();
     const { rerender } = render(<Toggle label="Keeper" checked onChange={onChange} />);
     await user.click(screen.getByRole('switch'));
     expect(onChange).toHaveBeenLastCalledWith(false);

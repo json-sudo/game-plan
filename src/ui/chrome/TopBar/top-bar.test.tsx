@@ -47,7 +47,7 @@ describe('TopBar on desktop', () => {
 
   it('disables Reset with its reason instead of hiding it', async () => {
     const user = userEvent.setup();
-    const onReset = vi.fn();
+    const onReset = vi.fn<() => void>();
     render(<TopBar canReset={false} onReset={onReset} />);
     const reset = screen.getByRole('button', { name: 'Reset' });
     expect(reset).toHaveAccessibleDescription('Apply a formation or matchup first.');
@@ -79,16 +79,16 @@ describe('TopBar on desktop', () => {
   it('sends every action to its callback', async () => {
     const user = userEvent.setup();
     const handlers = {
-      onUndo: vi.fn(),
-      onRedo: vi.fn(),
-      onReset: vi.fn(),
-      onClear: vi.fn(),
-      onSave: vi.fn(),
-      onLoad: vi.fn(),
-      onCopyJson: vi.fn(),
-      onToggleTheme: vi.fn(),
-      onExport: vi.fn(),
-      onShare: vi.fn(),
+      onUndo: vi.fn<() => void>(),
+      onRedo: vi.fn<() => void>(),
+      onReset: vi.fn<() => void>(),
+      onClear: vi.fn<() => void>(),
+      onSave: vi.fn<() => void>(),
+      onLoad: vi.fn<() => void>(),
+      onCopyJson: vi.fn<() => void>(),
+      onToggleTheme: vi.fn<() => void>(),
+      onExport: vi.fn<() => void>(),
+      onShare: vi.fn<() => void>(),
     };
     render(<TopBar canUndo canRedo canReset {...handlers} />);
     for (const name of [
@@ -110,9 +110,9 @@ describe('TopBar on desktop', () => {
 
   it('reports renamed teams and a changed mode', async () => {
     const user = userEvent.setup();
-    const onMineChange = vi.fn();
-    const onOppChange = vi.fn();
-    const onModeChange = vi.fn();
+    const onMineChange = vi.fn<() => void>();
+    const onOppChange = vi.fn<() => void>();
+    const onModeChange = vi.fn<() => void>();
     render(
       <TopBar
         mine=""
@@ -152,8 +152,8 @@ describe('TopBar on a phone', () => {
   });
 
   it('explains a disabled Undo and runs the callbacks', async () => {
-    const onShare = vi.fn();
-    const onMenu = vi.fn();
+    const onShare = vi.fn<() => void>();
+    const onMenu = vi.fn<() => void>();
     render(<TopBar phone onShare={onShare} onMenu={onMenu} menuOpen />);
     expect(screen.getByRole('button', { name: 'Undo' })).toHaveAccessibleDescription(
       'Nothing to undo yet.',
@@ -166,7 +166,7 @@ describe('TopBar on a phone', () => {
   });
 
   it('runs Undo when it can', async () => {
-    const onUndo = vi.fn();
+    const onUndo = vi.fn<() => void>();
     render(<TopBar phone canUndo onUndo={onUndo} />);
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(onUndo).toHaveBeenCalledTimes(1);

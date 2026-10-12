@@ -56,7 +56,7 @@ describe('TextField', () => {
 
   it('refuses input beyond the cap and says so', async () => {
     const user = userEvent.setup();
-    const onChange = vi.fn();
+    const onChange = vi.fn<() => void>();
     render(<Controlled onChange={onChange} />);
     const input = screen.getByRole('textbox');
     await user.type(input, 'abcdefghijklmnopqrstuvwxyz');
@@ -80,7 +80,7 @@ describe('TextField', () => {
 
   it('passes typed text to onChange', async () => {
     const user = userEvent.setup();
-    const onChange = vi.fn();
+    const onChange = vi.fn<() => void>();
     render(<Controlled onChange={onChange} />);
     await user.type(screen.getByRole('textbox'), 'ab');
     expect(onChange).toHaveBeenNthCalledWith(1, 'a');

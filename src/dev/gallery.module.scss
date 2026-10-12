@@ -1,0 +1,117 @@
+.gallery {
+    --gallery-gutter: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    width: min(100%, 1440px);
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: var(--gallery-gutter);
+}
+
+.gallery__intro {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+
+    h1 {
+        margin: 0;
+        font: var(--type-title-1);
+    }
+
+    p {
+        margin: var(--space-1) 0 0;
+        color: var(--text-muted);
+    }
+}
+
+.gallery__kicker {
+    font: var(--type-eyebrow);
+    text-transform: uppercase;
+}
+
+.gallery__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+
+    h2 {
+        margin: 0;
+        font: var(--type-title-2);
+    }
+}
+
+.gallery__stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+}
+
+.gallery__phone-only {
+    display: none;
+}
+
+.gallery__inline-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.gallery__columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-4);
+}
+
+.gallery__icons {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+    gap: var(--space-2);
+}
+
+.gallery__icon {
+    display: flex;
+    min-height: 64px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+
+    small {
+        color: var(--text-muted);
+        font: var(--type-small);
+    }
+}
+
+@media (max-width: 600px) {
+    .gallery {
+        --gallery-gutter: var(--space-4);
+    }
+
+    .gallery__columns {
+        grid-template-columns: 1fr;
+    }
+
+    .gallery__intro {
+        align-items: flex-start;
+    }
+
+    .gallery__desktop-only {
+        display: none;
+    }
+
+    .gallery__phone-only {
+        display: block;
+    }
+}

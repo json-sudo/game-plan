@@ -39,7 +39,7 @@ describe('Banner', () => {
   });
 
   it('shows a dismiss button for null and a function', async () => {
-    const onDismiss = vi.fn();
+    const onDismiss = vi.fn<() => void>();
     const { rerender } = render(<Banner title="Skipped" onDismiss={null} />);
     expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
     rerender(<Banner title="Skipped" onDismiss={onDismiss} />);

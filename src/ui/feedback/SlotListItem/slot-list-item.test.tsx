@@ -28,15 +28,15 @@ describe('SlotListItem', () => {
   });
 
   it('calls onClick', async () => {
-    const onClick = vi.fn();
+    const onClick = vi.fn<() => void>();
     render(<SlotListItem slot={1} name="A" onClick={onClick} />);
     await userEvent.click(screen.getByRole('button'));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   it('keeps trailing controls beside the slot button, not inside it', async () => {
-    const onClick = vi.fn();
-    const onRename = vi.fn();
+    const onClick = vi.fn<() => void>();
+    const onRename = vi.fn<() => void>();
     render(
       <SlotListItem
         slot={1}

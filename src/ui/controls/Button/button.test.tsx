@@ -18,7 +18,7 @@ describe('Button', () => {
   });
 
   it('calls onClick', async () => {
-    const onClick = vi.fn();
+    const onClick = vi.fn<() => void>();
     render(<Button onClick={onClick}>Save</Button>);
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(onClick).toHaveBeenCalledTimes(1);
@@ -63,7 +63,7 @@ describe('Button', () => {
   });
 
   it('plain disabled blocks clicks and focus', async () => {
-    const onClick = vi.fn();
+    const onClick = vi.fn<() => void>();
     render(
       <Button disabled onClick={onClick}>
         Plain disabled
@@ -100,7 +100,7 @@ describe('Button', () => {
 
     it('shows the reason on hover and does not run onClick or Enter', async () => {
       const user = userEvent.setup();
-      const onClick = vi.fn();
+      const onClick = vi.fn<() => void>();
       render(
         <Button variant="ghost" disabled disabledReason={reason} onClick={onClick}>
           Reset

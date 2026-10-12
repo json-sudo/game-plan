@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { SetupStepper, type SetupStep } from '.';
 
 const ALL_DONE: SetupStep[] = [
-  { title: 'Formations', state: 'done', summary: '4-3-3 DM Wide v 4-2-3-1 DM Wide' },
+  { title: 'Formations', state: 'done', summary: '4-3-3 DM Wide vs 4-2-3-1 DM Wide' },
   { title: 'Who attacks', state: 'done', summary: 'My team attacks' },
   { title: 'Roles', state: 'done', summary: '22 roles set · 3 changed' },
 ];
@@ -46,7 +46,7 @@ describe('SetupStepper', () => {
   });
 
   it('gives each done step a named Edit button', async () => {
-    const onEdit = vi.fn();
+    const onEdit = vi.fn<() => void>();
     render(<SetupStepper steps={ALL_DONE} onEdit={onEdit} />);
     await userEvent.click(screen.getByRole('button', { name: 'Edit Who attacks' }));
     expect(onEdit).toHaveBeenCalledWith(1);
@@ -86,8 +86,8 @@ describe('SetupStepper', () => {
   });
 
   it('sends Back and the forward button with the step index', async () => {
-    const onBack = vi.fn();
-    const onNext = vi.fn();
+    const onBack = vi.fn<() => void>();
+    const onNext = vi.fn<() => void>();
     render(
       <SetupStepper
         steps={[

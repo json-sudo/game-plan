@@ -1,6 +1,6 @@
 # Game Plan
 
-Game Plan is being rebuilt from the ground up. The app entry is a placeholder page until the new UI lands.
+Game Plan is being rebuilt as a tactics sandbox for Football Manager players. The playing surface is the pitch; saved and shared setups are tactics. The app entry is a placeholder page until screen assembly lands.
 
 ## Architecture
 

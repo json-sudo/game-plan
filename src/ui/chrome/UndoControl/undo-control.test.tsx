@@ -13,7 +13,7 @@ describe('UndoControl', () => {
 
   it('explains why Undo and Redo are disabled and keeps them focusable', async () => {
     const user = userEvent.setup();
-    const onUndo = vi.fn();
+    const onUndo = vi.fn<() => void>();
     render(<UndoControl onUndo={onUndo} />);
     const undo = screen.getByRole('button', { name: 'Undo' });
     const redo = screen.getByRole('button', { name: 'Redo' });
@@ -26,8 +26,8 @@ describe('UndoControl', () => {
   });
 
   it('runs the callbacks when enabled', async () => {
-    const onUndo = vi.fn();
-    const onRedo = vi.fn();
+    const onUndo = vi.fn<() => void>();
+    const onRedo = vi.fn<() => void>();
     render(<UndoControl canUndo canRedo onUndo={onUndo} onRedo={onRedo} />);
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
     await userEvent.click(screen.getByRole('button', { name: 'Redo' }));
