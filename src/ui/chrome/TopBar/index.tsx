@@ -87,6 +87,7 @@ export function TopBar(props: TopBarProps) {
           value={mine}
           counter={false}
           width={150}
+          readOnly={!props.onMineChange}
           onChange={props.onMineChange}
         />
         <span className={styles.versus}>v</span>
@@ -98,6 +99,7 @@ export function TopBar(props: TopBarProps) {
           value={opp}
           counter={false}
           width={150}
+          readOnly={!props.onOppChange}
           onChange={props.onOppChange}
         />
       </div>

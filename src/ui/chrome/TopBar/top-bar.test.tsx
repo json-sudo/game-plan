@@ -21,6 +21,12 @@ describe('TopBar on desktop', () => {
     expect(screen.queryByRole('radio')).not.toBeInTheDocument();
   });
 
+  it('makes team fields read-only without rename handlers', () => {
+    render(<TopBar mine="Arsenal" opp="Chelsea" />);
+    expect(screen.getByRole('textbox', { name: 'My team name' })).toHaveAttribute('readOnly');
+    expect(screen.getByRole('textbox', { name: 'Opponent name' })).toHaveAttribute('readOnly');
+  });
+
   it('offers the full action set with copy-deck names', () => {
     render(<TopBar canUndo canRedo canReset />);
     for (const name of [
