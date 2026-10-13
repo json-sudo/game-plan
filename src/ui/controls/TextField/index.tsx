@@ -34,10 +34,11 @@ export function TextField({
 }: TextFieldProps) {
   const inputId = useId();
   const messageId = useId();
+  const effectiveReadOnly = readOnly || onChange === undefined;
   const showCounter = counter ?? variant !== 'team';
   const atCap = value.length >= maxLength;
-  const message = error ?? (atCap && !readOnly ? `${maxLength} characters at most.` : hint);
-  const invalid = Boolean(error) || (atCap && !readOnly);
+  const message = error ?? (atCap && !effectiveReadOnly ? `${maxLength} characters at most.` : hint);
+  const invalid = Boolean(error) || (atCap && !effectiveReadOnly);
 
   return (
     <div className={styles.field} data-variant={variant} data-invalid={invalid} style={{ width }}>
@@ -51,7 +52,7 @@ export function TextField({
           value={value}
           placeholder={placeholder}
           maxLength={maxLength}
-          readOnly={readOnly}
+          readOnly={effectiveReadOnly}
           aria-invalid={invalid || undefined}
           aria-describedby={message ? messageId : undefined}
           onChange={(event) => onChange?.(event.target.value)}

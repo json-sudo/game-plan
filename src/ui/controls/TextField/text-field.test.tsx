@@ -67,9 +67,18 @@ describe('TextField', () => {
   });
 
   it('honours a custom cap', () => {
-    render(<TextField label="Name" value="abcde" maxLength={5} />);
+    render(<TextField label="Name" value="abcde" maxLength={5} onChange={() => {}} />);
     expect(screen.getByText('5/5')).toBeInTheDocument();
     expect(screen.getByRole('textbox')).toHaveAccessibleDescription('5 characters at most.');
+  });
+
+  it('is read-only when onChange is omitted', async () => {
+    const user = userEvent.setup();
+    render(<TextField label="Tactic name" value="My tactic" />);
+    const input = screen.getByRole('textbox');
+    expect(input).toHaveAttribute('readonly');
+    await user.type(input, 'x');
+    expect(input).toHaveValue('My tactic');
   });
 
   it('does not call a read-only field full', () => {
