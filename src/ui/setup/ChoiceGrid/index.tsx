@@ -46,6 +46,7 @@ export function ChoiceGrid({ label, mark, options, value, onChange, columns }: C
                 key={optionValue}
                 className={styles.choice}
                 data-selected={optionValue === value || undefined}
+                aria-current={optionValue === value ? true : undefined}
               >
                 {option.label}
                 {option.sub ? <small className={styles.sub}>{option.sub}</small> : null}

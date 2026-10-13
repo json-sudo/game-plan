@@ -26,12 +26,20 @@ function initialTheme(): Theme {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
+function applyThemeToDocument(theme: Theme): void {
+  document.documentElement.dataset.theme = theme;
+}
+
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(initialTheme);
+  const [theme, setTheme] = useState<Theme>(() => {
+    const resolved = initialTheme();
+    applyThemeToDocument(resolved);
+    return resolved;
+  });
 
   const toggleTheme = useCallback(() => {
     const next: Theme = theme === 'light' ? 'dark' : 'light';
-    document.documentElement.dataset.theme = next;
+    applyThemeToDocument(next);
     writeStoredTheme(next);
     setTheme(next);
   }, [theme]);
