@@ -1,0 +1,16 @@
+.mark {
+    display: inline-block;
+    flex: none;
+    border: 1.5px solid var(--token-ring);
+    box-shadow: 0 0 0 1px var(--border-strong);
+
+    &[data-team='mine'] {
+        border-radius: var(--radius-full);
+        background: var(--team-mine);
+    }
+
+    &[data-team='opp'] {
+        border-radius: 25%;
+        background: var(--team-opp);
+    }
+}

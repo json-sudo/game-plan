@@ -1,0 +1,92 @@
+@use 'mixins' as m;
+
+.modal {
+    width: 100%;
+    max-width: none;
+    margin: auto 0 0;
+    padding: 0;
+    border: 0;
+    overflow: visible;
+    background: transparent;
+    color: inherit;
+
+    &::backdrop {
+        background: rgba(11, 26, 27, 0.55);
+    }
+}
+
+.sheet {
+    padding: var(--space-2) 0 var(--space-4);
+    border: 1px solid var(--border);
+    border-bottom: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-raised);
+    color: var(--text);
+}
+
+.handle {
+    width: 36px;
+    height: 4px;
+    margin: 0 auto var(--space-2);
+    border-radius: var(--radius-full);
+    background: var(--border-strong);
+}
+
+.head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: var(--tap-min);
+    padding: 0 var(--space-2) 0 var(--space-4);
+}
+
+.title {
+    @include m.type('eyebrow');
+
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    min-height: 48px;
+    padding: 0 var(--space-4);
+    border: 0;
+    background: none;
+    color: var(--text);
+    font: 600 15px/22px var(--font-ui);
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+        background: var(--surface-panel);
+    }
+
+    &[aria-disabled='true'] {
+        color: var(--text-muted);
+        cursor: not-allowed;
+    }
+
+    &:focus-visible {
+        @include m.focus-ring;
+
+        outline-offset: -2px;
+    }
+}
+
+.note {
+    margin-left: auto;
+    color: var(--text-muted);
+    font: var(--type-small);
+    text-align: right;
+}
+
+.separator {
+    height: 1px;
+    margin: var(--space-1) 0;
+    background: var(--border);
+}

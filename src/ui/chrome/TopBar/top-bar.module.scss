@@ -1,0 +1,69 @@
+@use 'mixins' as m;
+
+.bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    min-height: 64px;
+    padding: var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-panel);
+
+    &[data-phone='true'] {
+        gap: var(--space-2);
+        min-height: 56px;
+        padding: var(--space-1) var(--space-2) var(--space-1) var(--space-4);
+    }
+}
+
+.teams {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.versus {
+    @include m.type('numeric');
+
+    color: var(--text-muted);
+}
+
+.spacer {
+    flex: 1;
+}
+
+.group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.separator {
+    width: 1px;
+    height: 24px;
+    margin: 0 var(--space-1);
+    background: var(--border);
+}
+
+.heading {
+    flex: 1;
+    min-width: 0;
+}
+
+.title {
+    @include m.truncate;
+
+    font: 700 17px/20px var(--font-display);
+}
+
+.sub {
+    color: var(--text-muted);
+    font: 500 12px/16px var(--font-ui);
+}
+
+.mode {
+    color: var(--text-muted);
+    font: 500 13px/16px var(--font-ui);
+    white-space: nowrap;
+}

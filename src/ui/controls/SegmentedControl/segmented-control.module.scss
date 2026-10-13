@@ -1,0 +1,63 @@
+@use 'mixins' as m;
+
+.group {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--surface-body);
+}
+
+.option {
+    height: 32px;
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text);
+    font: 600 13px/18px var(--font-ui);
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color var(--ui-transition),
+        color var(--ui-transition);
+
+    &:hover {
+        background: var(--surface-panel);
+    }
+
+    &[aria-checked='true'] {
+        background: var(--control);
+        color: var(--control-text);
+    }
+
+    &:focus-visible {
+        @include m.focus-ring;
+    }
+
+    @include m.phone-context {
+        height: 38px;
+        min-width: var(--tap-min);
+    }
+}
+
+.labelled {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+}
+
+.label {
+    @include m.type('eyebrow');
+
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.display {
+    color: var(--text-muted);
+    font: 500 13px/16px var(--font-ui);
+    white-space: nowrap;
+}

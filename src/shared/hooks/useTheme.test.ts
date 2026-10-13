@@ -22,15 +22,18 @@ describe('useTheme', () => {
     localStorage.setItem(THEME_STORAGE_KEY, 'dark');
     const { result } = renderHook(() => useTheme());
     expect(result.current.theme).toBe('dark');
+    expect(document.documentElement.dataset.theme).toBe('dark');
   });
 
   it('initializes from the system preference when nothing is stored', () => {
     const { result: light } = renderHook(() => useTheme());
     expect(light.current.theme).toBe('light');
+    expect(document.documentElement.dataset.theme).toBe('light');
 
     mockMatchMedia(true);
     const { result: dark } = renderHook(() => useTheme());
     expect(dark.current.theme).toBe('dark');
+    expect(document.documentElement.dataset.theme).toBe('dark');
     expect(window.matchMedia).toHaveBeenCalledWith('(prefers-color-scheme: dark)');
   });
 
@@ -39,11 +42,12 @@ describe('useTheme', () => {
     localStorage.setItem(THEME_STORAGE_KEY, 'light');
     const { result } = renderHook(() => useTheme());
     expect(result.current.theme).toBe('light');
+    expect(document.documentElement.dataset.theme).toBe('light');
   });
 
   it('toggling flips the theme, writes localStorage and stamps data-theme', () => {
     const { result } = renderHook(() => useTheme());
-    expect(document.documentElement.dataset.theme).toBeUndefined();
+    expect(document.documentElement.dataset.theme).toBe('light');
 
     act(() => result.current.toggleTheme());
     expect(result.current.theme).toBe('dark');

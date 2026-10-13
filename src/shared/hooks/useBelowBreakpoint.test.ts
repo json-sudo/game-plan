@@ -23,9 +23,9 @@ describe('useBelowBreakpoint', () => {
     expect(below.current).toBe(true);
   });
 
-  it('queries a max-width just under the given breakpoint', () => {
+  it('queries max-width at the given breakpoint', () => {
     renderHook(() => useBelowBreakpoint(825));
-    expect(window.matchMedia).toHaveBeenCalledWith('(max-width: 824.98px)');
+    expect(window.matchMedia).toHaveBeenCalledWith('(max-width: 825px)');
   });
 
   it('does not throw when the mocked matchMedia has no addEventListener', () => {

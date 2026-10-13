@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "generate:data": "node scripts/generate-fm26-data.mjs"
+    "generate:data": "node scripts/generate-fm26-data.mjs",
+    "generate:tokens": "node scripts/generate-tokens.mjs"
   },
   "dependencies": {
     "fflate": "^0.8.3",

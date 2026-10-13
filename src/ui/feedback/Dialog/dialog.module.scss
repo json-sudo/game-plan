@@ -1,0 +1,64 @@
+@use 'mixins' as m;
+
+.modal {
+    width: 100%;
+    max-width: 440px;
+    margin: auto;
+    padding: 0;
+    border: 0;
+    overflow: visible;
+    background: transparent;
+    color: inherit;
+
+    &::backdrop {
+        background: rgba(11, 26, 27, 0.55);
+    }
+
+    @include m.phone {
+        max-width: none;
+        margin: auto 0 0;
+    }
+}
+
+.panel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-raised);
+    color: var(--text);
+    max-height: calc(100dvh - 2 * var(--space-5));
+
+    @include m.phone {
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+}
+
+.head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4) var(--space-4) var(--space-2) var(--space-5);
+}
+
+.title {
+    margin: 0;
+    font: var(--type-title-2);
+}
+
+.body {
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-5) var(--space-4);
+}
+
+.foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-5) var(--space-5);
+}

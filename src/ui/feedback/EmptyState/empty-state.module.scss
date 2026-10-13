@@ -1,0 +1,18 @@
+.empty {
+    padding: var(--space-5) var(--space-4);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    text-align: center;
+}
+
+.title {
+    margin: 0;
+    color: var(--text);
+    font: var(--type-body-strong);
+}
+
+.help {
+    margin: 2px 0 0;
+    color: var(--text-muted);
+    font: var(--type-small);
+}

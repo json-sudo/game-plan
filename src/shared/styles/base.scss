@@ -1,0 +1,28 @@
+@use 'tokens';
+
+:root {
+    --ui-transition: var(--duration-ui);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --ui-transition: var(--duration-reduced);
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html:has(dialog[open]) {
+    overflow: hidden;
+}
+
+body {
+    margin: 0;
+    background: var(--surface-body);
+    color: var(--text);
+    font: var(--type-body);
+}

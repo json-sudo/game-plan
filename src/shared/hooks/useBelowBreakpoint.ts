@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 export function useBelowBreakpoint(px: number): boolean {
-  const query = `(max-width: ${px - 0.02}px)`;
+  const query = `(max-width: ${px}px)`;
   const [isBelow, setIsBelow] = useState(() => window.matchMedia(query).matches);
 
   useEffect(() => {

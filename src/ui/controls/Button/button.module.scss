@@ -1,0 +1,118 @@
+@use 'mixins' as m;
+
+@mixin tap-size {
+    height: var(--tap-min);
+    min-width: var(--tap-min);
+}
+
+.button {
+    @include m.type('label');
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    height: var(--control-height);
+    padding: 0 var(--space-4);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text);
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color var(--ui-transition),
+        border-color var(--ui-transition),
+        color var(--ui-transition);
+
+    &:focus-visible {
+        @include m.focus-ring;
+    }
+
+    &[data-variant='primary'] {
+        background: var(--accent);
+        color: var(--accent-text);
+
+        &:hover:not(:disabled, [aria-disabled='true']) {
+            background: var(--accent-hover);
+        }
+    }
+
+    &[data-variant='ink'] {
+        background: var(--control);
+        color: var(--control-text);
+
+        &:hover:not(:disabled, [aria-disabled='true']) {
+            background: var(--control-hover);
+        }
+    }
+
+    &[data-variant='secondary'] {
+        border-color: var(--border-strong);
+
+        &:hover:not(:disabled, [aria-disabled='true']) {
+            background: var(--surface-panel);
+        }
+    }
+
+    &[data-variant='ghost']:hover:not(:disabled, [aria-disabled='true']) {
+        background: var(--surface-panel);
+    }
+
+    &[data-variant='icon'] {
+        width: var(--control-height);
+        padding: 0;
+
+        &:hover:not(:disabled, [aria-disabled='true']) {
+            background: var(--surface-body);
+        }
+    }
+
+    &[data-size='sm'] {
+        height: 32px;
+        padding: 0 var(--space-3);
+        font-size: 13px;
+
+        &[data-variant='icon'] {
+            width: 32px;
+            padding: 0;
+        }
+    }
+
+    &[data-size='lg'] {
+        height: 48px;
+        padding: 0 var(--space-5);
+
+        &[data-variant='icon'] {
+            width: 48px;
+            padding: 0;
+        }
+    }
+
+    &:disabled,
+    &[aria-disabled='true'] {
+        border-color: var(--border);
+        background: transparent;
+        color: var(--text-muted);
+        cursor: not-allowed;
+
+        &[data-variant='icon'],
+        &[data-variant='ghost'] {
+            border-color: transparent;
+        }
+    }
+
+    &[data-variant='icon'][aria-pressed='true'] {
+        background: var(--surface-panel);
+    }
+
+    @include m.phone-context {
+        &:not([data-size='lg']) {
+            @include tap-size;
+        }
+
+        &[data-variant='icon']:not([data-size='lg']) {
+            width: var(--tap-min);
+        }
+    }
+}
