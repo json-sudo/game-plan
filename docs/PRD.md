@@ -84,7 +84,7 @@ One pitch, one pitch component, two modes.
 | Role picker | **Not shown.** Tapping a token selects it and shows its role |
 | First-run step 3 | "Step through with Next, or tap a player to see its role." |
 | Dribble direction | Hidden |
-| Copy board JSON | Hidden |
+| Copy tactic JSON | Hidden |
 
 ## Settled design decisions
 
