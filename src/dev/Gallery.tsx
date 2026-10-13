@@ -55,20 +55,13 @@ export default function Gallery() {
         <h2 id="chrome-title">Chrome</h2>
         <div className={styles.gallery__stack}>
           <div className={styles['gallery__desktop-only']}>
-            <TopBar
-              mode={mode as 'open' | 'fm'}
-              onModeChange={setMode}
-              theme={theme}
-              canUndo
-              canRedo
-              canReset
-            />
+            <TopBar mode={mode as 'open' | 'fm'} onModeChange={setMode} theme={theme} />
           </div>
           <div className={styles['gallery__phone-only']}>
-            <TopBar phone mode={mode as 'open' | 'fm'} onModeChange={setMode} canUndo />
+            <TopBar phone mode={mode as 'open' | 'fm'} onModeChange={setMode} />
           </div>
           <div className={styles['gallery__inline-row']}>
-            <UndoControl canUndo canRedo />
+            <UndoControl />
             <PhoneMenu inline items={MENU_ITEMS} />
           </div>
         </div>
