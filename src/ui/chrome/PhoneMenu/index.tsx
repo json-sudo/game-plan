@@ -84,7 +84,9 @@ function Sheet({ items, title = DEFAULT_TITLE, onClose }: PhoneMenuProps) {
         <span id={titleId} className={styles.title}>
           {title}
         </span>
-        <Button variant="icon" icon="close" label="Close menu" onClick={onClose} />
+        {onClose ? (
+          <Button variant="icon" icon="close" label="Close menu" onClick={onClose} />
+        ) : null}
       </div>
       <div role="menu" aria-labelledby={titleId}>
         <MenuItems items={items} />

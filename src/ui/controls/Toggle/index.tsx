@@ -7,13 +7,16 @@ export interface ToggleProps {
 }
 
 export function Toggle({ label, checked = false, onChange }: ToggleProps) {
+  const readOnly = onChange === undefined;
   return (
     <button
       type="button"
       role="switch"
       className={styles.toggle}
       aria-checked={checked}
-      onClick={() => onChange?.(!checked)}
+      aria-disabled={readOnly || undefined}
+      tabIndex={readOnly ? -1 : undefined}
+      onClick={readOnly ? undefined : () => onChange(!checked)}
     >
       <span className={styles.track}>
         <span className={styles.thumb} />
