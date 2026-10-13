@@ -47,6 +47,7 @@ export function Button(props: ButtonProps) {
   const reasonId = useId();
   const tooltipId = useId();
   const hasReason = Boolean(disabled && disabledReason);
+  const readOnly = onClick === undefined && !hasReason;
   const tipText = hasReason
     ? disabledReason
     : (tooltip ?? (variant === 'icon' ? label : undefined));
@@ -60,10 +61,11 @@ export function Button(props: ButtonProps) {
       data-size={size}
       aria-label={label}
       aria-pressed={pressed}
-      aria-disabled={hasReason ? true : undefined}
+      aria-disabled={hasReason || readOnly ? true : undefined}
       aria-describedby={describedBy}
       disabled={disabled && !hasReason ? true : undefined}
-      onClick={disabled ? undefined : onClick}
+      tabIndex={readOnly ? -1 : undefined}
+      onClick={disabled || readOnly ? undefined : onClick}
     >
       {icon ? (
         <Icon name={icon} size={size === 'lg' ? LARGE_ICON_SIZE : DEFAULT_ICON_SIZE} />

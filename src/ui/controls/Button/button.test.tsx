@@ -24,6 +24,17 @@ describe('Button', () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it('stays non-interactive without a handler', async () => {
+    const user = userEvent.setup();
+    render(<Button>Save</Button>);
+    const button = screen.getByRole('button', { name: 'Save' });
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    expect(button).toHaveAttribute('tabindex', '-1');
+    await user.click(button);
+    await user.tab();
+    expect(button).not.toHaveFocus();
+  });
+
   it('names an icon button by its label and tooltips the label', () => {
     render(<Button variant="icon" icon="save" label="Save" />);
     const button = screen.getByRole('button', { name: 'Save' });

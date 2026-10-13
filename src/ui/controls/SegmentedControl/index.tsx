@@ -28,7 +28,13 @@ export function SegmentedControl({
   const selectedLabel = options.find((option) => option.value === value)?.label ?? options[0]?.label;
 
   const group = displayOnly ? (
-    <span className={styles.display}>{selectedLabel}</span>
+    <span
+      className={styles.display}
+      aria-label={showLabel ? undefined : label}
+      aria-labelledby={showLabel ? labelId : undefined}
+    >
+      {selectedLabel}
+    </span>
   ) : (
     <div
       className={styles.group}

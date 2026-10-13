@@ -59,13 +59,13 @@ export function SetupStepper({ steps, phone = false, onBack, onNext, onEdit }: S
                     <div className={styles.summary}>{step.summary}</div>
                   ) : null}
                 </div>
-                {state === 'done' ? (
+                {state === 'done' && onEdit ? (
                   <Button
                     variant="ghost"
                     size="sm"
                     icon="edit"
                     label={`Edit ${step.title}`}
-                    onClick={() => onEdit?.(index)}
+                    onClick={() => onEdit(index)}
                   >
                     Edit
                   </Button>
@@ -76,13 +76,21 @@ export function SetupStepper({ steps, phone = false, onBack, onNext, onEdit }: S
                   {step.content}
                   <div className={styles.nav}>
                     {index > 0 ? (
-                      <Button variant="ghost" size={buttonSize} onClick={() => onBack?.(index)}>
+                      <Button
+                        variant="ghost"
+                        size={buttonSize}
+                        onClick={onBack ? () => onBack(index) : undefined}
+                      >
                         Back
                       </Button>
                     ) : (
                       <span />
                     )}
-                    <Button variant="primary" size={buttonSize} onClick={() => onNext?.(index)}>
+                    <Button
+                      variant="primary"
+                      size={buttonSize}
+                      onClick={onNext ? () => onNext(index) : undefined}
+                    >
                       {forwardLabel(step, index, total)}
                     </Button>
                   </div>

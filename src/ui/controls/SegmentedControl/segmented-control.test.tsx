@@ -29,7 +29,15 @@ describe('SegmentedControl', () => {
   it('shows the chosen label as static text when display-only', () => {
     render(<SegmentedControl label="Squad size" options={OPTIONS} value="20" />);
     expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
-    expect(screen.getByText('20')).toBeInTheDocument();
+    expect(screen.getByLabelText('Squad size')).toHaveTextContent('20');
+  });
+
+  it('links display-only text to a visible label', () => {
+    render(
+      <SegmentedControl label="Squad size" showLabel options={OPTIONS} value="20" />,
+    );
+    expect(screen.getByText('Squad size')).toBeVisible();
+    expect(screen.getByLabelText('Squad size')).toHaveTextContent('20');
   });
 
   it('shows the label above the group when asked', () => {

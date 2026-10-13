@@ -48,6 +48,7 @@ function MenuItems({ items }: { items: PhoneMenuEntry[] }) {
     itemIndex += 1;
     const index = itemIndex;
     const noteId = `${noteBase}-${index}`;
+    const actionable = !entry.disabled && entry.onSelect !== undefined;
     return (
       <button
         key={entry.label}
@@ -58,9 +59,9 @@ function MenuItems({ items }: { items: PhoneMenuEntry[] }) {
         role="menuitem"
         className={styles.item}
         tabIndex={index === 0 ? 0 : -1}
-        aria-disabled={entry.disabled || undefined}
+        aria-disabled={actionable ? undefined : true}
         aria-describedby={entry.note ? noteId : undefined}
-        onClick={entry.disabled ? undefined : entry.onSelect}
+        onClick={actionable ? entry.onSelect : undefined}
         onKeyDown={(event) => move(event, index)}
       >
         <Icon name={entry.icon} />
