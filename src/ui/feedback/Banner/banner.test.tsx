@@ -38,10 +38,10 @@ describe('Banner', () => {
     expect(screen.queryByRole('button', { name: 'Dismiss' })).not.toBeInTheDocument();
   });
 
-  it('shows a dismiss button for null and a function', async () => {
+  it('shows a dismiss button only when given a handler', async () => {
     const onDismiss = vi.fn<() => void>();
-    const { rerender } = render(<Banner title="Skipped" onDismiss={null} />);
-    expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
+    const { rerender } = render(<Banner title="Skipped" />);
+    expect(screen.queryByRole('button', { name: 'Dismiss' })).not.toBeInTheDocument();
     rerender(<Banner title="Skipped" onDismiss={onDismiss} />);
     await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
     expect(onDismiss).toHaveBeenCalledTimes(1);

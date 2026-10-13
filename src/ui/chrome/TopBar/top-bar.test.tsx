@@ -28,7 +28,7 @@ describe('TopBar on desktop', () => {
   });
 
   it('offers the full action set with copy-deck names', () => {
-    render(<TopBar canUndo canRedo canReset />);
+    render(<TopBar canUndo canRedo canReset onToggleTheme={vi.fn()} />);
     for (const name of [
       'Undo',
       'Redo',
@@ -46,10 +46,15 @@ describe('TopBar on desktop', () => {
   });
 
   it('shows the theme action for the other theme', () => {
-    const { rerender } = render(<TopBar theme="light" />);
+    const { rerender } = render(<TopBar theme="light" onToggleTheme={vi.fn()} />);
     expect(screen.getByRole('button', { name: 'Dark theme' })).toBeInTheDocument();
-    rerender(<TopBar theme="dark" />);
+    rerender(<TopBar theme="dark" onToggleTheme={vi.fn()} />);
     expect(screen.getByRole('button', { name: 'Light theme' })).toBeInTheDocument();
+  });
+
+  it('omits the theme toggle without a handler', () => {
+    render(<TopBar theme="light" />);
+    expect(screen.queryByRole('button', { name: 'Dark theme' })).not.toBeInTheDocument();
   });
 
   it('disables Reset with its reason instead of hiding it', async () => {

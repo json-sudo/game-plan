@@ -143,12 +143,14 @@ export function TopBar(props: TopBarProps) {
         <Button variant="icon" icon="save" label="Save" onClick={props.onSave} />
         <Button variant="icon" icon="load" label="Load" onClick={props.onLoad} />
         <Button variant="icon" icon="copy" label="Copy tactic JSON" onClick={props.onCopyJson} />
-        <Button
-          variant="icon"
-          icon={theme === 'dark' ? 'sun' : 'moon'}
-          label={nextTheme}
-          onClick={props.onToggleTheme}
-        />
+        {props.onToggleTheme ? (
+          <Button
+            variant="icon"
+            icon={theme === 'dark' ? 'sun' : 'moon'}
+            label={nextTheme}
+            onClick={props.onToggleTheme}
+          />
+        ) : null}
       </div>
       <Button variant="secondary" icon="image" onClick={props.onExport}>
         Export PNG

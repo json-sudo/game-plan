@@ -8,7 +8,7 @@ export interface BannerProps {
   title: string;
   children?: ReactNode;
   actions?: ReactNode;
-  onDismiss?: (() => void) | null;
+  onDismiss?: () => void;
 }
 
 export function Banner({ tone = 'info', title, children, actions, onDismiss }: BannerProps) {
@@ -22,14 +22,8 @@ export function Banner({ tone = 'info', title, children, actions, onDismiss }: B
         {children ? <div className={styles.text}>{children}</div> : null}
         {actions ? <div className={styles.actions}>{actions}</div> : null}
       </div>
-      {onDismiss !== undefined ? (
-        <Button
-          variant="icon"
-          size="sm"
-          icon="close"
-          label="Dismiss"
-          onClick={onDismiss ?? undefined}
-        />
+      {onDismiss ? (
+        <Button variant="icon" size="sm" icon="close" label="Dismiss" onClick={onDismiss} />
       ) : null}
     </div>
   );

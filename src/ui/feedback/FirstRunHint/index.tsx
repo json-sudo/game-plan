@@ -34,9 +34,11 @@ export function FirstRunHint({
       </ol>
       <div className={styles.foot}>
         <span className={styles.example}>{example}</span>
-        <Button variant="ghost" size="sm" onClick={onDismiss}>
-          Got it
-        </Button>
+        {onDismiss ? (
+          <Button variant="ghost" size="sm" onClick={onDismiss}>
+            Got it
+          </Button>
+        ) : null}
       </div>
     </aside>
   );

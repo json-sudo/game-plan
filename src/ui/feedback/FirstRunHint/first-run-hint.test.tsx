@@ -23,6 +23,7 @@ describe('FirstRunHint', () => {
       'Step through with Next, or tap a player to change its role.',
     ]);
     expect(screen.getByText('4-3-3 DM Wide vs 4-2-3-1 DM Wide')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Got it' })).not.toBeInTheDocument();
   });
 
   it('uses the approved step 3 copy on phones', () => {
