@@ -55,3 +55,9 @@
     color: var(--text-muted);
     text-transform: uppercase;
 }
+
+.display {
+    color: var(--text-muted);
+    font: 500 13px/16px var(--font-ui);
+    white-space: nowrap;
+}

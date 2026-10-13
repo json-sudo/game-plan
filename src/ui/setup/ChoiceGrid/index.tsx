@@ -21,7 +21,9 @@ export interface ChoiceGridProps {
 export function ChoiceGrid({ label, mark, options, value, onChange, columns }: ChoiceGridProps) {
   const labelId = useId();
   const valueOf = (option: ChoiceOption) => option.value ?? option.label;
+  const displayOnly = value !== undefined && !onChange;
   const roving = useRovingRadio({ values: options.map(valueOf), value, onChange });
+  const gridStyle = columns ? { gridTemplateColumns: `repeat(${columns}, 1fr)` } : undefined;
 
   return (
     <div className={styles.grid}>
@@ -31,32 +33,54 @@ export function ChoiceGrid({ label, mark, options, value, onChange, columns }: C
           {label}
         </div>
       ) : null}
-      <div
-        className={styles.choices}
-        role="radiogroup"
-        aria-labelledby={label ? labelId : undefined}
-        style={columns ? { gridTemplateColumns: `repeat(${columns}, 1fr)` } : undefined}
-      >
-        {options.map((option) => {
-          const optionValue = valueOf(option);
-          return (
-            <button
-              key={optionValue}
-              ref={roving.register(optionValue)}
-              type="button"
-              role="radio"
-              className={styles.choice}
-              aria-checked={roving.isSelected(optionValue)}
-              tabIndex={roving.tabIndexFor(optionValue)}
-              onClick={() => roving.select(optionValue)}
-              onKeyDown={roving.onKeyDown}
-            >
-              {option.label}
-              {option.sub ? <small className={styles.sub}>{option.sub}</small> : null}
-            </button>
-          );
-        })}
-      </div>
+      {displayOnly ? (
+        <div
+          className={styles.choices}
+          aria-labelledby={label ? labelId : undefined}
+          style={gridStyle}
+        >
+          {options.map((option) => {
+            const optionValue = valueOf(option);
+            return (
+              <div
+                key={optionValue}
+                className={styles.choice}
+                data-selected={optionValue === value || undefined}
+              >
+                {option.label}
+                {option.sub ? <small className={styles.sub}>{option.sub}</small> : null}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div
+          className={styles.choices}
+          role="radiogroup"
+          aria-labelledby={label ? labelId : undefined}
+          style={gridStyle}
+        >
+          {options.map((option) => {
+            const optionValue = valueOf(option);
+            return (
+              <button
+                key={optionValue}
+                ref={roving.register(optionValue)}
+                type="button"
+                role="radio"
+                className={styles.choice}
+                aria-checked={roving.isSelected(optionValue)}
+                tabIndex={roving.tabIndexFor(optionValue)}
+                onClick={() => roving.select(optionValue)}
+                onKeyDown={roving.onKeyDown}
+              >
+                {option.label}
+                {option.sub ? <small className={styles.sub}>{option.sub}</small> : null}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

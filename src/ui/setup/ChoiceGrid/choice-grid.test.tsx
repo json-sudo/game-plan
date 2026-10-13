@@ -10,11 +10,12 @@ const OPTIONS = [
 ];
 
 describe('ChoiceGrid', () => {
-  it('is a radiogroup named by the team label', () => {
+  it('shows the chosen option without interactive radios when display-only', () => {
     render(<ChoiceGrid label="My team" mark="mine" options={OPTIONS} value="4-3-3 DM Wide" />);
-    expect(screen.getByRole('radiogroup', { name: 'My team' })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: '4-3-3 DM Wide' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: /4-2-3-1 DM Wide/ })).not.toBeChecked();
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+    expect(screen.getByText('My team')).toBeInTheDocument();
+    expect(screen.getByText('4-3-3 DM Wide').closest('[data-selected="true"]')).toBeInTheDocument();
+    expect(screen.getByText(/4-2-3-1 DM Wide/).closest('[data-selected="true"]')).not.toBeInTheDocument();
   });
 
   it('shows sub text on a card', () => {

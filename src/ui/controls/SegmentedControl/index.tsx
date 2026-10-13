@@ -23,9 +23,13 @@ export function SegmentedControl({
   onChange,
 }: SegmentedControlProps) {
   const labelId = useId();
+  const displayOnly = value !== undefined && !onChange;
   const roving = useRovingRadio({ values: options.map((option) => option.value), value, onChange });
+  const selectedLabel = options.find((option) => option.value === value)?.label ?? options[0]?.label;
 
-  const group = (
+  const group = displayOnly ? (
+    <span className={styles.display}>{selectedLabel}</span>
+  ) : (
     <div
       className={styles.group}
       role="radiogroup"

@@ -26,15 +26,17 @@ function Controlled({ onChange }: { onChange?: (value: string) => void }) {
 }
 
 describe('SegmentedControl', () => {
-  it('is a named radiogroup with the chosen option checked', () => {
+  it('shows the chosen label as static text when display-only', () => {
     render(<SegmentedControl label="Squad size" options={OPTIONS} value="20" />);
-    expect(screen.getByRole('radiogroup', { name: 'Squad size' })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: '20' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: '11' })).not.toBeChecked();
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+    expect(screen.getByText('20')).toBeInTheDocument();
   });
 
   it('shows the label above the group when asked', () => {
-    render(<SegmentedControl label="Arrows" showLabel options={OPTIONS} value="11" />);
+    const onChange = vi.fn<() => void>();
+    render(
+      <SegmentedControl label="Arrows" showLabel options={OPTIONS} value="11" onChange={onChange} />,
+    );
     expect(screen.getByText('Arrows')).toBeVisible();
     expect(screen.getByRole('radiogroup', { name: 'Arrows' })).toBeInTheDocument();
   });
