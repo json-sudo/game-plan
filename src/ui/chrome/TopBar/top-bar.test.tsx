@@ -5,7 +5,14 @@ import { TopBar } from '.';
 
 describe('TopBar on desktop', () => {
   it('is the banner with both team names and the mode', () => {
-    render(<TopBar mine="Arsenal" opp="Chelsea" mode="fm" onModeChange={vi.fn()} />);
+    render(
+      <TopBar
+        mine="Arsenal"
+        opp="Chelsea"
+        mode="fm"
+        onModeChange={vi.fn<(mode: 'open' | 'fm') => void>()}
+      />,
+    );
     expect(screen.getByRole('banner')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'My team name' })).toHaveValue('Arsenal');
     expect(screen.getByRole('textbox', { name: 'Opponent name' })).toHaveValue('Chelsea');
@@ -28,7 +35,7 @@ describe('TopBar on desktop', () => {
   });
 
   it('offers the full action set with copy-deck names', () => {
-    render(<TopBar canUndo canRedo canReset onToggleTheme={vi.fn()} />);
+    render(<TopBar canUndo canRedo canReset onToggleTheme={vi.fn<() => void>()} />);
     for (const name of [
       'Undo',
       'Redo',
@@ -46,9 +53,9 @@ describe('TopBar on desktop', () => {
   });
 
   it('shows the theme action for the other theme', () => {
-    const { rerender } = render(<TopBar theme="light" onToggleTheme={vi.fn()} />);
+    const { rerender } = render(<TopBar theme="light" onToggleTheme={vi.fn<() => void>()} />);
     expect(screen.getByRole('button', { name: 'Dark theme' })).toBeInTheDocument();
-    rerender(<TopBar theme="dark" onToggleTheme={vi.fn()} />);
+    rerender(<TopBar theme="dark" onToggleTheme={vi.fn<() => void>()} />);
     expect(screen.getByRole('button', { name: 'Light theme' })).toBeInTheDocument();
   });
 

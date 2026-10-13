@@ -17,7 +17,9 @@ describe('ChoiceGrid', () => {
     const selected = screen.getByText('4-3-3 DM Wide').closest('[data-selected="true"]');
     expect(selected).toBeInTheDocument();
     expect(selected).toHaveAttribute('aria-current', 'true');
-    expect(screen.getByText(/4-2-3-1 DM Wide/).closest('[aria-current="true"]')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/4-2-3-1 DM Wide/).closest('[aria-current="true"]'),
+    ).not.toBeInTheDocument();
   });
 
   it('shows sub text on a card', () => {

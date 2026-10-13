@@ -33,9 +33,7 @@ describe('SegmentedControl', () => {
   });
 
   it('links display-only text to a visible label', () => {
-    render(
-      <SegmentedControl label="Squad size" showLabel options={OPTIONS} value="20" />,
-    );
+    render(<SegmentedControl label="Squad size" showLabel options={OPTIONS} value="20" />);
     expect(screen.getByText('Squad size')).toBeVisible();
     expect(screen.getByLabelText('Squad size')).toHaveTextContent('20');
   });
@@ -43,7 +41,13 @@ describe('SegmentedControl', () => {
   it('shows the label above the group when asked', () => {
     const onChange = vi.fn<() => void>();
     render(
-      <SegmentedControl label="Arrows" showLabel options={OPTIONS} value="11" onChange={onChange} />,
+      <SegmentedControl
+        label="Arrows"
+        showLabel
+        options={OPTIONS}
+        value="11"
+        onChange={onChange}
+      />,
     );
     expect(screen.getByText('Arrows')).toBeVisible();
     expect(screen.getByRole('radiogroup', { name: 'Arrows' })).toBeInTheDocument();

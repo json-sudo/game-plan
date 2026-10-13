@@ -6,23 +6,23 @@ Status: updated 2026-10-12 with design-system settled decisions from `3-notes.md
 
 Build nothing that depends on these until the captain confirms.
 
-| ID | Item | Notes |
-|---|---|---|
-| O-14 | New dependencies | `@vitest/coverage-v8` and `fflate` were not named in round 5. Working default: add both. |
+| ID   | Item                | Notes                                                                                                                                         |
+| ---- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| O-14 | New dependencies    | `@vitest/coverage-v8` and `fflate` were not named in round 5. Working default: add both.                                                      |
 | O-17 | Wide midfield roles | Four Wide Midfielder roles have no slot in the twelve formations. Working default: stay hidden until a formation with wide midfield is added. |
-| F30 | Redo | Should priority; may be cut. If cut, hide the button (`redo={false}`) and nothing else moves. |
+| F30  | Redo                | Should priority; may be cut. If cut, hide the button (`redo={false}`) and nothing else moves.                                                 |
 
 ## 3. Non-goals for v1
 
-| Item | Status | Source |
-|---|---|---|
-| Half-spaces and a five-lane grid | **In v1** (was Later) | Design settled 22 |
-| Backend, accounts, cross-device sync | Parked | R4-BE, OI-Q6 |
-| Team instructions | Later | R2-Q6 |
-| Offline mode | Later | R4-Q10 |
-| FM27 roles | Later | CI |
-| Ball-side and far-side movement split | v2 | SB-6 |
-| Kit colours | Later | R3-Q12 |
+| Item                                  | Status                | Source            |
+| ------------------------------------- | --------------------- | ----------------- |
+| Half-spaces and a five-lane grid      | **In v1** (was Later) | Design settled 22 |
+| Backend, accounts, cross-device sync  | Parked                | R4-BE, OI-Q6      |
+| Team instructions                     | Later                 | R2-Q6             |
+| Offline mode                          | Later                 | R4-Q10            |
+| FM27 roles                            | Later                 | CI                |
+| Ball-side and far-side movement split | v2                    | SB-6              |
+| Kit colours                           | Later                 | R3-Q12            |
 
 ## 4. Modes
 
@@ -51,7 +51,7 @@ One pitch, one pitch component, two modes.
 
 ### 5.4 Scenario selection
 
-- **Zone map.** Five lanes by three thirds: **15 zones**. Lane names: Left flank, Left half-space, Centre, Right half-space, Right flank. Third names: Defensive third, Middle third, Final third.
+- **Zone map.** Five lanes by three thirds: **15 zones**. Lane names: Left flank, Left half-space, Centre, Right half-space, Right flank. Third names: Defensive third, Middle third, Final third. Lane edges follow real pitch markings: half-spaces sit between the penalty-box edge and the six-yard-box edge (about 15.5 to 27.8 each side); centre spans 27.8 to 48.4.
 - **Untuned zone.** If the table has no entry, the zone shape shows with **"Finish setting up your tactic"**. No arrows are drawn.
 - **Open pitch zone map.** Picking a zone or dragging the ball moves the team into the zone shape only; Runs, Final and the transport bar stay in FM mode.
 
@@ -69,28 +69,30 @@ One pitch, one pitch component, two modes.
 
 ## 6. Feature list (updated rows)
 
-| ID | Feature | Priority | Acceptance criteria |
-|---|---|---|---|
-| F01 | One pitch. Open pitch default for later visits. FM mode toggle | Must | Later visits open Open pitch. First visit opens FM example |
-| F15 | Five-lane by three-third zone map (15 zones), attacking team's view | Must | Tapping a zone places the ball. Zone name shown |
-| F20 | Untuned zone: zone shape with "Finish setting up your tactic" | Must | Label visible. No arrows |
-| F28 | Reduced motion | Must | Every move completes in 200 ms or less |
-| F52 | Half-spaces and five lanes | **Must** | Five lanes in zone map from v1 |
+| ID  | Feature                                                             | Priority | Acceptance criteria                                        |
+| --- | ------------------------------------------------------------------- | -------- | ---------------------------------------------------------- |
+| F01 | One pitch. Open pitch default for later visits. FM mode toggle      | Must     | Later visits open Open pitch. First visit opens FM example |
+| F15 | Five-lane by three-third zone map (15 zones), attacking team's view | Must     | Tapping a zone places the ball. Zone name shown            |
+| F20 | Untuned zone: zone shape with "Finish setting up your tactic"       | Must     | Label visible. No arrows                                   |
+| F28 | Reduced motion                                                      | Must     | Every move completes in 200 ms or less                     |
+| F52 | Half-spaces and five lanes                                          | **Must** | Five lanes in zone map from v1                             |
 
 ## 7. Mobile scope
 
-| Area | Phone behaviour |
-|---|---|
-| Role picker | **Not shown.** Tapping a token selects it and shows its role |
-| First-run step 3 | "Step through with Next, or tap a player to see its role." |
-| Dribble direction | Hidden |
-| Copy tactic JSON | Hidden |
+| Area              | Phone behaviour                                              |
+| ----------------- | ------------------------------------------------------------ |
+| Role picker       | **Not shown.** Tapping a token selects it and shows its role |
+| First-run step 3  | "Step through with Next, or tap a player to see its role."   |
+| Dribble direction | Hidden                                                       |
+| Copy tactic JSON  | Hidden                                                       |
 
 ## Settled design decisions
 
-| ID | Item | Decision |
-|---|---|---|
-| O-16 | Pair labels | Confirmed. D(C), M(C), ST and AM(C) pairs share one label; wide AM slots take AM(L)/AM(R) from x position. |
+| ID   | Item            | Decision                                                                                                   |
+| ---- | --------------- | ---------------------------------------------------------------------------------------------------------- |
+| D-3  | Ball on carrier | Draw the ball above the token for attackers; if a defender ever carries, draw it lower.                    |
+| D-7  | Lane edges      | Half-spaces between penalty-box and six-yard-box edges (~15.5–27.8 each side); centre 27.8–48.4.           |
+| O-16 | Pair labels     | Confirmed. D(C), M(C), ST and AM(C) pairs share one label; wide AM slots take AM(L)/AM(R) from x position. |
 
 ## Copy rules (settled)
 

@@ -25,7 +25,8 @@ export function SegmentedControl({
   const labelId = useId();
   const displayOnly = value !== undefined && !onChange;
   const roving = useRovingRadio({ values: options.map((option) => option.value), value, onChange });
-  const selectedLabel = options.find((option) => option.value === value)?.label ?? options[0]?.label;
+  const selectedLabel =
+    options.find((option) => option.value === value)?.label ?? options[0]?.label;
 
   const group = displayOnly ? (
     <span

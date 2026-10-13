@@ -37,7 +37,8 @@ export function TextField({
   const effectiveReadOnly = readOnly || onChange === undefined;
   const showCounter = counter ?? variant !== 'team';
   const atCap = value.length >= maxLength;
-  const message = error ?? (atCap && !effectiveReadOnly ? `${maxLength} characters at most.` : hint);
+  const message =
+    error ?? (atCap && !effectiveReadOnly ? `${maxLength} characters at most.` : hint);
   const invalid = Boolean(error) || (atCap && !effectiveReadOnly);
 
   return (

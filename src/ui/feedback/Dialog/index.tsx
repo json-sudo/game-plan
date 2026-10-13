@@ -22,9 +22,7 @@ function Panel({ title, titleId, children, footer, onClose }: PanelProps) {
         <h2 id={titleId} className={styles.title}>
           {title}
         </h2>
-        {onClose ? (
-          <Button variant="icon" icon="close" label="Close" onClick={onClose} />
-        ) : null}
+        {onClose ? <Button variant="icon" icon="close" label="Close" onClick={onClose} /> : null}
       </div>
       <div className={styles.body}>{children}</div>
       {footer ? <div className={styles.foot}>{footer}</div> : null}
