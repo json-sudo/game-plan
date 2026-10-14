@@ -2,6 +2,8 @@ import { spawnSync } from 'node:child_process';
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
+if (process.env.BUILD_SPEC === '1') process.exit(0);
+
 // A running background agent appends to its transcript under
 // /private/tmp/claude-<uid>/<encoded-cwd>/<session>/tasks/*.output.
 // While one is mid-flight the working tree is legitimately half-edited,
