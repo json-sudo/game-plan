@@ -1,0 +1,46 @@
+.preview {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    align-items: flex-start;
+}
+
+.svg {
+    width: 96px;
+    aspect-ratio: var(--pitch-ratio);
+    border: 2px solid var(--pitch-line);
+    border-radius: var(--radius-sm);
+    background: var(--pitch);
+}
+
+.zone {
+    fill: var(--zone-selected);
+    opacity: 0.55;
+}
+
+.lane {
+    stroke: var(--pitch-line);
+    stroke-width: 0.3;
+}
+
+.dashed {
+    stroke: var(--pitch-line);
+    stroke-width: 0.5;
+    stroke-dasharray: 2 1.5;
+}
+
+.player {
+    fill: var(--team-mine);
+    stroke: var(--token-ring);
+    stroke-width: 0.6;
+
+    &[data-team='opponent'] {
+        fill: var(--team-opp);
+    }
+}
+
+.note {
+    margin: 0;
+    color: var(--text-muted);
+    font: 600 12px/16px var(--font-ui);
+}

@@ -1,0 +1,31 @@
+.pitch {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+}
+
+.band {
+    fill: var(--pitch);
+
+    &--stripe {
+        fill: var(--pitch-stripe);
+    }
+}
+
+.lines {
+    fill: none;
+    stroke: var(--pitch-line);
+}
+
+.notice {
+    rect {
+        fill: var(--pitch-label-plate);
+    }
+
+    text {
+        fill: var(--pitch-label-text);
+        font-family: var(--font-ui);
+        font-weight: 600;
+    }
+}

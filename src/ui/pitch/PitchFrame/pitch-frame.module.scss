@@ -1,0 +1,47 @@
+.frame {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text);
+}
+
+.circle,
+.square {
+    width: 12px;
+    height: 12px;
+    background: var(--text);
+}
+
+.circle {
+    border-radius: var(--radius-full);
+}
+
+.square {
+    border-radius: var(--radius-sm);
+}
+
+.name {
+    font: var(--type-label);
+}
+
+.tag {
+    padding: 0 var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    color: var(--text-muted);
+    font: var(--type-phase);
+    letter-spacing: var(--type-phase-letter-spacing);
+    text-transform: uppercase;
+
+    &--attacking {
+        border-color: var(--control);
+        background: var(--control);
+        color: var(--control-text);
+    }
+}

@@ -1,0 +1,23 @@
+.body {
+    fill: var(--ball);
+}
+
+.panel {
+    fill: var(--ball);
+    stroke: var(--ball-ring);
+    stroke-width: 0.04;
+    stroke-linejoin: round;
+}
+
+.patch {
+    fill: var(--ball-ring);
+    stroke: var(--ball-ring);
+    stroke-width: 0.04;
+    stroke-linejoin: round;
+}
+
+.edge {
+    fill: none;
+    stroke: var(--ball-ring);
+    stroke-width: 0.08;
+}
