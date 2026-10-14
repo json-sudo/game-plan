@@ -16,6 +16,13 @@ export const MODE_OPTIONS = (Object.keys(MODE_LABELS) as PitchMode[]).map((value
   label: MODE_LABELS[value],
 }));
 
+export const VERSUS_LABEL = 'v';
+export const SETUP_COLUMN_LABEL = 'Setup and arrows';
+export const SIDE_COLUMN_LABEL = 'Zone map and transport';
+export const ARROWS_LABEL = 'Arrows';
+export const ARROWS_ALL_LABEL = 'All players';
+export const ARROWS_SELECTED_LABEL = 'Selected only';
+
 export const KEEPER_LABEL = 'GK';
 export const BALL_LABEL = 'Ball';
 export const TOKEN_TEAM_LABELS = { mine: 'my team', opponent: 'opponent' } as const;

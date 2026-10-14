@@ -1,5 +1,7 @@
-import { lazy, Suspense } from 'react';
-import { useTheme } from './shared/hooks/useTheme';
+import { lazy, Suspense, useState } from 'react';
+import { createExampleDocument } from './state/example';
+import { createPitchStore } from './state/store';
+import { BoardDesktop } from './ui/board/BoardDesktop';
 
 const DevGallery = import.meta.env.DEV ? lazy(() => import('./dev/Gallery')) : null;
 
@@ -12,17 +14,12 @@ export default function App() {
     );
   }
 
-  return <Placeholder />;
+  return <PitchApp />;
 }
 
-function Placeholder() {
-  const { theme, toggleTheme } = useTheme();
-  return (
-    <main style={{ padding: '2rem', fontFamily: 'Figtree, sans-serif' }}>
-      <h1>Game Plan is being rebuilt</h1>
-      <button type="button" onClick={toggleTheme}>
-        Theme: {theme}
-      </button>
-    </main>
+function PitchApp() {
+  const [store] = useState(() =>
+    createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } }),
   );
+  return <BoardDesktop store={store} />;
 }
