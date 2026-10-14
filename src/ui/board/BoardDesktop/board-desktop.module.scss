@@ -30,3 +30,14 @@
 .matchup {
     margin: 0;
 }
+
+.roles-hint {
+    margin: 0;
+}
+
+.role-choice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}

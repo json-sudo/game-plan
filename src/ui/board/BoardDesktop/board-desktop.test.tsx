@@ -1,6 +1,6 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
 import { ballAtopPosition } from '../../../engine';
@@ -11,9 +11,13 @@ import { createPitchStore, type PitchStore } from '../../../state/store';
 import {
   ARROWS_LABEL,
   RESET_DISABLED_REASON,
+  SETUP_ROLES,
+  SETUP_STEP_FORMATIONS,
+  SETUP_STEP_WHO_ATTACKS,
   SIDE_COLUMN_LABEL,
   SETUP_COLUMN_LABEL,
   UNDO_DISABLED_REASON,
+  setupRoleChoiceLabel,
 } from '../../copy';
 import { ARROW_RING_RADIUS } from '../../pitch/Arrow';
 import { BoardDesktop } from '.';
@@ -34,6 +38,22 @@ function stubSvg(svg: Element) {
       height: 100 * scale,
     }) as DOMRect;
 }
+
+beforeEach(() => {
+  window.matchMedia = vi
+    .fn<
+      () => {
+        matches: boolean;
+        addEventListener: () => void;
+        removeEventListener: () => void;
+      }
+    >()
+    .mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn<() => void>(),
+      removeEventListener: vi.fn<() => void>(),
+    }) as unknown as typeof window.matchMedia;
+});
 
 describe('BoardDesktop', () => {
   it('renders the document from the store and shows a later edit', () => {
@@ -325,5 +345,126 @@ describe('top bar actions', () => {
     expect(setItem).not.toHaveBeenCalled();
     setItem.mockRestore();
     delete document.documentElement.dataset.theme;
+  });
+});
+
+function guidedSteps() {
+  return within(screen.getByRole('region', { name: 'Guided setup' })).getAllByRole('listitem');
+}
+
+describe('setup and hint', () => {
+  it('marks each setup step active, done or reopened from setupStep', () => {
+    const fresh = createPitchStore({ doc: createInitialDocument(), ui: { mode: 'fm' } });
+    const { rerender } = render(<BoardDesktop store={fresh} />);
+    let steps = guidedSteps();
+    expect(steps.map((step) => step.getAttribute('data-state'))).toEqual([
+      'active',
+      'todo',
+      'todo',
+    ]);
+    expect(steps[0]).not.toHaveAttribute('data-reopened');
+    expect(within(steps[0]!).getByText(SETUP_STEP_FORMATIONS)).toBeInTheDocument();
+    expect(within(steps[1]!).getByText(SETUP_STEP_WHO_ATTACKS)).toBeInTheDocument();
+    expect(within(steps[2]!).getByText(SETUP_ROLES)).toBeInTheDocument();
+
+    act(() => fresh.getState().patchUi({ setupStep: 2 }));
+    steps = guidedSteps();
+    expect(steps[0]).toHaveAttribute('data-state', 'done');
+    expect(steps[1]).toHaveAttribute('data-state', 'active');
+    expect(steps[1]).not.toHaveAttribute('data-reopened');
+    expect(steps[2]).toHaveAttribute('data-state', 'todo');
+
+    const finished = exampleStore();
+    rerender(<BoardDesktop store={finished} />);
+    steps = guidedSteps();
+    expect(steps.map((step) => step.getAttribute('data-state'))).toEqual(['done', 'done', 'done']);
+
+    act(() => finished.getState().patchUi({ setupStep: 2 }));
+    steps = guidedSteps();
+    expect(steps[0]).toHaveAttribute('data-state', 'done');
+    expect(steps[1]).toHaveAttribute('data-state', 'active');
+    expect(steps[1]).toHaveAttribute('data-reopened', 'true');
+    expect(steps[2]).toHaveAttribute('data-state', 'done');
+  });
+
+  it('dispatches applyFormation, setAttacker and setRole for the choice in each step', async () => {
+    const user = userEvent.setup();
+    const formations = createPitchStore({
+      doc: createInitialDocument(),
+      ui: { mode: 'fm', setupStep: 1 },
+    });
+    const dispatch = vi.spyOn(formations.getState(), 'dispatch');
+    const { rerender } = render(<BoardDesktop store={formations} />);
+    await user.click(
+      within(screen.getByRole('radiogroup', { name: 'My team' })).getByRole('radio', {
+        name: '4-4-2 Diamond Narrow',
+      }),
+    );
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'applyFormation',
+      team: 'mine',
+      formationId: '4_4_2_diamond_narrow',
+    });
+    expect(screen.getByRole('button', { name: 'GK, my team' })).toBeInTheDocument();
+
+    const attacking = exampleStore({ setupStep: 2 });
+    const attackDispatch = vi.spyOn(attacking.getState(), 'dispatch');
+    rerender(<BoardDesktop store={attacking} />);
+    await user.click(screen.getByRole('radio', { name: 'Opponent' }));
+    expect(attackDispatch).toHaveBeenCalledWith({ type: 'setAttacker', attacker: 'opponent' });
+    expect(screen.getByRole('group', { name: 'Opponent' })).toHaveTextContent('Attacking');
+    expect(screen.getByRole('group', { name: 'My team' })).not.toHaveTextContent('Attacking');
+
+    const roles = exampleStore({ setupStep: 3 });
+    const striker = roles.getState().doc.players.find((player) => player.id === 'mine-ST')!;
+    const nextRole = FM26_DATA.roles.find(
+      (role) =>
+        role.id !== striker.role &&
+        role.possession === 'in' &&
+        role.families.includes(striker.family!),
+    )!;
+    const roleDispatch = vi.spyOn(roles.getState(), 'dispatch');
+    rerender(<BoardDesktop store={roles} />);
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: setupRoleChoiceLabel('ST', 'my team') }),
+      nextRole.id,
+    );
+    expect(roleDispatch).toHaveBeenCalledWith({
+      type: 'setRole',
+      playerId: 'mine-ST',
+      roleId: nextRole.id,
+    });
+    const token = screen.getByRole('button', { name: `ST, ${nextRole.name}, my team` });
+    expect(plateText(token)).toContain(nextRole.name.replaceAll(' ', ''));
+  });
+
+  it('shows the three hint steps, hides on dismiss, and leaves the document unchanged', async () => {
+    const user = userEvent.setup();
+    const store = exampleStore();
+    const doc = store.getState().doc;
+    const history = store.getState().history;
+    const { unmount } = render(<BoardDesktop store={store} />);
+    const hint = screen.getByRole('complementary', { name: 'How to use the example' });
+    expect(
+      within(hint)
+        .getAllByRole('listitem')
+        .map((step) => step.textContent),
+    ).toEqual([
+      'Tap a zone on the map.',
+      'Press Play.',
+      'Step through with Next, or tap a player to change its role.',
+    ]);
+    await user.click(screen.getByRole('button', { name: 'Got it' }));
+    expect(
+      screen.queryByRole('complementary', { name: 'How to use the example' }),
+    ).not.toBeInTheDocument();
+    expect(store.getState().doc).toBe(doc);
+    expect(store.getState().history).toBe(history);
+
+    unmount();
+    render(<BoardDesktop store={store} />);
+    expect(
+      screen.getByRole('complementary', { name: 'How to use the example' }),
+    ).toBeInTheDocument();
   });
 });

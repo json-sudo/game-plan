@@ -1,10 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore, type StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
 import type { Point } from '../../../data/types';
 import { ballAtopPosition, type Phase } from '../../../engine';
 import { activeRoleOf } from '../../../state/context';
-import { placedPlayers, type PitchDocument, type Player } from '../../../state/document';
+import {
+  placedPlayers,
+  possessionOf,
+  type PitchDocument,
+  type Player,
+} from '../../../state/document';
+import { createExampleDocument } from '../../../state/example';
 import {
   selectCanUndo,
   selectDisplayPositions,
@@ -21,12 +27,23 @@ import {
   PITCH_LABEL,
   RESET_DISABLED_REASON,
   RESET_LABEL,
+  SETUP_ROLES,
+  SETUP_ROLES_HINT,
+  SETUP_STEP_FORMATIONS,
+  SETUP_STEP_WHO_ATTACKS,
   THEME_DARK_LABEL,
   THEME_LIGHT_LABEL,
   SIDE_COLUMN_LABEL,
   SETUP_COLUMN_LABEL,
+  TOKEN_TEAM_LABELS,
   VERSUS_LABEL,
+  setupAttacksSummary,
+  setupRoleChoiceLabel,
+  setupRolesSummary,
 } from '../../copy';
+import { FirstRunHint } from '../../feedback/FirstRunHint';
+import { ChoiceGrid } from '../../setup/ChoiceGrid';
+import { SetupStepper, type SetupStep, type StepState } from '../../setup/SetupStepper';
 import { Button } from '../../controls/Button';
 import { SegmentedControl } from '../../controls/SegmentedControl';
 import { Bench } from '../../bench/Bench';
@@ -67,6 +84,53 @@ function formationLabel(id: string | null) {
   return FM26_DATA.formations.find((formation) => formation.id === id)?.name ?? null;
 }
 
+function formationSummary(doc: PitchDocument) {
+  const mine = formationLabel(doc.teams.mine.formationId);
+  const opponent = formationLabel(doc.teams.opponent.formationId);
+  if (!mine || !opponent) return undefined;
+  return `${mine} ${VERSUS_LABEL} ${opponent}`;
+}
+
+function setupComplete(doc: PitchDocument) {
+  const placed = placedPlayers(doc);
+  return (
+    doc.teams.mine.formationId !== null &&
+    doc.teams.opponent.formationId !== null &&
+    placed.length > 0 &&
+    placed.every((player) => player.role !== undefined)
+  );
+}
+
+function stepMark(
+  index: 1 | 2 | 3,
+  cursor: 1 | 2 | 3 | null,
+  complete: boolean,
+): { state: StepState; reopened: boolean } {
+  if (cursor === null) return { state: 'done', reopened: false };
+  if (complete) {
+    return index === cursor
+      ? { state: 'active', reopened: true }
+      : { state: 'done', reopened: false };
+  }
+  if (index < cursor) return { state: 'done', reopened: false };
+  if (index === cursor) return { state: 'active', reopened: false };
+  return { state: 'todo', reopened: false };
+}
+
+function roleOptions(doc: PitchDocument, player: Player) {
+  if (!player.family) return [];
+  const family = player.family;
+  const possession = possessionOf(doc, player.team);
+  return FM26_DATA.roles.filter(
+    (role) => role.possession === possession && role.families.includes(family),
+  );
+}
+
+const FORMATION_OPTIONS = FM26_DATA.formations.map((formation) => ({
+  label: formation.name,
+  value: formation.id,
+}));
+
 function movementArrows(doc: PitchDocument, arrows: ArrowMode, selectedPlayerId: string | null) {
   const phases = selectPhasePositions(doc);
   const carrierId = doc.scenario?.carrierId;
@@ -97,6 +161,101 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
         : doc.ball;
   const mineFormation = formationLabel(doc.teams.mine.formationId);
   const opponentFormation = formationLabel(doc.teams.opponent.formationId);
+  const complete = setupComplete(doc);
+  const cursor = ui.setupStep ?? (complete ? null : 1);
+  const [showHint, setShowHint] = useState(
+    () => JSON.stringify(store.getState().doc) === JSON.stringify(createExampleDocument()),
+  );
+  const marks = ([1, 2, 3] as const).map((index) => stepMark(index, cursor, complete));
+  const placed = placedPlayers(doc);
+  const steps: SetupStep[] = [
+    {
+      title: SETUP_STEP_FORMATIONS,
+      state: marks[0].state,
+      reopened: marks[0].reopened,
+      summary: formationSummary(doc),
+      content: (
+        <>
+          <ChoiceGrid
+            label={doc.teams.mine.name}
+            mark="mine"
+            options={FORMATION_OPTIONS}
+            value={doc.teams.mine.formationId ?? undefined}
+            onChange={(formationId) =>
+              store.getState().dispatch({ type: 'applyFormation', team: 'mine', formationId })
+            }
+          />
+          <ChoiceGrid
+            label={doc.teams.opponent.name}
+            mark="opp"
+            options={FORMATION_OPTIONS}
+            value={doc.teams.opponent.formationId ?? undefined}
+            onChange={(formationId) =>
+              store.getState().dispatch({ type: 'applyFormation', team: 'opponent', formationId })
+            }
+          />
+        </>
+      ),
+    },
+    {
+      title: SETUP_STEP_WHO_ATTACKS,
+      state: marks[1].state,
+      reopened: marks[1].reopened,
+      summary: setupAttacksSummary(doc.teams[doc.attacker].name),
+      content: (
+        <SegmentedControl
+          label={SETUP_STEP_WHO_ATTACKS}
+          value={doc.attacker}
+          options={[
+            { value: 'mine', label: doc.teams.mine.name },
+            { value: 'opponent', label: doc.teams.opponent.name },
+          ]}
+          onChange={(value) => {
+            if (value === 'mine' || value === 'opponent') {
+              store.getState().dispatch({ type: 'setAttacker', attacker: value });
+            }
+          }}
+        />
+      ),
+    },
+    {
+      title: SETUP_ROLES,
+      state: marks[2].state,
+      reopened: marks[2].reopened,
+      summary: complete ? setupRolesSummary(placed.length) : undefined,
+      content: (
+        <>
+          <p className={styles['roles-hint']}>{SETUP_ROLES_HINT}</p>
+          {placed.map((player) => {
+            const options = roleOptions(doc, player);
+            if (!player.slot || options.length === 0) return null;
+            return (
+              <label key={player.id} className={styles['role-choice']}>
+                <span>{player.slot}</span>
+                <select
+                  aria-label={setupRoleChoiceLabel(player.slot, TOKEN_TEAM_LABELS[player.team])}
+                  value={player.role ?? ''}
+                  onChange={(event) =>
+                    store.getState().dispatch({
+                      type: 'setRole',
+                      playerId: player.id,
+                      roleId: event.target.value,
+                    })
+                  }
+                >
+                  {options.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {role.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            );
+          })}
+        </>
+      ),
+    },
+  ];
 
   useEffect(() => {
     document.documentElement.dataset.theme = ui.theme;
@@ -162,6 +321,33 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
           aria-label={SETUP_COLUMN_LABEL}
           style={COLUMN_STYLE}
         >
+          <SetupStepper
+            steps={steps}
+            onBack={(index) => {
+              if (index === 1 || index === 2) store.getState().patchUi({ setupStep: index });
+            }}
+            onNext={(index) => {
+              const state = store.getState();
+              const finished = setupComplete(state.doc);
+              const open = state.ui.setupStep ?? (finished ? null : 1);
+              if ((finished && open !== null) || index === 2) {
+                state.patchUi({ setupStep: null });
+                return;
+              }
+              if (index === 1) {
+                state.dispatch({ type: 'fillDefaultRoles' });
+                state.patchUi({ setupStep: 3 });
+                return;
+              }
+              state.patchUi({ setupStep: 2 });
+            }}
+            onEdit={(index) => {
+              const step = index + 1;
+              if (step === 1 || step === 2 || step === 3) {
+                store.getState().patchUi({ setupStep: step });
+              }
+            }}
+          />
           {mineFormation && opponentFormation ? (
             <p className={styles.matchup}>
               <span>{mineFormation}</span> {VERSUS_LABEL} <span>{opponentFormation}</span>
@@ -180,6 +366,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
           />
         </section>
         <div className={styles.pitch} data-column="pitch">
+          {showHint ? <FirstRunHint onDismiss={() => setShowHint(false)} /> : null}
           <PitchFrame
             attacking={doc.attacker}
             mine={doc.teams.mine.name}
