@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore, type StoreApi } from 'zustand';
 import { MOTION_DURATIONS_MS, PHASES, ballAtopPosition, type Phase } from '../../../engine';
-import { placedPlayers } from '../../../state/document';
+import { FM26_DATA } from '../../../data/fm26';
+import { activeRoleOf } from '../../../state/context';
+import { placedPlayers, type PitchDocument, type Player } from '../../../state/document';
+import { createExampleDocument } from '../../../state/example';
 import { selectCanUndo, selectDisplayPositions } from '../../../state/selectors';
 import type { PitchStore } from '../../../state/store';
 import { PhoneMenu, type PhoneMenuEntry } from '../../chrome/PhoneMenu';
+import { FirstRunHint } from '../../feedback/FirstRunHint';
 import { UndoControl } from '../../chrome/UndoControl';
 import { BenchSheet } from '../../bench/BenchSheet';
 import {
@@ -37,6 +41,11 @@ export interface BoardPhoneProps {
   store: StoreApi<PitchStore>;
 }
 
+function roleLabel(doc: PitchDocument, player: Player) {
+  const roleId = activeRoleOf(doc, player, FM26_DATA);
+  return FM26_DATA.roles.find((role) => role.id === roleId)?.name;
+}
+
 export function BoardPhone({ store }: BoardPhoneProps) {
   const doc = useStore(store, (state) => state.doc);
   const ui = useStore(store, (state) => state.ui);
@@ -44,6 +53,10 @@ export function BoardPhone({ store }: BoardPhoneProps) {
   const positions = useStore(store, selectDisplayPositions);
   const [menuOpen, setMenuOpen] = useState(false);
   const [benchOpen, setBenchOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showHint, setShowHint] = useState(
+    () => JSON.stringify(store.getState().doc) === JSON.stringify(createExampleDocument()),
+  );
   const menuSlot = useRef<HTMLDivElement>(null);
   const canReset = doc.teams.mine.applied !== null || doc.teams.opponent.applied !== null;
   const fm = ui.mode === 'fm';
@@ -134,6 +147,11 @@ export function BoardPhone({ store }: BoardPhoneProps) {
           </div>
         ) : (
           <>
+            {showHint ? (
+              <div className={styles.hint}>
+                <FirstRunHint onDismiss={() => setShowHint(false)} />
+              </div>
+            ) : null}
             <PitchFrame
               attacking={doc.attacker}
               mine={doc.teams.mine.name}
@@ -143,6 +161,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
                 {placedPlayers(doc).map((player) => {
                   const point = positions.get(player.id);
                   if (!point) return null;
+                  const selected = player.id === selectedId;
                   return (
                     <PlayerToken
                       key={player.id}
@@ -151,6 +170,10 @@ export function BoardPhone({ store }: BoardPhoneProps) {
                       team={player.team}
                       keeper={player.isKeeper}
                       label={player.slot ?? ''}
+                      role={fm ? roleLabel(doc, player) : undefined}
+                      showRole={fm && selected}
+                      selected={selected}
+                      onPointerDown={() => setSelectedId(player.id)}
                       phone
                     />
                   );

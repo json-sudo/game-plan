@@ -25,6 +25,13 @@
     padding: 0 var(--space-3) var(--space-4);
 }
 
+.hint {
+    button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+
 .title {
     flex: 1;
     min-width: 0;

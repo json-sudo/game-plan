@@ -1,8 +1,10 @@
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { FM26_DATA } from '../../../data/fm26';
 import { zoneName } from '../../../engine';
-import { createInitialDocument } from '../../../state/document';
+import { activeRoleOf } from '../../../state/context';
+import { createInitialDocument, placedPlayers, type PitchDocument } from '../../../state/document';
 import { createPitchStore } from '../../../state/store';
 import { createExampleDocument, EXAMPLE_FORMATIONS } from '../../../state/example';
 import {
@@ -25,6 +27,23 @@ beforeEach(() => {
       removeEventListener: vi.fn<() => void>(),
     }) as unknown as typeof window.matchMedia;
 });
+
+function roleNameOf(doc: PitchDocument, playerId: string) {
+  const player = doc.players.find((candidate) => candidate.id === playerId);
+  if (!player) throw new Error(`no player ${playerId}`);
+  const roleId = activeRoleOf(doc, player, FM26_DATA);
+  return FM26_DATA.roles.find((role) => role.id === roleId)?.name ?? '';
+}
+
+function pitchTokens() {
+  return within(screen.getByRole('img', { name: PITCH_LABEL })).getAllByRole('button');
+}
+
+function shownRolePlates() {
+  return Array.from(document.querySelectorAll('svg g[aria-hidden="true"]'), (group) =>
+    (group.textContent ?? '').replace(/\s/g, ''),
+  ).filter((text) => text.length > 0);
+}
 
 async function openMenu() {
   await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
@@ -171,5 +190,79 @@ describe('BoardPhone board', () => {
     render(<BoardPhone store={store} />);
     await user.click(screen.getByRole('button', { name: zoneName('C-F') }));
     expect(store.getState().doc.scenario?.zone).toBe('C-F');
+  });
+});
+
+describe('BoardPhone tokens', () => {
+  it('tapping a token shows its role name for that player only, with no role picker', async () => {
+    const user = userEvent.setup();
+    const doc = createExampleDocument();
+    const store = createPitchStore({ doc, ui: { mode: 'fm' } });
+    render(<BoardPhone store={store} />);
+    const [first, second] = placedPlayers(doc);
+    const tokens = pitchTokens();
+    await user.click(tokens[0]);
+    expect(shownRolePlates()).toEqual([roleNameOf(doc, first.id).replace(/\s/g, '')]);
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+    await user.click(tokens[1]);
+    expect(shownRolePlates()).toEqual([roleNameOf(doc, second.id).replace(/\s/g, '')]);
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+  });
+
+  it('tapping a token in Open pitch selects it without showing a role name', async () => {
+    const user = userEvent.setup();
+    const doc = createExampleDocument();
+    const store = createPitchStore({ doc, ui: { mode: 'openPitch' } });
+    render(<BoardPhone store={store} />);
+    const token = pitchTokens()[0];
+    await user.click(token);
+    expect(token).toHaveAttribute('aria-pressed', 'true');
+    expect(shownRolePlates()).toEqual([]);
+  });
+});
+
+describe('BoardPhone first-run hint', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const hintName = { name: 'How to use the example' };
+
+  it('shows above the pitch with the phone wording', () => {
+    const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
+    render(<BoardPhone store={store} />);
+    const hint = screen.getByRole('complementary', hintName);
+    expect(
+      within(hint).getByText('Step through with Next, or tap a player to see its role.'),
+    ).toBeInTheDocument();
+    const pitch = screen.getByRole('img', { name: PITCH_LABEL });
+    expect(hint.compareDocumentPosition(pitch) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('Got it dismisses it without writing to localStorage or touching the document or history', async () => {
+    const user = userEvent.setup();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    const pushState = vi.spyOn(window.history, 'pushState');
+    const replaceState = vi.spyOn(window.history, 'replaceState');
+    const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
+    const before = store.getState().doc;
+    render(<BoardPhone store={store} />);
+    await user.click(screen.getByRole('button', { name: 'Got it' }));
+    expect(screen.queryByRole('complementary', hintName)).not.toBeInTheDocument();
+    expect(store.getState().doc).toBe(before);
+    expect(setItem).not.toHaveBeenCalled();
+    expect(pushState).not.toHaveBeenCalled();
+    expect(replaceState).not.toHaveBeenCalled();
+  });
+
+  it('returns on the next load', () => {
+    const first = render(
+      <BoardPhone store={createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } })} />,
+    );
+    first.unmount();
+    render(
+      <BoardPhone store={createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } })} />,
+    );
+    expect(screen.getByRole('complementary', hintName)).toBeInTheDocument();
   });
 });
