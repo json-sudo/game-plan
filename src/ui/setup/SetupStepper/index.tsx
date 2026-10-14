@@ -75,10 +75,11 @@ export function SetupStepper({ steps, phone = false, onBack, onNext, onEdit }: S
                 <div className={styles.body}>
                   {step.content}
                   <div className={styles.nav}>
-                    {index > 0 ? (
+                    {index > 0 || phone ? (
                       <Button
                         variant="ghost"
                         size={buttonSize}
+                        disabled={index === 0}
                         onClick={onBack ? () => onBack(index) : undefined}
                       >
                         Back

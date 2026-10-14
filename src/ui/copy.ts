@@ -31,6 +31,8 @@ export const SETUP_STEP_WHO_ATTACKS = 'Who attacks';
 export const SETUP_ROLES = 'Roles';
 export const SETUP_ROLES_HINT =
   'Every player has an FM26 default role. Tap a player on the pitch to change it.';
+export const SETUP_ROLES_PHONE_HINT =
+  'Every player has an FM26 default role. Change a role with its menu below.';
 export const setupAttacksSummary = (name: string) => `${name} attacks`;
 export const setupRolesSummary = (count: number) =>
   `${count} ${count === 1 ? 'role' : 'roles'} set`;
@@ -64,6 +66,10 @@ export const benchCount = (placed: number, benched: number) =>
 export const BENCH_DROP_LABEL = 'Drop here to bench';
 export const BENCH_EMPTY_TITLE = 'Bench is empty';
 export const BENCH_EMPTY_HINT = 'Drag a player off the pitch to bench them.';
+export const BENCH_MENU_LABEL = 'Bench';
+export const BENCH_CLOSE_LABEL = 'Close bench';
+export const SQUAD_SIZE_LABEL = 'Squad size';
+export const KEEPER_TOGGLE_LABEL = 'Keeper';
 
 export const ROLE_PHASE_LABELS = { IP: 'In possession', OOP: 'Out of possession' } as const;
 export const roleCount = (count: number) => `${count} ${count === 1 ? 'role' : 'roles'}`;

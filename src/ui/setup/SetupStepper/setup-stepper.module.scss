@@ -108,7 +108,18 @@ $number-size: 28px;
 }
 
 .stepper[data-phone='true'] {
+    flex: 1;
+    overflow: visible;
+
+    .steps,
+    .step[data-state='active'] {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+    }
+
     .body {
+        flex: 1;
         padding-left: var(--space-4);
         background: inherit;
     }
