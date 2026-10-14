@@ -1,0 +1,92 @@
+.token {
+    cursor: grab;
+    outline: none;
+
+    &[data-ghost] {
+        opacity: 0.45;
+    }
+
+    &[data-dragging] {
+        cursor: grabbing;
+        filter: drop-shadow(0 0.8px 1.2px rgba(0, 0, 0, 0.5));
+        transition: none;
+    }
+
+    &[data-team='mine'] .body {
+        fill: var(--team-mine);
+    }
+
+    &[data-team='mine'] .label {
+        fill: var(--team-mine-text);
+    }
+
+    &[data-team='mine'][data-keeper] .body {
+        fill: var(--team-mine-keeper);
+    }
+
+    &[data-team='mine'][data-keeper] .label {
+        fill: var(--team-mine-keeper-text);
+    }
+
+    &[data-team='opponent'] .body {
+        fill: var(--team-opp);
+    }
+
+    &[data-team='opponent'] .label {
+        fill: var(--team-opp-text);
+    }
+
+    &[data-team='opponent'][data-keeper] .body {
+        fill: var(--team-opp-keeper);
+    }
+
+    &[data-team='opponent'][data-keeper] .label {
+        fill: var(--team-opp-keeper-text);
+    }
+
+    &:focus-visible .body {
+        stroke: var(--focus-ring);
+    }
+}
+
+.hit {
+    fill: transparent;
+}
+
+.body {
+    stroke: var(--token-ring);
+    stroke-width: 0.45;
+}
+
+.label {
+    font-family: var(--font-mono);
+    font-weight: 500;
+}
+
+.halo {
+    fill: none;
+    stroke: var(--token-selected);
+    stroke-width: 0.5;
+}
+
+.name-plate {
+    fill: var(--surface-raised);
+    stroke: var(--border-strong);
+    stroke-width: 0.15;
+}
+
+.name-text {
+    fill: var(--text);
+    font-family: var(--font-ui);
+    font-weight: 700;
+}
+
+.role-plate {
+    fill: var(--pitch-label-plate);
+}
+
+.role-text {
+    fill: var(--pitch-label-text);
+    font-family: var(--font-ui);
+    font-weight: 600;
+}

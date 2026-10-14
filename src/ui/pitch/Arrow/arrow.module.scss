@@ -1,0 +1,29 @@
+.arrow {
+    pointer-events: none;
+
+    &[data-dim] {
+        opacity: 0.35;
+    }
+
+    &[data-team='opponent'] .shaft,
+    &[data-team='opponent'] .ring {
+        stroke-dasharray: 1.1 0.8;
+    }
+}
+
+.shaft {
+    stroke: var(--arrow);
+    stroke-width: 0.45;
+    fill: none;
+    stroke-linecap: round;
+}
+
+.head {
+    fill: var(--arrow);
+}
+
+.ring {
+    fill: none;
+    stroke: var(--arrow);
+    stroke-width: 0.35;
+}

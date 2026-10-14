@@ -14,6 +14,11 @@ export const MODE_OPTIONS = (Object.keys(MODE_LABELS) as PitchMode[]).map((value
   label: MODE_LABELS[value],
 }));
 
+export const KEEPER_LABEL = 'GK';
+export const BALL_LABEL = 'Ball';
+export const TOKEN_TEAM_LABELS = { mine: 'my team', opponent: 'opponent' } as const;
+export const tokenSideLabel = (side: 'left' | 'right') => `${side} side`;
+
 export const NEXT_AT_FINAL_HINT = 'Already at Final position. Press Play to start again.';
 export const ATTACKING_TAG = 'Attacking ↑';
 export const DEFENDING_TAG = 'Defending';
