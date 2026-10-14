@@ -35,3 +35,10 @@ export const ZONE_PRESETS = [
   { label: 'Attack down the left', zone: 'L-F' },
   { label: 'Attack down the right', zone: 'R-F' },
 ] as const;
+
+export const BENCH_HEADING = 'Bench';
+export const benchCount = (placed: number, benched: number) =>
+  `${placed} on pitch · ${benched} on bench`;
+export const BENCH_DROP_LABEL = 'Drop here to bench';
+export const BENCH_EMPTY_TITLE = 'Bench is empty';
+export const BENCH_EMPTY_HINT = 'Drag a player off the pitch to bench them.';
