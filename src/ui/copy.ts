@@ -23,3 +23,15 @@ export const NEXT_AT_FINAL_HINT = 'Already at Final position. Press Play to star
 export const ATTACKING_TAG = 'Attacking ↑';
 export const DEFENDING_TAG = 'Defending';
 export const OPEN_PITCH_HINT = 'Places both teams attack against defence, with space between them.';
+
+export const ZONE_MAP_HEADING = 'Ball zone';
+export const NO_ZONE_TITLE = 'No zone yet';
+export const NO_ZONE_HINT = 'Tap a zone to put the ball there.';
+export const ZONE_UNFINISHED_SUFFIX = ', setup not finished';
+export const ZONE_UNFINISHED_MESSAGE = 'Finish setting up your tactic to see the runs.';
+export const CARRIER_PICKED_SUFFIX = '(you picked)';
+export const carrierLine = (carrier: string) => `On the ball: ${carrier}`;
+export const ZONE_PRESETS = [
+  { label: 'Attack down the left', zone: 'L-F' },
+  { label: 'Attack down the right', zone: 'R-F' },
+] as const;

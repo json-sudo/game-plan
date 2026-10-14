@@ -1,0 +1,108 @@
+@use 'mixins' as m;
+
+.map {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+}
+
+.heading {
+    @include m.type('eyebrow');
+
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.grid {
+    display: grid;
+    grid-template-rows: repeat(3, 1fr);
+    aspect-ratio: var(--pitch-ratio);
+    max-width: 240px;
+    border: 2px solid var(--pitch-line);
+    border-radius: var(--radius-sm);
+    background: var(--pitch);
+    overflow: hidden;
+}
+
+.cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding: 0;
+    border: 1px solid var(--pitch-line);
+    background: transparent;
+    cursor: pointer;
+    transition: background-color var(--ui-transition);
+
+    &[data-half-space='true'] {
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    &:hover {
+        background: var(--zone-hover);
+    }
+
+    &[data-unfinished='true'] {
+        background-image: repeating-linear-gradient(
+            45deg,
+            rgba(255, 255, 255, 0.18) 0 2px,
+            transparent 2px 7px
+        );
+    }
+
+    &[data-selected='true'] {
+        background-color: var(--zone-selected);
+    }
+
+    &:focus-visible {
+        @include m.focus-ring;
+
+        position: relative;
+        z-index: 1;
+    }
+}
+
+.key {
+    @include m.type('position');
+
+    display: grid;
+    max-width: 240px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.name {
+    @include m.type('body-strong');
+
+    margin: 0;
+}
+
+.note {
+    @include m.type('small');
+
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.tag {
+    @include m.type('small');
+
+    align-self: flex-start;
+    margin: 0;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--control);
+    color: var(--control-text);
+}
+
+.presets {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+
+    [data-phone='true'] > & {
+        flex-direction: row;
+    }
+}
