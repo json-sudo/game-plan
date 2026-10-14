@@ -2,7 +2,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useStore, type StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
 import type { Point } from '../../../data/types';
-import { ballAtopPosition, computePhases, type Phase } from '../../../engine';
+import {
+  ballAtopPosition,
+  computePhases,
+  MOTION_DURATIONS_MS,
+  PHASES,
+  type Phase,
+} from '../../../engine';
 import { activeRoleOf, phasePlayersOf } from '../../../state/context';
 import {
   placedPlayers,
@@ -302,6 +308,17 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
   }, [ui.theme]);
 
   useEffect(() => {
+    if (!ui.playing) return;
+    const index = PHASE_INDEX[ui.phase];
+    const timer = window.setTimeout(() => {
+      const phase = PHASES[index + 1];
+      if (!phase) return;
+      store.getState().patchUi({ phase, playing: phase !== 'final' });
+    }, MOTION_DURATIONS_MS.cadence);
+    return () => window.clearTimeout(timer);
+  }, [store, ui.phase, ui.playing]);
+
+  useEffect(() => {
     if (!fm) setPickedId(null);
   }, [fm]);
 
@@ -534,8 +551,30 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
               value={doc.scenario?.zone ?? null}
               carrier={carrier?.slot ?? undefined}
               attackerName={doc.teams[doc.attacker].name}
+              onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
             />
-            {fm ? <TransportBar phase={PHASE_INDEX[ui.phase]} playing={ui.playing} /> : null}
+            {fm ? (
+              <TransportBar
+                phase={PHASE_INDEX[ui.phase]}
+                playing={ui.playing}
+                onPhase={(index) => {
+                  const phase = PHASES[index];
+                  if (!phase) return;
+                  store.getState().patchUi({ phase, playing: false });
+                }}
+                onTogglePlay={() => {
+                  const state = store.getState();
+                  if (state.ui.playing) {
+                    state.patchUi({ playing: false });
+                    return;
+                  }
+                  state.patchUi({
+                    playing: true,
+                    phase: state.ui.phase === 'final' ? 'shape' : state.ui.phase,
+                  });
+                }}
+              />
+            ) : null}
           </Instrument>
           {fm ? null : (
             <Bench
