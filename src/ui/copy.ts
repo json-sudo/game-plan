@@ -42,3 +42,8 @@ export const benchCount = (placed: number, benched: number) =>
 export const BENCH_DROP_LABEL = 'Drop here to bench';
 export const BENCH_EMPTY_TITLE = 'Bench is empty';
 export const BENCH_EMPTY_HINT = 'Drag a player off the pitch to bench them.';
+
+export const ROLE_PHASE_LABELS = { IP: 'In possession', OOP: 'Out of possession' } as const;
+export const roleCount = (count: number) => `${count} ${count === 1 ? 'role' : 'roles'}`;
+export const ROLE_CURRENT_MARK = 'Current';
+export const ROLE_HOLDS_POSITION = 'Holds position';
