@@ -1,0 +1,12 @@
+.instrument {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+    overflow: hidden;
+
+    > * + * {
+        border-top: 1px solid var(--border);
+    }
+}

@@ -15,4 +15,6 @@ export const MODE_OPTIONS = (Object.keys(MODE_LABELS) as PitchMode[]).map((value
 }));
 
 export const NEXT_AT_FINAL_HINT = 'Already at Final position. Press Play to start again.';
+export const ATTACKING_TAG = 'Attacking ↑';
+export const DEFENDING_TAG = 'Defending';
 export const OPEN_PITCH_HINT = 'Places both teams attack against defence, with space between them.';
