@@ -1,10 +1,19 @@
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { zoneName } from '../../../engine';
 import { createInitialDocument } from '../../../state/document';
 import { createPitchStore } from '../../../state/store';
-import { EXAMPLE_FORMATIONS } from '../../../state/example';
-import { RESET_DISABLED_REASON, THEME_DARK_LABEL, UNDO_DISABLED_REASON } from '../../copy';
+import { createExampleDocument, EXAMPLE_FORMATIONS } from '../../../state/example';
+import {
+  BENCH_HEADING,
+  PITCH_LABEL,
+  RESET_DISABLED_REASON,
+  THEME_DARK_LABEL,
+  TRANSPORT_PLAY_LABEL,
+  UNDO_DISABLED_REASON,
+  ZONE_MAP_HEADING,
+} from '../../copy';
 import { BoardPhone } from '.';
 
 beforeEach(() => {
@@ -88,5 +97,43 @@ describe('BoardPhone menu', () => {
       'aria-disabled',
       'true',
     );
+  });
+});
+
+describe('BoardPhone board', () => {
+  it('renders the transport bar in FM mode only, and the bench in-page in neither mode', () => {
+    const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
+    render(<BoardPhone store={store} />);
+    expect(screen.getByRole('button', { name: TRANSPORT_PLAY_LABEL })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: BENCH_HEADING })).not.toBeInTheDocument();
+    act(() => {
+      store.getState().setMode('openPitch');
+    });
+    expect(screen.queryByRole('button', { name: TRANSPORT_PLAY_LABEL })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: BENCH_HEADING })).not.toBeInTheDocument();
+  });
+
+  it('renders the zone map below the transport bar in FM mode', () => {
+    const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
+    render(<BoardPhone store={store} />);
+    const play = screen.getByRole('button', { name: TRANSPORT_PLAY_LABEL });
+    const zoneMap = screen.getByRole('heading', { name: ZONE_MAP_HEADING });
+    expect(play.compareDocumentPosition(zoneMap) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('renders the framed pitch below the top bar', () => {
+    const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
+    render(<BoardPhone store={store} />);
+    const menu = screen.getByRole('button', { name: 'Menu' });
+    const pitch = screen.getByRole('img', { name: PITCH_LABEL });
+    expect(menu.compareDocumentPosition(pitch) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('picking a zone dispatches the same tapZone action as desktop', async () => {
+    const user = userEvent.setup();
+    const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
+    render(<BoardPhone store={store} />);
+    await user.click(screen.getByRole('button', { name: zoneName('C-F') }));
+    expect(store.getState().doc.scenario?.zone).toBe('C-F');
   });
 });

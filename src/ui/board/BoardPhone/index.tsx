@@ -1,22 +1,33 @@
 import { useEffect, useState } from 'react';
 import { useStore, type StoreApi } from 'zustand';
-import { selectCanUndo } from '../../../state/selectors';
+import { MOTION_DURATIONS_MS, PHASES, ballAtopPosition, type Phase } from '../../../engine';
+import { placedPlayers } from '../../../state/document';
+import { selectCanUndo, selectDisplayPositions } from '../../../state/selectors';
 import type { PitchStore } from '../../../state/store';
 import { PhoneMenu, type PhoneMenuEntry } from '../../chrome/PhoneMenu';
 import { UndoControl } from '../../chrome/UndoControl';
 import {
   CLEAR_LABEL,
   MODE_LABELS,
+  PITCH_LABEL,
   RESET_DISABLED_REASON,
   RESET_LABEL,
   THEME_DARK_LABEL,
   THEME_LIGHT_LABEL,
 } from '../../copy';
 import { Button } from '../../controls/Button';
+import { Instrument } from '../../instrument/Instrument';
+import { TransportBar } from '../../instrument/TransportBar';
+import { ZoneMap } from '../../instrument/ZoneMap';
+import { Ball } from '../../pitch/Ball';
+import { Pitch } from '../../pitch/Pitch';
+import { PitchFrame } from '../../pitch/PitchFrame';
+import { PlayerToken } from '../../pitch/PlayerToken';
 import styles from './board-phone.module.scss';
 
 const MODE_ITEM_PREFIX = 'Mode: ';
 const MENU_LABEL = 'Menu';
+const PHASE_INDEX: Record<Phase, 0 | 1 | 2> = { shape: 0, runs: 1, final: 2 };
 
 export interface BoardPhoneProps {
   store: StoreApi<PitchStore>;
@@ -26,14 +37,32 @@ export function BoardPhone({ store }: BoardPhoneProps) {
   const doc = useStore(store, (state) => state.doc);
   const ui = useStore(store, (state) => state.ui);
   const canUndo = useStore(store, selectCanUndo);
+  const positions = useStore(store, selectDisplayPositions);
   const [menuOpen, setMenuOpen] = useState(false);
   const canReset = doc.teams.mine.applied !== null || doc.teams.opponent.applied !== null;
   const fm = ui.mode === 'fm';
   const dark = ui.theme === 'dark';
+  const carrier = doc.players.find((player) => player.id === doc.scenario?.carrierId);
+  const carrierPoint = carrier ? positions.get(carrier.id) : undefined;
+  const ballPoint =
+    carrier && carrier.team === doc.attacker && carrierPoint
+      ? ballAtopPosition(carrierPoint)
+      : doc.ball;
 
   useEffect(() => {
     document.documentElement.dataset.theme = ui.theme;
   }, [ui.theme]);
+
+  useEffect(() => {
+    if (!ui.playing) return;
+    const index = PHASE_INDEX[ui.phase];
+    const timer = window.setTimeout(() => {
+      const phase = PHASES[index + 1];
+      if (!phase) return;
+      store.getState().patchUi({ phase, playing: phase !== 'final' });
+    }, MOTION_DURATIONS_MS.cadence);
+    return () => window.clearTimeout(timer);
+  }, [store, ui.phase, ui.playing]);
 
   const choose = (action: () => void) => () => {
     setMenuOpen(false);
@@ -78,6 +107,66 @@ export function BoardPhone({ store }: BoardPhoneProps) {
           onClick={() => setMenuOpen(true)}
         />
       </header>
+      <div className={styles.body}>
+        <PitchFrame
+          attacking={doc.attacker}
+          mine={doc.teams.mine.name}
+          opponent={doc.teams.opponent.name}
+        >
+          <Pitch label={PITCH_LABEL}>
+            {placedPlayers(doc).map((player) => {
+              const point = positions.get(player.id);
+              if (!point) return null;
+              return (
+                <PlayerToken
+                  key={player.id}
+                  x={point.x}
+                  y={point.y}
+                  team={player.team}
+                  keeper={player.isKeeper}
+                  label={player.slot ?? ''}
+                  phone
+                />
+              );
+            })}
+            <Ball x={ballPoint.x} y={ballPoint.y} />
+          </Pitch>
+        </PitchFrame>
+        {fm ? (
+          <Instrument>
+            <TransportBar
+              phone
+              phase={PHASE_INDEX[ui.phase]}
+              playing={ui.playing}
+              onPhase={(index) => {
+                const phase = PHASES[index];
+                if (!phase) return;
+                store.getState().patchUi({ phase, playing: false });
+              }}
+              onTogglePlay={() => {
+                const state = store.getState();
+                if (state.ui.playing) {
+                  state.patchUi({ playing: false });
+                  return;
+                }
+                state.patchUi({
+                  playing: true,
+                  phase: state.ui.phase === 'final' ? 'shape' : state.ui.phase,
+                });
+              }}
+            />
+          </Instrument>
+        ) : null}
+        <Instrument>
+          <ZoneMap
+            phone
+            value={doc.scenario?.zone ?? null}
+            carrier={carrier?.slot ?? undefined}
+            attackerName={doc.teams[doc.attacker].name}
+            onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
+          />
+        </Instrument>
+      </div>
       {menuOpen ? <PhoneMenu items={menuItems} onClose={() => setMenuOpen(false)} /> : null}
     </div>
   );
