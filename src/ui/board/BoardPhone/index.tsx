@@ -19,6 +19,8 @@ import { Button } from '../../controls/Button';
 import { Instrument } from '../../instrument/Instrument';
 import { TransportBar } from '../../instrument/TransportBar';
 import { ZoneMap } from '../../instrument/ZoneMap';
+import { SetupFlow } from '../../setup/SetupFlow';
+import { setupCursor } from '../../setup/setup-model';
 import { Ball } from '../../pitch/Ball';
 import { Pitch } from '../../pitch/Pitch';
 import { PitchFrame } from '../../pitch/PitchFrame';
@@ -42,6 +44,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
   const canReset = doc.teams.mine.applied !== null || doc.teams.opponent.applied !== null;
   const fm = ui.mode === 'fm';
   const dark = ui.theme === 'dark';
+  const cursor = setupCursor(doc, ui.setupStep);
   const carrier = doc.players.find((player) => player.id === doc.scenario?.carrierId);
   const carrierPoint = carrier ? positions.get(carrier.id) : undefined;
   const ballPoint =
@@ -108,64 +111,72 @@ export function BoardPhone({ store }: BoardPhoneProps) {
         />
       </header>
       <div className={styles.body}>
-        <PitchFrame
-          attacking={doc.attacker}
-          mine={doc.teams.mine.name}
-          opponent={doc.teams.opponent.name}
-        >
-          <Pitch label={PITCH_LABEL}>
-            {placedPlayers(doc).map((player) => {
-              const point = positions.get(player.id);
-              if (!point) return null;
-              return (
-                <PlayerToken
-                  key={player.id}
-                  x={point.x}
-                  y={point.y}
-                  team={player.team}
-                  keeper={player.isKeeper}
-                  label={player.slot ?? ''}
+        {cursor !== null ? (
+          <div className={styles.setup}>
+            <SetupFlow store={store} phone />
+          </div>
+        ) : (
+          <>
+            <PitchFrame
+              attacking={doc.attacker}
+              mine={doc.teams.mine.name}
+              opponent={doc.teams.opponent.name}
+            >
+              <Pitch label={PITCH_LABEL}>
+                {placedPlayers(doc).map((player) => {
+                  const point = positions.get(player.id);
+                  if (!point) return null;
+                  return (
+                    <PlayerToken
+                      key={player.id}
+                      x={point.x}
+                      y={point.y}
+                      team={player.team}
+                      keeper={player.isKeeper}
+                      label={player.slot ?? ''}
+                      phone
+                    />
+                  );
+                })}
+                <Ball x={ballPoint.x} y={ballPoint.y} />
+              </Pitch>
+            </PitchFrame>
+            {fm ? (
+              <Instrument>
+                <TransportBar
                   phone
+                  phase={PHASE_INDEX[ui.phase]}
+                  playing={ui.playing}
+                  onPhase={(index) => {
+                    const phase = PHASES[index];
+                    if (!phase) return;
+                    store.getState().patchUi({ phase, playing: false });
+                  }}
+                  onTogglePlay={() => {
+                    const state = store.getState();
+                    if (state.ui.playing) {
+                      state.patchUi({ playing: false });
+                      return;
+                    }
+                    state.patchUi({
+                      playing: true,
+                      phase: state.ui.phase === 'final' ? 'shape' : state.ui.phase,
+                    });
+                  }}
                 />
-              );
-            })}
-            <Ball x={ballPoint.x} y={ballPoint.y} />
-          </Pitch>
-        </PitchFrame>
-        {fm ? (
-          <Instrument>
-            <TransportBar
-              phone
-              phase={PHASE_INDEX[ui.phase]}
-              playing={ui.playing}
-              onPhase={(index) => {
-                const phase = PHASES[index];
-                if (!phase) return;
-                store.getState().patchUi({ phase, playing: false });
-              }}
-              onTogglePlay={() => {
-                const state = store.getState();
-                if (state.ui.playing) {
-                  state.patchUi({ playing: false });
-                  return;
-                }
-                state.patchUi({
-                  playing: true,
-                  phase: state.ui.phase === 'final' ? 'shape' : state.ui.phase,
-                });
-              }}
-            />
-          </Instrument>
-        ) : null}
-        <Instrument>
-          <ZoneMap
-            phone
-            value={doc.scenario?.zone ?? null}
-            carrier={carrier?.slot ?? undefined}
-            attackerName={doc.teams[doc.attacker].name}
-            onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
-          />
-        </Instrument>
+              </Instrument>
+            ) : null}
+            <Instrument>
+              <ZoneMap
+                phone
+                value={doc.scenario?.zone ?? null}
+                carrier={carrier?.slot ?? undefined}
+                attackerName={doc.teams[doc.attacker].name}
+                onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
+              />
+            </Instrument>
+          </>
+        )}
       </div>
       {menuOpen ? <PhoneMenu items={menuItems} onClose={() => setMenuOpen(false)} /> : null}
     </div>

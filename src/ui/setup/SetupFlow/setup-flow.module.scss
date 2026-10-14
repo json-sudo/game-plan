@@ -1,0 +1,16 @@
+.flow {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+}
+
+.roles-hint {
+    margin: 0;
+}
+
+.role-choice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}

@@ -31,6 +31,8 @@ export const SETUP_STEP_WHO_ATTACKS = 'Who attacks';
 export const SETUP_ROLES = 'Roles';
 export const SETUP_ROLES_HINT =
   'Every player has an FM26 default role. Tap a player on the pitch to change it.';
+export const SETUP_ROLES_PHONE_HINT =
+  'Every player has an FM26 default role. Change a role with its menu below.';
 export const setupAttacksSummary = (name: string) => `${name} attacks`;
 export const setupRolesSummary = (count: number) =>
   `${count} ${count === 1 ? 'role' : 'roles'} set`;
