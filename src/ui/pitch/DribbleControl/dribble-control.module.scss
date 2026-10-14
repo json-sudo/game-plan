@@ -1,0 +1,27 @@
+@use 'mixins' as m;
+
+.button {
+    cursor: pointer;
+
+    &:focus-visible {
+        @include m.focus-ring;
+    }
+
+    &:hover .disc {
+        fill: var(--accent);
+    }
+
+    &:hover .glyph {
+        fill: var(--accent-text);
+    }
+}
+
+.disc {
+    fill: var(--surface-raised);
+    stroke: var(--border-strong);
+    stroke-width: 0.25;
+}
+
+.glyph {
+    fill: var(--text);
+}

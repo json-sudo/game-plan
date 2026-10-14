@@ -47,3 +47,20 @@ export const ROLE_PHASE_LABELS = { IP: 'In possession', OOP: 'Out of possession'
 export const roleCount = (count: number) => `${count} ${count === 1 ? 'role' : 'roles'}`;
 export const ROLE_CURRENT_MARK = 'Current';
 export const ROLE_HOLDS_POSITION = 'Holds position';
+
+export const TRANSPORT_PHASE_LABELS = ['Shape', 'Runs', 'Final'] as const;
+export const BACK_AT_SHAPE_HINT = 'Already at Shape.';
+export const TRANSPORT_BACK_LABEL = 'Back';
+export const TRANSPORT_NEXT_LABEL = 'Next';
+export const TRANSPORT_PLAY_LABEL = 'Play';
+export const TRANSPORT_PAUSE_LABEL = 'Pause';
+export const TRANSPORT_PLAYING_STATUS = 'Playing';
+export const transportStatus = (phase: number) =>
+  `${phase + 1} of ${TRANSPORT_PHASE_LABELS.length}`;
+
+export const DRIBBLE_LABELS = {
+  up: 'Dribble forward',
+  right: 'Dribble right',
+  down: 'Dribble back',
+  left: 'Dribble left',
+} as const;
