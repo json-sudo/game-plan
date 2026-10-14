@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, ReactNode, Ref } from 'react';
 import { PITCH_H, PITCH_W } from '../../../engine';
 import styles from './pitch.module.scss';
 
@@ -17,6 +17,7 @@ export interface PitchProps {
   notice?: string;
   viewBox?: string;
   style?: CSSProperties;
+  svgRef?: Ref<SVGSVGElement>;
   children?: ReactNode;
 }
 
@@ -33,9 +34,10 @@ function Box({ top, box }: { top: boolean; box: { width: number; depth: number }
   );
 }
 
-export function Pitch({ label, notice, viewBox, style, children }: PitchProps) {
+export function Pitch({ label, notice, viewBox, style, svgRef, children }: PitchProps) {
   return (
     <svg
+      ref={svgRef}
       className={styles.pitch}
       role="img"
       aria-label={label}

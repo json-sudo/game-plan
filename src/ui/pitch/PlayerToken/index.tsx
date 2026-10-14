@@ -1,3 +1,4 @@
+import type { PointerEvent } from 'react';
 import type { Side } from '../../../data/types';
 import { PIECE_NAME_ON_TOKEN_MAX_LENGTH } from '../../../state/document';
 import { KEEPER_LABEL, TOKEN_TEAM_LABELS, tokenSideLabel } from '../../copy';
@@ -18,6 +19,7 @@ export interface PlayerTokenProps {
   ghost?: boolean;
   showRole?: boolean;
   phone?: boolean;
+  onPointerDown?: (event: PointerEvent<SVGGElement>) => void;
 }
 
 const DESKTOP_RADIUS = 2.6;
@@ -65,6 +67,7 @@ export function PlayerToken({
   ghost = false,
   showRole = false,
   phone = false,
+  onPointerDown,
 }: PlayerTokenProps) {
   const r = phone ? PHONE_RADIUS : DESKTOP_RADIUS;
   const rawLabel = keeper ? label || KEEPER_LABEL : label;
@@ -96,6 +99,7 @@ export function PlayerToken({
       data-dragging={dragging || undefined}
       data-ghost={ghost || undefined}
       tabIndex={0}
+      onPointerDown={onPointerDown}
       role="button"
       aria-label={accessibleName}
       aria-pressed={selected}

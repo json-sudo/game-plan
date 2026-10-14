@@ -1,3 +1,4 @@
+import type { PointerEvent, Ref } from 'react';
 import {
   BENCH_DROP_LABEL,
   BENCH_EMPTY_HINT,
@@ -14,6 +15,8 @@ export interface BenchProps {
   placed: number;
   dropping?: boolean;
   sheet?: boolean;
+  benchRef?: Ref<HTMLElement>;
+  onChipPointerDown?: (id: string) => (event: PointerEvent<HTMLButtonElement>) => void;
 }
 
 function pieceNumber(piece: BenchPiece): number {
@@ -28,12 +31,19 @@ function compareBenchPieces(a: BenchPiece, b: BenchPiece): number {
   return 0;
 }
 
-export function Bench({ pieces, placed, dropping = false, sheet = false }: BenchProps) {
+export function Bench({
+  pieces,
+  placed,
+  dropping = false,
+  sheet = false,
+  benchRef,
+  onChipPointerDown,
+}: BenchProps) {
   const ordered = [...pieces].sort(compareBenchPieces);
   const showEmpty = ordered.length === 0 && !dropping;
 
   return (
-    <section className={styles.bench} data-sheet={sheet || undefined}>
+    <section ref={benchRef} className={styles.bench} data-sheet={sheet || undefined}>
       <h2 className={styles.heading}>{BENCH_HEADING}</h2>
       <p className={styles.count}>{benchCount(placed, ordered.length)}</p>
       {showEmpty ? (
@@ -48,6 +58,7 @@ export function Bench({ pieces, placed, dropping = false, sheet = false }: Bench
                 team={piece.team}
                 keeper={piece.keeper}
                 name={piece.name}
+                onPointerDown={onChipPointerDown?.(piece.id)}
               />
             </li>
           ))}

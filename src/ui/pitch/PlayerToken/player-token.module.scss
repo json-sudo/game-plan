@@ -1,5 +1,6 @@
 .token {
     cursor: grab;
+    touch-action: none;
     outline: none;
 
     &[data-ghost] {
