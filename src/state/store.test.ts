@@ -126,6 +126,26 @@ describe('undo and redo', () => {
     expect(store.getState().doc).toEqual(createInitialDocument());
   });
 
+  it('reset restores the applied layout and undo brings the edit back', () => {
+    const store = blankStore();
+    const { dispatch, undo } = store.getState();
+    dispatch({ type: 'clearScenario' });
+    expect(store.getState().history.past).toHaveLength(0);
+    dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_3_3_dm_wide' });
+    const applied = store.getState().doc.players.find((player) => player.id === 'mine-ST')!.base;
+    dispatch({ type: 'movePlayer', playerId: 'mine-ST', point: { x: 1, y: 1 } });
+    dispatch({ type: 'reset' });
+    expect(store.getState().doc.players.find((player) => player.id === 'mine-ST')!.base).toEqual(
+      applied,
+    );
+    expect(store.getState().doc.teams.mine.applied).toBe('formation');
+    undo();
+    expect(store.getState().doc.players.find((player) => player.id === 'mine-ST')!.base).toEqual({
+      x: 1,
+      y: 1,
+    });
+  });
+
   it('undoing a role change restores the old role', () => {
     const store = exampleStore();
     const before = store.getState().doc.players.find((p) => p.id === 'mine-ST')!.role;
@@ -177,6 +197,22 @@ describe('ui state', () => {
     store.getState().setMode('openPitch');
     expect(store.getState().ui.mode).toBe('openPitch');
     expect(playersOf(store.getState().doc, 'mine').some((p) => p.role !== undefined)).toBe(true);
+  });
+
+  it('fills default roles on the document and on history entries', () => {
+    const store = blankStore();
+    store
+      .getState()
+      .dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_3_3_dm_wide' });
+    store.getState().setMode('fm');
+    const placed = (doc: PitchDocument) =>
+      playersOf(doc, 'mine')
+        .filter((player) => player.base)
+        .every((player) => player.role !== undefined);
+    const state = store.getState();
+    expect(placed(state.doc)).toBe(true);
+    expect(state.history.past).toHaveLength(1);
+    expect(placed(state.history.past[0]!)).toBe(true);
   });
 
   it('fills roles on entering fm without its own undo step', () => {
