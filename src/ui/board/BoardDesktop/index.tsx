@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useStore, type StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
 import type { Point } from '../../../data/types';
-import { ballAtopPosition, type Phase } from '../../../engine';
-import { activeRoleOf } from '../../../state/context';
+import { ballAtopPosition, computePhases, type Phase } from '../../../engine';
+import { activeRoleOf, phasePlayersOf } from '../../../state/context';
 import {
   placedPlayers,
   possessionOf,
@@ -56,6 +56,8 @@ import { Ball } from '../../pitch/Ball';
 import { Pitch } from '../../pitch/Pitch';
 import { PitchFrame } from '../../pitch/PitchFrame';
 import { PlayerToken } from '../../pitch/PlayerToken';
+import { RolePicker, type RolePickerRole } from '../../roles/RolePicker';
+import { PICKER_SIZE, anchorRolePicker } from './anchor-role-picker';
 import styles from './board-desktop.module.scss';
 
 const BALL_DRAG_ID = 'ball';
@@ -117,6 +119,39 @@ function stepMark(
   return { state: 'todo', reopened: false };
 }
 
+function familySide(family: Player['family']): 'left' | 'right' | undefined {
+  if (family?.endsWith('(L)')) return 'left';
+  if (family?.endsWith('(R)')) return 'right';
+  return undefined;
+}
+
+function roleMovement(doc: PitchDocument, playerId: string, roleId: string) {
+  const positions = computePhases({
+    attacker: doc.attacker,
+    players: phasePlayersOf(doc, FM26_DATA).map((player) =>
+      player.id === playerId ? { ...player, roleId } : player,
+    ),
+    ball: doc.ball,
+    carrierId: doc.scenario?.carrierId ?? null,
+    tables: {
+      movement: FM26_DATA.movement,
+      shapeLineShift: FM26_DATA.shapeLineShift,
+      lineShift: FM26_DATA.lineShift,
+    },
+  }).positions;
+  const from = positions.shape.get(playerId) ?? { x: 0, y: 0 };
+  return { from, to: positions.final.get(playerId) ?? from };
+}
+
+function pickerRoles(doc: PitchDocument, player: Player): RolePickerRole[] {
+  return roleOptions(doc, player).map((role) => ({
+    id: role.id,
+    name: role.name,
+    desc: role.description,
+    ...roleMovement(doc, player.id, role.id),
+  }));
+}
+
 function roleOptions(doc: PitchDocument, player: Player) {
   if (!player.family) return [];
   const family = player.family;
@@ -166,6 +201,11 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
   const [showHint, setShowHint] = useState(
     () => JSON.stringify(store.getState().doc) === JSON.stringify(createExampleDocument()),
   );
+  const [pickedId, setPickedId] = useState<string | null>(null);
+  const [pickerPlace, setPickerPlace] = useState({ left: 0, top: 0 });
+  const openToken = useRef<SVGGElement | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const gesture = useRef<{ id: string; moved: boolean } | null>(null);
   const marks = ([1, 2, 3] as const).map((index) => stepMark(index, cursor, complete));
   const placed = placedPlayers(doc);
   const steps: SetupStep[] = [
@@ -261,8 +301,19 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
     document.documentElement.dataset.theme = ui.theme;
   }, [ui.theme]);
 
+  useEffect(() => {
+    if (!fm) setPickedId(null);
+  }, [fm]);
+
+  const unmovedTap = () => {
+    const tap = gesture.current && !gesture.current.moved ? gesture.current.id : null;
+    gesture.current = null;
+    return tap;
+  };
+
   const drag = usePitchDrag({
     onDragStart: (id) => {
+      if (gesture.current?.id !== id) gesture.current = { id, moved: false };
       const state = store.getState();
       if (id === BALL_DRAG_ID) {
         state.beginDrag({ kind: 'ball' }, state.doc.ball);
@@ -271,14 +322,79 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
       const point = selectDisplayPositions(state).get(id);
       if (point) state.beginDrag({ kind: 'player', id }, point);
     },
-    onDragMove: (_id, point) => store.getState().updateDrag(point),
+    onDragMove: (_id, point) => {
+      if (gesture.current) gesture.current.moved = true;
+      store.getState().updateDrag(point);
+    },
     onDragEnd: (_id, point) => {
+      const tap = unmovedTap();
       const state = store.getState();
+      if (tap) {
+        state.cancelDrag();
+        if (tap !== BALL_DRAG_ID && state.ui.mode === 'fm') setPickedId(tap);
+        return;
+      }
       state.updateDrag(point);
       state.endDrag();
     },
-    onCancel: () => store.getState().cancelDrag(),
+    onCancel: () => {
+      const tap = unmovedTap();
+      const state = store.getState();
+      state.cancelDrag();
+      if (tap && tap !== BALL_DRAG_ID && state.ui.mode === 'fm') setPickedId(tap);
+    },
   });
+
+  const picked = fm && pickedId ? doc.players.find((player) => player.id === pickedId) : undefined;
+  const pickedRoleId = picked ? activeRoleOf(doc, picked, FM26_DATA) : undefined;
+  const pickedRoles = picked && picked.slot && pickedRoleId ? pickerRoles(doc, picked) : [];
+
+  useLayoutEffect(() => {
+    const token = openToken.current;
+    const node = pickerRef.current;
+    if (!picked || !token || !node) return;
+    const rect = token.getBoundingClientRect();
+    const measured = { width: node.offsetWidth, height: node.offsetHeight };
+    const size = measured.width > 0 && measured.height > 0 ? measured : PICKER_SIZE;
+    setPickerPlace(
+      anchorRolePicker(
+        { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+        { width: window.innerWidth, height: window.innerHeight },
+        size,
+      ),
+    );
+  }, [picked, doc, ui.phase]);
+
+  useEffect(() => {
+    if (!picked) return;
+    const token = openToken.current;
+    const close = (focusToken: boolean) => {
+      setPickedId(null);
+      if (focusToken) token?.focus();
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      close(true);
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (pickerRef.current?.contains(target)) return;
+      if (token?.contains(target)) return;
+      const onPitchToken =
+        target instanceof Element &&
+        drag.svgRef.current?.contains(target) &&
+        target.closest('[role="button"]');
+      close(!onPitchToken);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+    };
+  }, [picked, drag.svgRef]);
 
   return (
     <div className={styles.board}>
@@ -393,7 +509,11 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
                     role={role}
                     showRole={fm}
                     dragging={dragging}
-                    onPointerDown={drag.startDrag(player.id)}
+                    onPointerDown={(event) => {
+                      openToken.current = event.currentTarget;
+                      gesture.current = { id: player.id, moved: false };
+                      drag.startDrag(player.id)(event);
+                    }}
                   />
                 );
               })}
@@ -437,6 +557,27 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
           )}
         </section>
       </div>
+      {picked && picked.slot && pickedRoleId ? (
+        <div
+          ref={pickerRef}
+          className={styles.picker}
+          style={{ left: pickerPlace.left, top: pickerPlace.top }}
+        >
+          <RolePicker
+            slotLabel={picked.slot}
+            side={familySide(picked.family)}
+            phase={possessionOf(doc, picked.team) === 'in' ? 'IP' : 'OOP'}
+            team={picked.team}
+            roles={pickedRoles}
+            current={pickedRoleId}
+            value={pickedRoleId}
+            zone={doc.scenario?.zone}
+            onChoose={(roleId) =>
+              store.getState().dispatch({ type: 'setRole', playerId: picked.id, roleId })
+            }
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

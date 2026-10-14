@@ -17,7 +17,11 @@ import {
   SIDE_COLUMN_LABEL,
   SETUP_COLUMN_LABEL,
   UNDO_DISABLED_REASON,
+  ROLE_CURRENT_MARK,
+  ROLE_PHASE_LABELS,
+  roleCount,
   setupRoleChoiceLabel,
+  tokenSideLabel,
 } from '../../copy';
 import { ARROW_RING_RADIUS } from '../../pitch/Arrow';
 import { BoardDesktop } from '.';
@@ -466,5 +470,98 @@ describe('setup and hint', () => {
     expect(
       screen.getByRole('complementary', { name: 'How to use the example' }),
     ).toBeInTheDocument();
+  });
+});
+
+function widePlayer(store: StoreApi<PitchStore>) {
+  const player = store.getState().doc.players.find((item) => item.id === 'mine-AMCL');
+  if (!player?.slot || !player.family || !player.role)
+    throw new Error('example wide player missing');
+  return player;
+}
+
+function validRoles(player: ReturnType<typeof widePlayer>) {
+  return FM26_DATA.roles.filter(
+    (role) => role.possession === 'in' && role.families.includes(player.family!),
+  );
+}
+
+function radioName(name: string) {
+  return new RegExp(`^${name}(\\s*${ROLE_CURRENT_MARK})?$`);
+}
+
+function silencePitchMatrix() {
+  const svg = screen.getByRole('img', { name: 'Pitch' });
+  Object.defineProperty(svg, 'getScreenCTM', { configurable: true, value: () => null });
+}
+
+describe('role picker anchor', () => {
+  it('opens beside a token in FM mode with the slot heading, and stays closed in Open pitch', async () => {
+    const user = userEvent.setup();
+    const store = exampleStore();
+    const player = widePlayer(store);
+    const roles = validRoles(player);
+    const current = roles.find((role) => role.id === player.role)!;
+    render(<BoardDesktop store={store} />);
+    silencePitchMatrix();
+
+    await user.click(
+      screen.getByRole('button', { name: `${player.slot}, ${current.name}, my team` }),
+    );
+
+    const picker = screen.getByRole('region', { name: player.slot! });
+    expect(screen.getByRole('heading', { name: player.slot! })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        [ROLE_PHASE_LABELS.IP, tokenSideLabel('left'), roleCount(roles.length)].join(' · '),
+      ),
+    ).toBeInTheDocument();
+    const compact = (value: string | null | undefined) => (value ?? '').replace(/\s+/g, '');
+    expect(
+      within(picker)
+        .getAllByRole('radio')
+        .map((row) => compact(row.textContent)),
+    ).toEqual(
+      roles.map((role) =>
+        compact(role.id === current.id ? `${role.name} ${ROLE_CURRENT_MARK}` : role.name),
+      ),
+    );
+    expect(
+      within(within(picker).getByRole('radio', { name: radioName(current.name) })).getByText(
+        ROLE_CURRENT_MARK,
+      ),
+    ).toBeInTheDocument();
+
+    act(() => store.getState().setMode('openPitch'));
+    expect(screen.queryByRole('region', { name: player.slot! })).not.toBeInTheDocument();
+    silencePitchMatrix();
+    await user.click(screen.getByRole('button', { name: `${player.slot}, my team` }));
+    expect(screen.queryByRole('region', { name: player.slot! })).not.toBeInTheDocument();
+  });
+
+  it('dispatches setRole for the chosen row, and Escape closes the picker and returns focus to the token', async () => {
+    const user = userEvent.setup();
+    const store = exampleStore();
+    const player = widePlayer(store);
+    const next = validRoles(player).find((role) => role.id !== player.role)!;
+    const current = FM26_DATA.roles.find((role) => role.id === player.role)!;
+    render(<BoardDesktop store={store} />);
+    silencePitchMatrix();
+    const token = screen.getByRole('button', {
+      name: `${player.slot}, ${current.name}, my team`,
+    });
+    await user.click(token);
+    const dispatch = vi.spyOn(store.getState(), 'dispatch');
+    await user.click(screen.getByRole('radio', { name: radioName(next.name) }));
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'setRole',
+      playerId: player.id,
+      roleId: next.id,
+    });
+    const updated = screen.getByRole('button', { name: `${player.slot}, ${next.name}, my team` });
+    expect(plateText(updated)).toContain(next.name.replaceAll(' ', ''));
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('region', { name: player.slot! })).not.toBeInTheDocument();
+    expect(updated).toHaveFocus();
   });
 });
