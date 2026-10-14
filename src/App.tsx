@@ -1,10 +1,10 @@
 import { lazy, Suspense } from 'react';
 import { useTheme } from './shared/hooks/useTheme';
 
-const DevGallery = lazy(() => import('./dev/Gallery'));
+const DevGallery = import.meta.env.DEV ? lazy(() => import('./dev/Gallery')) : null;
 
 export default function App() {
-  if (import.meta.env.DEV) {
+  if (DevGallery) {
     return (
       <Suspense fallback={<p>Loading component gallery…</p>}>
         <DevGallery />

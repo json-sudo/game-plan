@@ -17,6 +17,7 @@ import { UndoControl } from '../ui/chrome/UndoControl';
 import { MODE_OPTIONS } from '../ui/copy';
 import { useTheme } from '../shared/hooks/useTheme';
 import styles from './gallery.module.scss';
+import { PitchGallery } from './PitchGallery';
 const FORMATIONS = [
   { label: '4-3-3 DM Wide' },
   { label: '4-2-3-1 DM Wide' },
@@ -179,6 +180,8 @@ export default function Gallery() {
           </div>
         </div>
       </section>
+
+      <PitchGallery />
     </main>
   );
 }
