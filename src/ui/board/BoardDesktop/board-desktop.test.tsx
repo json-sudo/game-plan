@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
 import { ballAtopPosition } from '../../../engine';
@@ -271,5 +271,59 @@ describe('desktop board', () => {
     expect(screen.getByRole('heading', { name: 'Ball zone' })).toBeInTheDocument();
     expect(screen.getByRole('radiogroup', { name: ARROWS_LABEL })).toBeInTheDocument();
     expect(document.querySelector('[data-phone="true"]')).toBeNull();
+  });
+});
+
+describe('top bar actions', () => {
+  it('calls setMode with fm and openPitch', async () => {
+    const user = userEvent.setup();
+    const store = createPitchStore({ doc: createInitialDocument() });
+    render(<BoardDesktop store={store} />);
+    expect(screen.getByRole('radio', { name: 'Open pitch' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'FM mode' })).toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: 'FM mode' }));
+    expect(store.getState().ui.mode).toBe('fm');
+    await user.click(screen.getByRole('radio', { name: 'Open pitch' }));
+    expect(store.getState().ui.mode).toBe('openPitch');
+  });
+
+  it('disables Reset and Undo with their reasons when there is nothing to revert', () => {
+    const store = createPitchStore({ doc: createInitialDocument() });
+    render(<BoardDesktop store={store} />);
+    expect(screen.getByRole('button', { name: 'Reset' })).toHaveAccessibleDescription(
+      RESET_DISABLED_REASON,
+    );
+    expect(screen.getByRole('button', { name: 'Undo' })).toHaveAccessibleDescription(
+      UNDO_DISABLED_REASON,
+    );
+  });
+
+  it('clears the zone and carrier, and one undo brings them back', async () => {
+    const user = userEvent.setup();
+    const store = exampleStore();
+    const scenario = store.getState().doc.scenario;
+    expect(scenario?.zone).toBeTruthy();
+    expect(scenario?.carrierId).toBeTruthy();
+    render(<BoardDesktop store={store} />);
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(store.getState().doc.scenario).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(store.getState().doc.scenario).toEqual(scenario);
+  });
+
+  it('updates dataset.theme and does not write localStorage', async () => {
+    const user = userEvent.setup();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    const store = exampleStore();
+    render(<BoardDesktop store={store} />);
+    await user.click(screen.getByRole('button', { name: 'Dark theme' }));
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(store.getState().ui.theme).toBe('dark');
+    await user.click(screen.getByRole('button', { name: 'Light theme' }));
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(store.getState().ui.theme).toBe('light');
+    expect(setItem).not.toHaveBeenCalled();
+    setItem.mockRestore();
+    delete document.documentElement.dataset.theme;
   });
 });

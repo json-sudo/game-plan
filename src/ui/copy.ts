@@ -1,5 +1,8 @@
 export const PITCH_LABEL = 'Pitch';
 export const RESET_LABEL = 'Reset';
+export const CLEAR_LABEL = 'Clear';
+export const THEME_LIGHT_LABEL = 'Light theme';
+export const THEME_DARK_LABEL = 'Dark theme';
 export const RESET_DISABLED_REASON = 'Apply a formation or matchup first.';
 export const UNDO_DISABLED_REASON = 'Nothing to undo yet.';
 export const REDO_DISABLED_REASON = 'Nothing to redo.';

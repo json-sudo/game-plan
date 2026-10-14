@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useStore, type StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
 import type { Point } from '../../../data/types';
@@ -15,10 +16,13 @@ import {
   ARROWS_ALL_LABEL,
   ARROWS_LABEL,
   ARROWS_SELECTED_LABEL,
+  CLEAR_LABEL,
   MODE_OPTIONS,
   PITCH_LABEL,
   RESET_DISABLED_REASON,
   RESET_LABEL,
+  THEME_DARK_LABEL,
+  THEME_LIGHT_LABEL,
   SIDE_COLUMN_LABEL,
   SETUP_COLUMN_LABEL,
   VERSUS_LABEL,
@@ -94,6 +98,10 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
   const mineFormation = formationLabel(doc.teams.mine.formationId);
   const opponentFormation = formationLabel(doc.teams.opponent.formationId);
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = ui.theme;
+  }, [ui.theme]);
+
   const drag = usePitchDrag({
     onDragStart: (id) => {
       const state = store.getState();
@@ -131,6 +139,21 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
         >
           {RESET_LABEL}
         </Button>
+        <Button
+          variant="ghost"
+          icon="clear"
+          onClick={() => store.getState().dispatch({ type: 'clearScenario' })}
+        >
+          {CLEAR_LABEL}
+        </Button>
+        <Button
+          variant="icon"
+          icon={ui.theme === 'dark' ? 'sun' : 'moon'}
+          label={ui.theme === 'dark' ? THEME_LIGHT_LABEL : THEME_DARK_LABEL}
+          onClick={() =>
+            store.getState().patchUi({ theme: ui.theme === 'dark' ? 'light' : 'dark' })
+          }
+        />
       </header>
       <div className={styles.main}>
         <section
