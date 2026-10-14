@@ -66,6 +66,10 @@ export const benchCount = (placed: number, benched: number) =>
 export const BENCH_DROP_LABEL = 'Drop here to bench';
 export const BENCH_EMPTY_TITLE = 'Bench is empty';
 export const BENCH_EMPTY_HINT = 'Drag a player off the pitch to bench them.';
+export const BENCH_MENU_LABEL = 'Bench';
+export const BENCH_CLOSE_LABEL = 'Close bench';
+export const SQUAD_SIZE_LABEL = 'Squad size';
+export const KEEPER_TOGGLE_LABEL = 'Keeper';
 
 export const ROLE_PHASE_LABELS = { IP: 'In possession', OOP: 'Out of possession' } as const;
 export const roleCount = (count: number) => `${count} ${count === 1 ? 'role' : 'roles'}`;

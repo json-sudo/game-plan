@@ -74,6 +74,7 @@ describe('BoardPhone menu', () => {
       'Mode: Open pitch',
       `Reset${RESET_DISABLED_REASON}`,
       'Clear',
+      'Bench',
       THEME_DARK_LABEL,
     ]);
   });
@@ -97,6 +98,41 @@ describe('BoardPhone menu', () => {
       'aria-disabled',
       'true',
     );
+  });
+});
+
+describe('BoardPhone bench sheet', () => {
+  it('opens the bench as a sheet from the menu in Open pitch, and Escape returns focus to the menu', async () => {
+    const user = userEvent.setup();
+    const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'openPitch' } });
+    render(<BoardPhone store={store} />);
+    await user.click(within(await openMenu()).getByRole('menuitem', { name: 'Bench' }));
+    const sheet = screen.getByRole('dialog', { name: 'Bench' });
+    expect(within(sheet).getByRole('heading', { name: BENCH_HEADING })).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: 'Bench' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveFocus();
+  });
+
+  it('shows the squad size and keeper controls for the attacking side', async () => {
+    const user = userEvent.setup();
+    const store = createPitchStore({ doc: createInitialDocument(), ui: { mode: 'openPitch' } });
+    render(<BoardPhone store={store} />);
+    await user.click(within(await openMenu()).getByRole('menuitem', { name: 'Bench' }));
+    const sheet = screen.getByRole('dialog', { name: 'Bench' });
+    const attacker = store.getState().doc.attacker;
+    await user.click(within(sheet).getByRole('radio', { name: '26' }));
+    expect(store.getState().doc.teams[attacker].squadSize).toBe(26);
+    await user.click(within(sheet).getByRole('switch', { name: 'Keeper' }));
+    expect(store.getState().doc.teams[attacker].keeper).toBe(true);
+  });
+
+  it('is not offered in FM mode', async () => {
+    const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
+    render(<BoardPhone store={store} />);
+    expect(
+      within(await openMenu()).queryByRole('menuitem', { name: 'Bench' }),
+    ).not.toBeInTheDocument();
   });
 });
 

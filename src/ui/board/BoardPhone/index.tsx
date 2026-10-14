@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore, type StoreApi } from 'zustand';
 import { MOTION_DURATIONS_MS, PHASES, ballAtopPosition, type Phase } from '../../../engine';
 import { placedPlayers } from '../../../state/document';
@@ -6,7 +6,9 @@ import { selectCanUndo, selectDisplayPositions } from '../../../state/selectors'
 import type { PitchStore } from '../../../state/store';
 import { PhoneMenu, type PhoneMenuEntry } from '../../chrome/PhoneMenu';
 import { UndoControl } from '../../chrome/UndoControl';
+import { BenchSheet } from '../../bench/BenchSheet';
 import {
+  BENCH_MENU_LABEL,
   CLEAR_LABEL,
   MODE_LABELS,
   PITCH_LABEL,
@@ -41,6 +43,8 @@ export function BoardPhone({ store }: BoardPhoneProps) {
   const canUndo = useStore(store, selectCanUndo);
   const positions = useStore(store, selectDisplayPositions);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [benchOpen, setBenchOpen] = useState(false);
+  const menuSlot = useRef<HTMLDivElement>(null);
   const canReset = doc.teams.mine.applied !== null || doc.teams.opponent.applied !== null;
   const fm = ui.mode === 'fm';
   const dark = ui.theme === 'dark';
@@ -72,6 +76,16 @@ export function BoardPhone({ store }: BoardPhoneProps) {
     action();
   };
 
+  const attacker = doc.attacker;
+  const benchItems: PhoneMenuEntry[] = fm
+    ? []
+    : [
+        {
+          icon: 'bench',
+          label: BENCH_MENU_LABEL,
+          onSelect: choose(() => setBenchOpen(true)),
+        },
+      ];
   const menuItems: PhoneMenuEntry[] = [
     {
       icon: 'edit',
@@ -90,6 +104,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
       label: CLEAR_LABEL,
       onSelect: choose(() => store.getState().dispatch({ type: 'clearScenario' })),
     },
+    ...benchItems,
     {
       icon: dark ? 'sun' : 'moon',
       label: dark ? THEME_LIGHT_LABEL : THEME_DARK_LABEL,
@@ -102,13 +117,15 @@ export function BoardPhone({ store }: BoardPhoneProps) {
       <header className={styles.top}>
         <div className={styles.title}>{`${doc.teams.mine.name} v ${doc.teams.opponent.name}`}</div>
         <UndoControl canUndo={canUndo} redo={false} onUndo={() => store.getState().undo()} />
-        <Button
-          variant="icon"
-          icon="menu"
-          label={MENU_LABEL}
-          pressed={menuOpen}
-          onClick={() => setMenuOpen(true)}
-        />
+        <div ref={menuSlot}>
+          <Button
+            variant="icon"
+            icon="menu"
+            label={MENU_LABEL}
+            pressed={menuOpen}
+            onClick={() => setMenuOpen(true)}
+          />
+        </div>
       </header>
       <div className={styles.body}>
         {cursor !== null ? (
@@ -179,6 +196,34 @@ export function BoardPhone({ store }: BoardPhoneProps) {
         )}
       </div>
       {menuOpen ? <PhoneMenu items={menuItems} onClose={() => setMenuOpen(false)} /> : null}
+      {benchOpen ? (
+        <BenchSheet
+          pieces={doc.players.flatMap((player) =>
+            player.base
+              ? []
+              : [
+                  {
+                    id: player.id,
+                    label: player.slot ?? player.id,
+                    team: player.team,
+                    keeper: player.isKeeper,
+                    name: player.customName,
+                  },
+                ],
+          )}
+          placed={placedPlayers(doc).length}
+          squadSize={doc.teams[attacker].squadSize}
+          keeper={doc.teams[attacker].keeper}
+          onSquadSize={(size) =>
+            store.getState().dispatch({ type: 'setSquadSize', team: attacker, size })
+          }
+          onKeeper={(keeper) =>
+            store.getState().dispatch({ type: 'setKeeper', team: attacker, keeper })
+          }
+          onClose={() => setBenchOpen(false)}
+          returnFocus={menuSlot}
+        />
+      ) : null}
     </div>
   );
 }
