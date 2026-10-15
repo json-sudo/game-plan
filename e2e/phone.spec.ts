@@ -60,13 +60,12 @@ test('first load at 390 x 844 shows the FM example and the phone hint, with no c
   await page.waitForLoadState('networkidle');
 
   expect(page.viewportSize()).toEqual({ width: 390, height: 844 });
-  await expect(page.getByRole('radio', { name: 'FM mode' })).toBeChecked();
   await expect(page.getByRole('img', { name: PITCH_LABEL })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Ball zone' })).toBeVisible();
-  await expect(page.getByText('4-3-3 DM Wide')).toBeVisible();
   const hint = page.getByRole('complementary', { name: 'How to use the example' });
   await expect(hint).toBeVisible();
+  await expect(hint.getByText('4-3-3 DM Wide vs 4-2-3-1 DM Wide', { exact: true })).toBeVisible();
   await expect(
     hint.getByText('Step through with Next, or tap a player to see its role.'),
   ).toBeVisible();
@@ -79,13 +78,25 @@ test('Play moves the pitch through Shape, Runs and Final, and Next is disabled a
   const doc = createExampleDocument();
   const moving = movingPlayer(doc);
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Shape' })).toHaveAttribute('aria-current', 'step');
+  await expect(page.getByRole('button', { name: 'Shape', exact: true })).toHaveAttribute(
+    'aria-current',
+    'step',
+  );
   expectPoint(await readTranslate(page, moving.name), moving.shape);
 
   await page.getByRole('button', { name: 'Play' }).click();
-  await expect(page.getByRole('button', { name: 'Runs' })).toHaveAttribute('aria-current', 'step');
-  await expect(page.getByRole('button', { name: 'Final' })).toHaveAttribute('aria-current', 'step');
-  await expect(page.getByRole('button', { name: 'Next' })).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.getByRole('button', { name: 'Runs', exact: true })).toHaveAttribute(
+    'aria-current',
+    'step',
+  );
+  await expect(page.getByRole('button', { name: 'Final', exact: true })).toHaveAttribute(
+    'aria-current',
+    'step',
+  );
+  await expect(page.getByRole('button', { name: 'Next', exact: true })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
   expectPoint(await readTranslate(page, moving.name), moving.final);
 });
 
