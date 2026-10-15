@@ -1,6 +1,6 @@
 # Game Plan
 
-Game Plan is being rebuilt as a tactics sandbox for Football Manager players. The playing surface is the pitch; saved and shared setups are tactics. Production builds show a placeholder page until screen assembly lands; `npm run dev` loads a component gallery for UI work.
+Game Plan is being rebuilt as a tactics sandbox for Football Manager players. The playing surface is the pitch; saved and shared setups are tactics. Production builds show a placeholder page until screen assembly lands; `npm run dev` loads the pitch board.
 
 ## Architecture
 
