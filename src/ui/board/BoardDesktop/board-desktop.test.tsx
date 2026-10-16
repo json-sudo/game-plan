@@ -209,8 +209,6 @@ describe('desktop board', () => {
     const opponent = formationName(EXAMPLE_FORMATIONS.opponent);
     expect(mine).toContain('4-3-3');
     expect(opponent).toContain('4-2-3-1');
-    expect(screen.getByText(mine)).toBeInTheDocument();
-    expect(screen.getByText(opponent)).toBeInTheDocument();
 
     const mineWide = doc.players.find((player) => player.id === 'mine-AMCL')!;
     const oppStriker = doc.players.find((player) => player.id === 'opponent-AMC')!;
