@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useStore, type StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
 import type { Point } from '../../../data/types';
@@ -11,7 +11,9 @@ import {
 } from '../../../engine';
 import { activeRoleOf, phasePlayersOf } from '../../../state/context';
 import {
+  playerSide,
   placedPlayers,
+  playerLabel,
   possessionOf,
   type PitchDocument,
   type Player,
@@ -44,6 +46,7 @@ import { roleOptions } from '../../setup/setup-model';
 import { Button } from '../../controls/Button';
 import { SegmentedControl } from '../../controls/SegmentedControl';
 import { Bench } from '../../bench/Bench';
+import { usePieceMotion } from '../../hooks/usePieceMotion';
 import { usePitchDrag } from '../../hooks/usePitchDrag';
 import { Instrument } from '../../instrument/Instrument';
 import { TransportBar } from '../../instrument/TransportBar';
@@ -76,12 +79,6 @@ function samePoint(a: Point, b: Point) {
 function roleLabel(doc: PitchDocument, player: Player) {
   const roleId = activeRoleOf(doc, player, FM26_DATA);
   return FM26_DATA.roles.find((role) => role.id === roleId)?.name;
-}
-
-function familySide(family: Player['family']): 'left' | 'right' | undefined {
-  if (family?.endsWith('(L)')) return 'left';
-  if (family?.endsWith('(R)')) return 'right';
-  return undefined;
 }
 
 function roleMovement(doc: PitchDocument, playerId: string, roleId: string) {
@@ -133,12 +130,22 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
   const fm = ui.mode === 'fm';
   const carrier = doc.players.find((player) => player.id === doc.scenario?.carrierId);
   const carrierPoint = carrier ? positions.get(carrier.id) : undefined;
-  const ballPoint =
+  const ballTarget =
     ui.drag?.target.kind === 'ball'
       ? ui.drag.point
       : carrier && carrier.team === doc.attacker && carrierPoint
         ? ballAtopPosition(carrierPoint)
         : doc.ball;
+  const { x: ballX, y: ballY } = ballTarget;
+  const ballTargets = useMemo(
+    () => new Map([[BALL_DRAG_ID, { x: ballX, y: ballY }]]),
+    [ballX, ballY],
+  );
+  const ballPoint =
+    usePieceMotion({
+      targets: ballTargets,
+      draggingId: ui.drag?.target.kind === 'ball' ? BALL_DRAG_ID : null,
+    }).get(BALL_DRAG_ID) ?? ballTarget;
 
   const [showHint, setShowHint] = useState(
     () => JSON.stringify(store.getState().doc) === JSON.stringify(createExampleDocument()),
@@ -336,7 +343,8 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
                     y={point.y}
                     team={player.team}
                     keeper={player.isKeeper}
-                    label={player.slot ?? ''}
+                    label={playerLabel(player)}
+                    side={playerSide(player)}
                     role={role}
                     showRole={fm}
                     dragging={dragging}
@@ -348,9 +356,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
                   />
                 );
               })}
-              <g onPointerDown={drag.startDrag(BALL_DRAG_ID)}>
-                <Ball x={ballPoint.x} y={ballPoint.y} />
-              </g>
+              <Ball x={ballPoint.x} y={ballPoint.y} onPointerDown={drag.startDrag(BALL_DRAG_ID)} />
             </Pitch>
           </PitchFrame>
         </div>
@@ -363,7 +369,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
           <Instrument>
             <ZoneMap
               value={doc.scenario?.zone ?? null}
-              carrier={carrier?.slot ?? undefined}
+              carrier={carrier ? playerLabel(carrier) : undefined}
               attackerName={doc.teams[doc.attacker].name}
               onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
             />
@@ -398,7 +404,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
                   : [
                       {
                         id: player.id,
-                        label: player.slot ?? player.id,
+                        label: playerLabel(player),
                         team: player.team,
                         keeper: player.isKeeper,
                         name: player.customName,
@@ -417,8 +423,8 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
           style={{ left: pickerPlace.left, top: pickerPlace.top }}
         >
           <RolePicker
-            slotLabel={picked.slot}
-            side={familySide(picked.family)}
+            slotLabel={playerLabel(picked)}
+            side={playerSide(picked)}
             phase={possessionOf(doc, picked.team) === 'in' ? 'IP' : 'OOP'}
             team={picked.team}
             roles={pickedRoles}

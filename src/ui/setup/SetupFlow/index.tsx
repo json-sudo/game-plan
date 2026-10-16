@@ -1,5 +1,5 @@
 import { useStore, type StoreApi } from 'zustand';
-import { placedPlayers, type PitchDocument } from '../../../state/document';
+import { placedPlayers, playerLabel, type PitchDocument } from '../../../state/document';
 import type { PitchStore } from '../../../state/store';
 import {
   SETUP_ROLES,
@@ -47,9 +47,12 @@ function rolesStep(
           if (!player.slot || options.length === 0) return null;
           return (
             <label key={player.id} className={styles['role-choice']}>
-              <span>{player.slot}</span>
+              <span>{playerLabel(player)}</span>
               <select
-                aria-label={setupRoleChoiceLabel(player.slot, TOKEN_TEAM_LABELS[player.team])}
+                aria-label={setupRoleChoiceLabel(
+                  playerLabel(player),
+                  TOKEN_TEAM_LABELS[player.team],
+                )}
                 value={player.role ?? ''}
                 onChange={(event) =>
                   store.getState().dispatch({

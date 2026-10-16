@@ -101,6 +101,20 @@ export function playersOf(doc: PitchDocument, team: Side): Player[] {
   return doc.players.filter((player) => player.team === team);
 }
 
+// Side comes from the family when it has one (AM(L)), else from the slot id (DCL, DMR).
+export function playerSide(player: Pick<Player, 'family' | 'slot'>): 'left' | 'right' | undefined {
+  if (player.family?.endsWith('(L)')) return 'left';
+  if (player.family?.endsWith('(R)')) return 'right';
+  if (player.slot?.endsWith('L')) return 'left';
+  if (player.slot?.endsWith('R')) return 'right';
+  return undefined;
+}
+
+// The label the pitch shows: the family (AM(L)), not the site id (AMCL).
+export function playerLabel(player: Pick<Player, 'id' | 'family' | 'slot'>): string {
+  return player.family ?? player.slot ?? player.id;
+}
+
 export function placedPlayers(doc: PitchDocument): Player[] {
   return doc.players.filter((player) => player.base !== undefined);
 }

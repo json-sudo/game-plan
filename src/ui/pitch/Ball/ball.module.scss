@@ -1,3 +1,10 @@
 .ball {
     pointer-events: none;
 }
+
+.hit {
+    fill: transparent;
+    pointer-events: all;
+    cursor: grab;
+    touch-action: none;
+}

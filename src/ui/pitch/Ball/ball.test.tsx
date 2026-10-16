@@ -1,9 +1,20 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { Ball } from '.';
 import { BallGlyph } from '../BallGlyph';
 
 describe('Ball', () => {
+  it('starts a drag from its own hit area when given a pointer handler', () => {
+    const onPointerDown = vi.fn<() => void>();
+    const { container } = render(
+      <svg>
+        <Ball x={12} y={34} onPointerDown={onPointerDown} />
+      </svg>,
+    );
+    fireEvent.pointerDown(container.querySelector('circle')!);
+    expect(onPointerDown).toHaveBeenCalledOnce();
+  });
+
   it('sits at x and y with the default radius', () => {
     render(
       <svg>

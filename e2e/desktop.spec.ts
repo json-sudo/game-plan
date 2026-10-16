@@ -8,7 +8,8 @@ import { activeRoleOf } from '../src/state/context';
 import type { PitchDocument, Player } from '../src/state/document';
 import { createExampleDocument } from '../src/state/example';
 import { selectPhasePositions } from '../src/state/selectors';
-import { TOKEN_TEAM_LABELS } from '../src/ui/copy';
+import { playerLabel, playerSide } from '../src/state/document';
+import { TOKEN_TEAM_LABELS, tokenSideLabel } from '../src/ui/copy';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -30,10 +31,17 @@ function after(actions: readonly Action[]): PitchDocument {
   return actions.reduce((doc, action) => applyAction(doc, action), createExampleDocument());
 }
 
+function sideLabel(player: Player): string | undefined {
+  const side = playerSide(player);
+  return side ? tokenSideLabel(side) : undefined;
+}
+
 function tokenName(doc: PitchDocument, player: Player): string {
   const roleId = activeRoleOf(doc, player, FM26_DATA);
   const role = FM26_DATA.roles.find((item) => item.id === roleId)?.name;
-  return [player.slot, role, TOKEN_TEAM_LABELS[player.team]].filter(Boolean).join(', ');
+  return [playerLabel(player), sideLabel(player), role, TOKEN_TEAM_LABELS[player.team]]
+    .filter(Boolean)
+    .join(', ');
 }
 
 function shapeOf(doc: PitchDocument, playerId: string): Point {
@@ -91,6 +99,15 @@ async function readTranslate(page: Page, role: 'button' | 'img', name: string): 
   return { x: Number(match[1]), y: Number(match[2]) };
 }
 
+async function expectSettledAt(page: Page, role: 'button' | 'img', name: string, expected: Point) {
+  await expect
+    .poll(async () => {
+      const at = await readTranslate(page, role, name);
+      return Math.hypot(at.x - expected.x, at.y - expected.y);
+    })
+    .toBeLessThan(0.05);
+}
+
 function expectPoint(actual: Point, expected: Point) {
   expect(actual.x).toBeCloseTo(expected.x, 1);
   expect(actual.y).toBeCloseTo(expected.y, 1);
@@ -136,7 +153,7 @@ test('zone pick, Play through the phases, and Next disabled at Final', async ({ 
     'aria-pressed',
     'true',
   );
-  expectPoint(await readTranslate(page, 'img', 'Ball'), ballAt('R-F'));
+  await expectSettledAt(page, 'img', 'Ball', ballAt('R-F'));
 
   expectPoint(await readTranslate(page, 'button', moving.name), moving.at);
   await expect(page.getByRole('button', { name: 'Shape', exact: true })).toHaveAttribute(
@@ -185,4 +202,27 @@ test('Reset, Undo, Open pitch, and reload return to the FM example', async ({ pa
   await expect(page.getByText(ZONE_NAME['R-F'], { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Bench' })).toHaveCount(0);
+});
+
+test('the ball can be dragged to a new spot in open pitch', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('radio', { name: 'Open pitch', exact: true }).click();
+
+  const before = await readTranslate(page, 'img', 'Ball');
+  const ball = await page.getByRole('img', { name: 'Ball', exact: true }).boundingBox();
+  const pitch = await page.getByRole('img', { name: 'Pitch', exact: true }).boundingBox();
+  if (!ball || !pitch) throw new Error('ball or pitch not laid out');
+  const start = { x: ball.x + ball.width / 2, y: ball.y + ball.height / 2 };
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(start.x + 60, start.y + 60, { steps: 8 });
+  await page.mouse.up();
+
+  await expect
+    .poll(async () => {
+      const at = await readTranslate(page, 'img', 'Ball');
+      return Math.hypot(at.x - before.x, at.y - before.y);
+    })
+    .toBeGreaterThan(5);
 });

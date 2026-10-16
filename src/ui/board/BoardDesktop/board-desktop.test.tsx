@@ -4,7 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
 import { ballAtopPosition } from '../../../engine';
-import { createInitialDocument, placedPlayers, playersOf } from '../../../state/document';
+import {
+  createInitialDocument,
+  placedPlayers,
+  playersOf,
+  playerLabel,
+  playerSide,
+  type Player,
+} from '../../../state/document';
 import { createExampleDocument, EXAMPLE_FORMATIONS } from '../../../state/example';
 import { selectPhasePositions } from '../../../state/selectors';
 import { createPitchStore, type PitchStore } from '../../../state/store';
@@ -25,6 +32,11 @@ import {
 } from '../../copy';
 import { ARROW_RING_RADIUS } from '../../pitch/Arrow';
 import { BoardDesktop } from '.';
+
+function labelWithSide(player: Player): string {
+  const side = playerSide(player);
+  return [playerLabel(player), side ? tokenSideLabel(side) : null].filter(Boolean).join(', ');
+}
 
 function stubSvg(svg: Element) {
   const scale = 2;
@@ -214,11 +226,13 @@ describe('desktop board', () => {
     const oppStriker = doc.players.find((player) => player.id === 'opponent-AMC')!;
     const mineRole = FM26_DATA.roles.find((role) => role.id === mineWide.role)!.name;
     const oppRole = FM26_DATA.roles.find((role) => role.id === oppStriker.role)!.name;
-    const mineToken = screen.getByRole('button', { name: `AMCL, ${mineRole}, my team` });
-    const oppToken = screen.getByRole('button', { name: `AMC, ${oppRole}, opponent` });
-    expect(mineToken).toHaveTextContent('AMCL');
+    const mineToken = screen.getByRole('button', {
+      name: `AM(L), left side, ${mineRole}, my team`,
+    });
+    const oppToken = screen.getByRole('button', { name: `AM(C), ${oppRole}, opponent` });
+    expect(mineToken).toHaveTextContent('AM(L)');
     expect(plateText(mineToken)).toContain(mineRole.replaceAll(' ', ''));
-    expect(oppToken).toHaveTextContent('AMC');
+    expect(oppToken).toHaveTextContent('AM(C)');
     expect(plateText(oppToken)).toContain(oppRole.replaceAll(' ', ''));
     expect(screen.getAllByRole('button', { name: /my team$/ })).toHaveLength(11);
     expect(screen.getAllByRole('button', { name: /opponent$/ })).toHaveLength(11);
@@ -226,7 +240,7 @@ describe('desktop board', () => {
     const carrier = doc.players.find((player) => player.id === doc.scenario!.carrierId)!;
     const carrierRole = FM26_DATA.roles.find((role) => role.id === carrier.role)!.name;
     const carrierToken = screen.getByRole('button', {
-      name: `${carrier.slot}, ${carrierRole}, my team`,
+      name: `${labelWithSide(carrier)}, ${carrierRole}, my team`,
     });
     expect(translation(screen.getByRole('img', { name: 'Ball' }))).toEqual(
       ballAtopPosition(translation(carrierToken)),
@@ -504,11 +518,11 @@ describe('role picker anchor', () => {
     silencePitchMatrix();
 
     await user.click(
-      screen.getByRole('button', { name: `${player.slot}, ${current.name}, my team` }),
+      screen.getByRole('button', { name: `${labelWithSide(player)}, ${current.name}, my team` }),
     );
 
-    const picker = screen.getByRole('region', { name: player.slot! });
-    expect(screen.getByRole('heading', { name: player.slot! })).toBeInTheDocument();
+    const picker = screen.getByRole('region', { name: playerLabel(player) });
+    expect(screen.getByRole('heading', { name: playerLabel(player) })).toBeInTheDocument();
     expect(
       screen.getByText(
         [ROLE_PHASE_LABELS.IP, tokenSideLabel('left'), roleCount(roles.length)].join(' · '),
@@ -526,15 +540,17 @@ describe('role picker anchor', () => {
     );
     expect(
       within(
-        within(picker).getByRole('radio', { name: radioName(current.name) }).closest('label')!,
+        within(picker)
+          .getByRole('radio', { name: radioName(current.name) })
+          .closest('label')!,
       ).getByText(ROLE_CURRENT_MARK),
     ).toBeInTheDocument();
 
     act(() => store.getState().setMode('openPitch'));
-    expect(screen.queryByRole('region', { name: player.slot! })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: playerLabel(player) })).not.toBeInTheDocument();
     silencePitchMatrix();
-    await user.click(screen.getByRole('button', { name: `${player.slot}, my team` }));
-    expect(screen.queryByRole('region', { name: player.slot! })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: `${labelWithSide(player)}, my team` }));
+    expect(screen.queryByRole('region', { name: playerLabel(player) })).not.toBeInTheDocument();
   });
 
   it('dispatches setRole for the chosen row, and Escape closes the picker and returns focus to the token', async () => {
@@ -546,7 +562,7 @@ describe('role picker anchor', () => {
     render(<BoardDesktop store={store} />);
     silencePitchMatrix();
     const token = screen.getByRole('button', {
-      name: `${player.slot}, ${current.name}, my team`,
+      name: `${labelWithSide(player)}, ${current.name}, my team`,
     });
     await user.click(token);
     const dispatch = vi.spyOn(store.getState(), 'dispatch');
@@ -556,10 +572,12 @@ describe('role picker anchor', () => {
       playerId: player.id,
       roleId: next.id,
     });
-    const updated = screen.getByRole('button', { name: `${player.slot}, ${next.name}, my team` });
+    const updated = screen.getByRole('button', {
+      name: `${labelWithSide(player)}, ${next.name}, my team`,
+    });
     expect(plateText(updated)).toContain(next.name.replaceAll(' ', ''));
     await user.keyboard('{Escape}');
-    expect(screen.queryByRole('region', { name: player.slot! })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: playerLabel(player) })).not.toBeInTheDocument();
     expect(updated).toHaveFocus();
   });
 });

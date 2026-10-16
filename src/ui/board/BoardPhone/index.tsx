@@ -3,7 +3,13 @@ import { useStore, type StoreApi } from 'zustand';
 import { MOTION_DURATIONS_MS, PHASES, ballAtopPosition, type Phase } from '../../../engine';
 import { FM26_DATA } from '../../../data/fm26';
 import { activeRoleOf } from '../../../state/context';
-import { placedPlayers, type PitchDocument, type Player } from '../../../state/document';
+import {
+  playerSide,
+  placedPlayers,
+  playerLabel,
+  type PitchDocument,
+  type Player,
+} from '../../../state/document';
 import { createExampleDocument } from '../../../state/example';
 import { selectCanUndo, selectDisplayPositions } from '../../../state/selectors';
 import type { PitchStore } from '../../../state/store';
@@ -169,7 +175,8 @@ export function BoardPhone({ store }: BoardPhoneProps) {
                       y={point.y}
                       team={player.team}
                       keeper={player.isKeeper}
-                      label={player.slot ?? ''}
+                      label={playerLabel(player)}
+                      side={playerSide(player)}
                       role={fm ? roleLabel(doc, player) : undefined}
                       showRole={fm && selected}
                       selected={selected}
@@ -210,7 +217,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
               <ZoneMap
                 phone
                 value={doc.scenario?.zone ?? null}
-                carrier={carrier?.slot ?? undefined}
+                carrier={carrier ? playerLabel(carrier) : undefined}
                 attackerName={doc.teams[doc.attacker].name}
                 onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
               />
@@ -227,7 +234,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
               : [
                   {
                     id: player.id,
-                    label: player.slot ?? player.id,
+                    label: playerLabel(player),
                     team: player.team,
                     keeper: player.isKeeper,
                     name: player.customName,
