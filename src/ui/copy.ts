@@ -74,6 +74,7 @@ export const KEEPER_TOGGLE_LABEL = 'Keeper';
 export const ROLE_PHASE_LABELS = { IP: 'In possession', OOP: 'Out of possession' } as const;
 export const roleCount = (count: number) => `${count} ${count === 1 ? 'role' : 'roles'}`;
 export const ROLE_CURRENT_MARK = 'Current';
+export const ROLE_PICKER_CLOSE_LABEL = 'Close role picker';
 export const ROLE_HOLDS_POSITION = 'Holds position';
 
 export const TRANSPORT_PHASE_LABELS = ['Shape', 'Runs', 'Final'] as const;

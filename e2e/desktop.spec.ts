@@ -109,8 +109,6 @@ test('first load at 1440 x 900 shows the example and the hint, with no console e
   await expect(page.getByRole('img', { name: 'Pitch' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Ball zone' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
-  await expect(page.getByText('4-3-3 DM Wide', { exact: true })).toBeVisible();
-  await expect(page.getByText('4-2-3-1 DM Wide', { exact: true })).toBeVisible();
   await expect(page.getByText(ZONE_NAME['R-F'], { exact: true })).toBeVisible();
   const hint = page.getByRole('complementary', { name: 'How to use the example' });
   await expect(hint).toBeVisible();
@@ -171,8 +169,6 @@ test('Reset, Undo, Open pitch, and reload return to the FM example', async ({ pa
   await page.getByRole('button', { name: 'Reset' }).click();
   await expect(page.getByText('No zone yet')).toBeVisible();
   expectPoint(await readTranslate(page, 'button', shift.name), shift.restored);
-  await expect(page.getByText('4-3-3 DM Wide', { exact: true })).toBeVisible();
-  await expect(page.getByText('4-2-3-1 DM Wide', { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.getByText(ZONE_NAME['L-D'], { exact: true })).toBeVisible();
@@ -186,7 +182,6 @@ test('Reset, Undo, Open pitch, and reload return to the FM example', async ({ pa
   await page.reload();
   await expect(page.getByRole('radio', { name: 'FM mode', exact: true })).toBeChecked();
   await expect(page.getByRole('complementary', { name: 'How to use the example' })).toBeVisible();
-  await expect(page.getByText('4-3-3 DM Wide', { exact: true })).toBeVisible();
   await expect(page.getByText(ZONE_NAME['R-F'], { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Bench' })).toHaveCount(0);

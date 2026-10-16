@@ -37,11 +37,10 @@ import {
   THEME_LIGHT_LABEL,
   SIDE_COLUMN_LABEL,
   SETUP_COLUMN_LABEL,
-  VERSUS_LABEL,
 } from '../../copy';
 import { FirstRunHint } from '../../feedback/FirstRunHint';
 import { SetupFlow } from '../../setup/SetupFlow';
-import { formationLabel, roleOptions } from '../../setup/setup-model';
+import { roleOptions } from '../../setup/setup-model';
 import { Button } from '../../controls/Button';
 import { SegmentedControl } from '../../controls/SegmentedControl';
 import { Bench } from '../../bench/Bench';
@@ -140,8 +139,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
       : carrier && carrier.team === doc.attacker && carrierPoint
         ? ballAtopPosition(carrierPoint)
         : doc.ball;
-  const mineFormation = formationLabel(doc.teams.mine.formationId);
-  const opponentFormation = formationLabel(doc.teams.opponent.formationId);
+
   const [showHint, setShowHint] = useState(
     () => JSON.stringify(store.getState().doc) === JSON.stringify(createExampleDocument()),
   );
@@ -302,11 +300,6 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
           style={COLUMN_STYLE}
         >
           <SetupFlow store={store} />
-          {mineFormation && opponentFormation ? (
-            <p className={styles.matchup}>
-              <span>{mineFormation}</span> {VERSUS_LABEL} <span>{opponentFormation}</span>
-            </p>
-          ) : null}
           <SegmentedControl
             label={ARROWS_LABEL}
             showLabel
@@ -435,6 +428,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
             onChoose={(roleId) =>
               store.getState().dispatch({ type: 'setRole', playerId: picked.id, roleId })
             }
+            onClose={() => setPickedId(null)}
           />
         </div>
       ) : null}

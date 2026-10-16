@@ -1,8 +1,14 @@
 import { useId } from 'react';
 import type { Point, Side } from '../../../data/types';
 import type { ZoneId } from '../../../data/zones';
-import { ROLE_CURRENT_MARK, ROLE_PHASE_LABELS, roleCount, tokenSideLabel } from '../../copy';
-import { useRovingRadio } from '../../hooks/useRovingRadio';
+import {
+  ROLE_CURRENT_MARK,
+  ROLE_PHASE_LABELS,
+  ROLE_PICKER_CLOSE_LABEL,
+  roleCount,
+  tokenSideLabel,
+} from '../../copy';
+import { Button } from '../../controls/Button';
 import { RolePreview } from '../RolePreview';
 import styles from './role-picker.module.scss';
 
@@ -24,6 +30,7 @@ export interface RolePickerProps {
   value?: string;
   zone?: ZoneId;
   onChoose?: (id: string) => void;
+  onClose?: () => void;
 }
 
 export function RolePicker({
@@ -36,14 +43,12 @@ export function RolePicker({
   value,
   zone,
   onChoose,
+  onClose,
 }: RolePickerProps) {
   const headingId = useId();
-  const roving = useRovingRadio({
-    values: roles.map((role) => role.id),
-    value,
-    onChange: onChoose,
-  });
-  const chosen = roles.find((role) => roving.isSelected(role.id)) ?? roles[0];
+  const groupName = useId();
+  const selectedId = value ?? current;
+  const chosen = roles.find((role) => role.id === selectedId) ?? roles[0];
   const summary = [
     ROLE_PHASE_LABELS[phase],
     side ? tokenSideLabel(side) : null,
@@ -54,39 +59,52 @@ export function RolePicker({
 
   return (
     <section className={styles.picker} aria-labelledby={headingId}>
-      <h2 id={headingId} className={styles.heading}>
-        {slotLabel}
-      </h2>
-      <p className={styles.summary}>{summary}</p>
+      <header className={styles.head}>
+        <span className={styles.chip} data-team={team} aria-hidden="true">
+          {slotLabel.replace(/[()]/g, '')}
+        </span>
+        <div className={styles.title}>
+          <h2 id={headingId} className={styles.heading}>
+            {slotLabel}
+          </h2>
+          <p className={styles.summary}>{summary}</p>
+        </div>
+        {onClose ? (
+          <Button variant="icon" icon="close" label={ROLE_PICKER_CLOSE_LABEL} onClick={onClose} />
+        ) : null}
+      </header>
       <div className={styles.list} role="radiogroup" aria-labelledby={headingId}>
-        {roles.map((role) => (
-          <button
-            key={role.id}
-            ref={roving.register(role.id)}
-            type="button"
-            role="radio"
-            className={styles.row}
-            aria-checked={roving.isSelected(role.id)}
-            tabIndex={roving.tabIndexFor(role.id)}
-            onClick={() => roving.select(role.id)}
-            onKeyDown={roving.onKeyDown}
-          >
-            <span>{role.name}</span>
-            {role.id === current ? (
-              <span className={styles.current}>{ROLE_CURRENT_MARK}</span>
-            ) : null}
-          </button>
-        ))}
+        {roles.map((role) => {
+          const checked = role.id === selectedId;
+          return (
+            <label key={role.id} className={styles.row} data-checked={checked || undefined}>
+              <input
+                className={styles.radio}
+                type="radio"
+                name={groupName}
+                value={role.id}
+                checked={checked}
+                onChange={() => onChoose?.(role.id)}
+              />
+              <span className={styles.name}>{role.name}</span>
+              {role.id === current ? (
+                <span className={styles.current}>{ROLE_CURRENT_MARK}</span>
+              ) : null}
+            </label>
+          );
+        })}
       </div>
       {chosen ? (
         <div className={styles.detail}>
-          <RolePreview
-            from={chosen.from}
-            to={chosen.to}
-            zone={zone}
-            team={team}
-            label={chosen.name}
-          />
+          <div className={styles.preview}>
+            <RolePreview
+              from={chosen.from}
+              to={chosen.to}
+              zone={zone}
+              team={team}
+              label={chosen.name}
+            />
+          </div>
           <p className={styles.desc}>{chosen.desc}</p>
         </div>
       ) : null}
