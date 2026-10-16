@@ -32,6 +32,7 @@
 
 .tag {
     padding: 0 var(--space-2);
+    white-space: nowrap;
     border: 1px solid var(--border);
     border-radius: var(--radius-full);
     color: var(--text-muted);
@@ -44,4 +45,40 @@
         background: var(--control);
         color: var(--control-text);
     }
+}
+
+.inset {
+    position: relative;
+}
+
+.row--top,
+.row--bottom {
+    position: absolute;
+    left: 12px;
+    max-width: calc(50% - 32px);
+    padding: 3px var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--pitch-label-plate);
+    color: var(--pitch-label-text);
+    pointer-events: none;
+
+    .name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+    }
+
+    .tag {
+        border-color: transparent;
+        color: var(--pitch-label-text);
+    }
+}
+
+.row--top {
+    top: 10px;
+}
+
+.row--bottom {
+    bottom: 10px;
 }

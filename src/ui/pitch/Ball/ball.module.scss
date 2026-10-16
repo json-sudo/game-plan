@@ -1,10 +1,28 @@
 .ball {
-    pointer-events: none;
+    outline: none;
+    cursor: grab;
+    touch-action: none;
+
+    &:focus-visible .ring {
+        stroke: var(--focus-ring);
+    }
 }
 
 .hit {
     fill: transparent;
     pointer-events: all;
-    cursor: grab;
-    touch-action: none;
+}
+
+.halo {
+    fill: none;
+    stroke: var(--token-selected);
+}
+
+.shadow {
+    fill: rgba(0, 0, 0, 0.28);
+}
+
+.ring {
+    fill: none;
+    stroke: var(--token-ring);
 }

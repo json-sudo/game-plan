@@ -28,12 +28,7 @@ function sideLabel(player: Player): string | undefined {
 function tokenName(doc: PitchDocument, player: Player): string {
   const roleId = activeRoleOf(doc, player, FM26_DATA);
   const role = FM26_DATA.roles.find((item) => item.id === roleId)?.name;
-  return [
-    playerLabel(player).replace(/[()]/g, ''),
-    sideLabel(player),
-    role,
-    TOKEN_TEAM_LABELS[player.team],
-  ]
+  return [playerLabel(player), sideLabel(player), role, TOKEN_TEAM_LABELS[player.team]]
     .filter(Boolean)
     .join(', ');
 }
@@ -112,20 +107,22 @@ test('Play moves the pitch through Shape, Runs and Final, and Next is disabled a
   expectPoint(await readTranslate(page, moving.name), moving.final);
 });
 
-test('the menu opens the bench sheet in Open pitch, and Escape closes it', async ({ page }) => {
+test('the bench button opens the bench sheet in Open pitch, and Escape closes it', async ({
+  page,
+}) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Menu' }).click();
   await page.getByRole('menuitem', { name: 'Mode: FM mode', exact: true }).click();
 
-  await page.getByRole('button', { name: 'Menu' }).click();
-  await page.getByRole('menuitem', { name: 'Bench', exact: true }).click();
+  const benchButton = page.getByRole('button', { name: /^Bench \(\d+\)$/ });
+  await benchButton.click();
   const sheet = page.getByRole('dialog', { name: BENCH_HEADING });
   await expect(sheet).toBeVisible();
   await expect(sheet.getByRole('heading', { name: BENCH_HEADING })).toBeVisible();
 
   await page.keyboard.press('Escape');
   await expect(sheet).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Menu' })).toBeFocused();
+  await expect(benchButton).toBeFocused();
 });
 
 test('the page has no horizontal scroll', async ({ page }) => {

@@ -49,4 +49,18 @@ describe('Arrow', () => {
     expect(container.querySelector('line')).toBeNull();
     expect(container.querySelector('circle')).not.toBeNull();
   });
+
+  it('sizes the target ring and the start gap from the piece scale', () => {
+    const { container } = render(
+      <svg>
+        <Arrow
+          from={{ x: 10, y: 60 }}
+          to={{ x: 10, y: 30 }}
+          scale={{ ppu: 8, tokenPx: 32, hitPx: 40 }}
+        />
+      </svg>,
+    );
+    expect(container.querySelector('circle')).toHaveAttribute('r', String(2 + 2 / 8));
+    expect(container.querySelector('line')).toHaveAttribute('y1', String(60 - (2 + 4 / 8)));
+  });
 });

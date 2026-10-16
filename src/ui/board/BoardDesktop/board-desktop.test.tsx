@@ -21,7 +21,6 @@ import {
   SETUP_ROLES,
   SETUP_STEP_FORMATIONS,
   SETUP_STEP_WHO_ATTACKS,
-  SIDE_COLUMN_LABEL,
   SETUP_COLUMN_LABEL,
   UNDO_DISABLED_REASON,
   ROLE_CURRENT_MARK,
@@ -30,7 +29,6 @@ import {
   setupRoleChoiceLabel,
   tokenSideLabel,
 } from '../../copy';
-import { ARROW_RING_RADIUS } from '../../pitch/Arrow';
 import { BoardDesktop } from '.';
 
 function labelWithSide(player: Player): string {
@@ -194,9 +192,7 @@ function translation(element: Element) {
 }
 
 function rings(container: HTMLElement) {
-  return [...container.querySelectorAll('circle')].filter(
-    (circle) => circle.getAttribute('r') === String(ARROW_RING_RADIUS),
-  );
+  return [...container.querySelectorAll('circle[data-part="arrow-ring"]')];
 }
 
 function movers(store: StoreApi<PitchStore>) {
@@ -242,7 +238,7 @@ describe('desktop board', () => {
     const carrierToken = screen.getByRole('button', {
       name: `${labelWithSide(carrier)}, ${carrierRole}, my team`,
     });
-    expect(translation(screen.getByRole('img', { name: 'Ball' }))).toEqual(
+    expect(translation(screen.getByRole('button', { name: 'Ball' }))).toEqual(
       ballAtopPosition(translation(carrierToken)),
     );
   });
@@ -292,7 +288,6 @@ describe('desktop board', () => {
   it('renders the zone map and three columns at desktop width without the phone layout', () => {
     render(<BoardDesktop store={exampleStore()} />);
     const setup = screen.getByRole('region', { name: SETUP_COLUMN_LABEL });
-    const side = screen.getByRole('region', { name: SIDE_COLUMN_LABEL });
     const pitch = screen.getByRole('img', { name: 'Pitch' });
     const columns = [...setup.parentElement!.querySelectorAll('[data-column]')];
     expect(columns.map((column) => column.getAttribute('data-column'))).toEqual([
@@ -301,8 +296,6 @@ describe('desktop board', () => {
       'instrument',
     ]);
     expect(columns[1]).toContainElement(pitch);
-    expect(setup).toHaveStyle({ width: '300px' });
-    expect(side).toHaveStyle({ width: '300px' });
     expect(screen.getByRole('banner')).toBe(setup.parentElement!.parentElement!.firstElementChild);
     expect(screen.getByRole('heading', { name: 'Ball zone' })).toBeInTheDocument();
     expect(screen.getByRole('radiogroup', { name: ARROWS_LABEL })).toBeInTheDocument();

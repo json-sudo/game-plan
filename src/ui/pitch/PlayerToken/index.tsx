@@ -2,12 +2,14 @@ import type { PointerEvent } from 'react';
 import type { Side } from '../../../data/types';
 import { PIECE_NAME_ON_TOKEN_MAX_LENGTH } from '../../../state/document';
 import { KEEPER_LABEL, TOKEN_TEAM_LABELS, tokenSideLabel } from '../../copy';
+import { DEFAULT_PIECE_SCALE, pieceUnits, type PieceScale } from '../piece-scale';
 import styles from './player-token.module.scss';
 import { RolePlate } from './role-plate';
 
 export interface PlayerTokenProps {
   x: number;
   y: number;
+  scale?: PieceScale;
   team?: Side;
   keeper?: boolean;
   label?: string;
@@ -18,34 +20,18 @@ export interface PlayerTokenProps {
   dragging?: boolean;
   ghost?: boolean;
   showRole?: boolean;
-  phone?: boolean;
+  title?: string;
   onPointerDown?: (event: PointerEvent<SVGGElement>) => void;
 }
 
-const DESKTOP_RADIUS = 2.6;
-const PHONE_RADIUS = 3.2;
-const DESKTOP_HIT_RADIUS = 3.6;
-const PHONE_HIT_RADIUS = 4.7;
-const SQUARE_SCALE = 0.9;
-const SQUARE_CORNER = 1.1;
-const HALO_GAP = 0.85;
 const DRAG_SCALE = 1.15;
-const NAME_FONT_SIZE = 1.35;
-const NAME_PLATE_HEIGHT = 2.05;
-const NAME_PLATE_RISE = 2.5;
-const NAME_TEXT_RISE = 1.02;
-const NAME_GLYPH_WIDTH = 0.56;
+const SQUARE_SCALE = 0.9;
+const SQUARE_CORNER_SCALE = 0.42;
 const NAME_PLATE_PADDING = 1.2;
-const ROLE_PLATE_GAP = 0.7;
-const DESKTOP_ROLE_FONT_SIZE = 1.45;
-const PHONE_ROLE_FONT_SIZE = 2.35;
+const NAME_GLYPH_WIDTH = 0.56;
 const LABEL_BASELINE = 0.36;
 
-function labelFontSize(label: string, phone: boolean): number {
-  if (phone) return label.length > 3 ? 2 : 2.35;
-  if (label.length > 4) return 1.3;
-  return label.length > 3 ? 1.45 : 1.65;
-}
+const BRACKETS = /[()]/g;
 
 function truncateName(name: string): string {
   return name.length > PIECE_NAME_ON_TOKEN_MAX_LENGTH
@@ -56,6 +42,7 @@ function truncateName(name: string): string {
 export function PlayerToken({
   x,
   y,
+  scale = DEFAULT_PIECE_SCALE,
   team = 'mine',
   keeper = false,
   label = '',
@@ -66,20 +53,20 @@ export function PlayerToken({
   dragging = false,
   ghost = false,
   showRole = false,
-  phone = false,
+  title,
   onPointerDown,
 }: PlayerTokenProps) {
-  const r = phone ? PHONE_RADIUS : DESKTOP_RADIUS;
-  const rawLabel = keeper ? label || KEEPER_LABEL : label;
-  const shownLabel = phone ? rawLabel.replace(/[()]/g, '') : rawLabel;
-  const fontSize = labelFontSize(shownLabel, phone);
+  const units = pieceUnits(scale);
+  const r = units.radius;
+  const fullLabel = keeper ? label || KEEPER_LABEL : label;
+  const shownLabel = fullLabel.replace(BRACKETS, '');
   const half = r * SQUARE_SCALE;
   const shownName = name ? truncateName(name) : null;
   const namePlateWidth = shownName
-    ? shownName.length * NAME_FONT_SIZE * NAME_GLYPH_WIDTH + NAME_PLATE_PADDING
+    ? shownName.length * units.nameFont * NAME_GLYPH_WIDTH + NAME_PLATE_PADDING * units.nameFont
     : 0;
   const accessibleName = [
-    shownLabel,
+    fullLabel,
     side ? tokenSideLabel(side) : null,
     role,
     name,
@@ -88,7 +75,7 @@ export function PlayerToken({
     .filter(Boolean)
     .join(', ');
   const transform = `translate(${x}px, ${y}px)${dragging ? ` scale(${DRAG_SCALE})` : ''}`;
-  const haloSize = (half + HALO_GAP) * 2;
+  const haloHalf = half + (units.haloRadius - r);
 
   return (
     <g
@@ -104,20 +91,27 @@ export function PlayerToken({
       aria-label={accessibleName}
       aria-pressed={selected}
     >
-      <circle className={styles.hit} r={phone ? PHONE_HIT_RADIUS : DESKTOP_HIT_RADIUS} />
+      {title ? <title>{title}</title> : null}
+      <circle className={styles.hit} r={units.hitRadius} />
       {selected && team === 'opponent' ? (
         <rect
           className={styles.halo}
           data-part="halo"
-          x={-haloSize / 2}
-          y={-haloSize / 2}
-          width={haloSize}
-          height={haloSize}
-          rx={SQUARE_CORNER + HALO_GAP}
+          x={-haloHalf}
+          y={-haloHalf}
+          width={haloHalf * 2}
+          height={haloHalf * 2}
+          rx={r * SQUARE_CORNER_SCALE + (units.haloRadius - r)}
+          style={{ strokeWidth: units.haloWidth }}
         />
       ) : null}
       {selected && team === 'mine' ? (
-        <circle className={styles.halo} data-part="halo" r={r + HALO_GAP} />
+        <circle
+          className={styles.halo}
+          data-part="halo"
+          r={units.haloRadius}
+          style={{ strokeWidth: units.haloWidth }}
+        />
       ) : null}
       {team === 'opponent' ? (
         <rect
@@ -127,15 +121,21 @@ export function PlayerToken({
           y={-half}
           width={half * 2}
           height={half * 2}
-          rx={SQUARE_CORNER}
+          rx={r * SQUARE_CORNER_SCALE}
+          style={{ strokeWidth: units.bodyStroke }}
         />
       ) : (
-        <circle className={styles.body} data-part="body" r={r} />
+        <circle
+          className={styles.body}
+          data-part="body"
+          r={r}
+          style={{ strokeWidth: units.bodyStroke }}
+        />
       )}
       <text
         className={styles.label}
-        y={fontSize * LABEL_BASELINE}
-        fontSize={fontSize}
+        y={units.labelFont(shownLabel) * LABEL_BASELINE}
+        fontSize={units.labelFont(shownLabel)}
         textAnchor="middle"
       >
         {shownLabel}
@@ -145,27 +145,24 @@ export function PlayerToken({
           <rect
             className={styles['name-plate']}
             x={-namePlateWidth / 2}
-            y={-r - NAME_PLATE_RISE}
+            y={-r - units.nameRise - units.namePlateHeight}
             width={namePlateWidth}
-            height={NAME_PLATE_HEIGHT}
-            rx={0.5}
+            height={units.namePlateHeight}
+            rx={units.nameRise / 2}
           />
           <text
             className={styles['name-text']}
-            y={-r - NAME_TEXT_RISE}
-            fontSize={NAME_FONT_SIZE}
+            y={-r - units.nameRise - units.namePlateHeight / 2}
+            fontSize={units.nameFont}
             textAnchor="middle"
+            dominantBaseline="central"
           >
             {shownName}
           </text>
         </g>
       ) : null}
       {showRole && role ? (
-        <RolePlate
-          role={role}
-          y={r + ROLE_PLATE_GAP}
-          fontSize={phone ? PHONE_ROLE_FONT_SIZE : DESKTOP_ROLE_FONT_SIZE}
-        />
+        <RolePlate role={role} y={r + units.roleGap} fontSize={units.roleFont} />
       ) : null}
     </g>
   );

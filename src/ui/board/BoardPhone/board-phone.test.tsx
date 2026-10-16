@@ -93,7 +93,6 @@ describe('BoardPhone menu', () => {
       'Mode: Open pitch',
       `Reset${RESET_DISABLED_REASON}`,
       'Clear',
-      'Bench',
       THEME_DARK_LABEL,
     ]);
   });
@@ -121,23 +120,23 @@ describe('BoardPhone menu', () => {
 });
 
 describe('BoardPhone bench sheet', () => {
-  it('opens the bench as a sheet from the menu in Open pitch, and Escape returns focus to the menu', async () => {
+  it('opens the bench as a sheet from its button in Open pitch, and Escape returns focus to that button', async () => {
     const user = userEvent.setup();
     const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'openPitch' } });
     render(<BoardPhone store={store} />);
-    await user.click(within(await openMenu()).getByRole('menuitem', { name: 'Bench' }));
+    await user.click(screen.getByRole('button', { name: /^Bench \(\d+\)$/ }));
     const sheet = screen.getByRole('dialog', { name: 'Bench' });
     expect(within(sheet).getByRole('heading', { name: BENCH_HEADING })).toBeInTheDocument();
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('dialog', { name: 'Bench' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Menu' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: /^Bench \(\d+\)$/ })).toHaveFocus();
   });
 
   it('shows the squad size and keeper controls for the attacking side', async () => {
     const user = userEvent.setup();
     const store = createPitchStore({ doc: createInitialDocument(), ui: { mode: 'openPitch' } });
     render(<BoardPhone store={store} />);
-    await user.click(within(await openMenu()).getByRole('menuitem', { name: 'Bench' }));
+    await user.click(screen.getByRole('button', { name: /^Bench \(\d+\)$/ }));
     const sheet = screen.getByRole('dialog', { name: 'Bench' });
     const attacker = store.getState().doc.attacker;
     await user.click(within(sheet).getByRole('radio', { name: '26' }));
