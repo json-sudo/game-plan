@@ -3,37 +3,62 @@ import { describe, expect, it, vi } from 'vitest';
 import { Ball } from '.';
 import { BallGlyph } from '../BallGlyph';
 
+const scale = { ppu: 8, tokenPx: 32, hitPx: 40 };
+
 describe('Ball', () => {
+  it('is a focusable piece named Ball', () => {
+    render(
+      <svg>
+        <Ball x={0} y={0} scale={scale} />
+      </svg>,
+    );
+    const ball = screen.getByRole('button', { name: 'Ball' });
+    expect(ball).toHaveAttribute('tabindex', '0');
+  });
+
   it('starts a drag from its own hit area when given a pointer handler', () => {
     const onPointerDown = vi.fn<() => void>();
     const { container } = render(
       <svg>
-        <Ball x={12} y={34} onPointerDown={onPointerDown} />
+        <Ball x={12} y={34} scale={scale} onPointerDown={onPointerDown} />
       </svg>,
     );
     fireEvent.pointerDown(container.querySelector('circle')!);
     expect(onPointerDown).toHaveBeenCalledOnce();
   });
 
-  it('sits at x and y with the default radius', () => {
+  it('passes key presses to its handler', () => {
+    const onKeyDown = vi.fn<() => void>();
     render(
       <svg>
-        <Ball x={12} y={34} />
+        <Ball x={0} y={0} scale={scale} onKeyDown={onKeyDown} />
       </svg>,
     );
-    const ball = screen.getByRole('img', { name: 'Ball' });
-    expect(ball.style.transform).toBe('translate(12px, 34px)');
-    expect(ball.querySelector('g')).toHaveAttribute('transform', 'scale(1.2)');
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Ball' }), { key: 'ArrowLeft' });
+    expect(onKeyDown).toHaveBeenCalledOnce();
   });
 
-  it('takes a radius and a label', () => {
+  it('sits at x and y and is sized at 72% of a token', () => {
     render(
       <svg>
-        <Ball x={0} y={0} r={2} label="Ball at feet" />
+        <Ball x={12} y={34} scale={scale} />
       </svg>,
     );
-    const ball = screen.getByRole('img', { name: 'Ball at feet' });
-    expect(ball.querySelector('g')).toHaveAttribute('transform', 'scale(2)');
+    const ball = screen.getByRole('button', { name: 'Ball' });
+    expect(ball.style.transform).toBe('translate(12px, 34px)');
+    expect(ball.querySelector('g')).toHaveAttribute('transform', `scale(${(16 * 0.72) / 8})`);
+  });
+
+  it('draws a halo when selected and takes its tooltip as a title', () => {
+    const { container } = render(
+      <svg>
+        <Ball x={0} y={0} scale={scale} selected title="Ball. Drag it anywhere on the pitch." />
+      </svg>,
+    );
+    expect(container.querySelector('.halo, [class*="halo"]')).not.toBeNull();
+    expect(container.querySelector('title')).toHaveTextContent(
+      'Ball. Drag it anywhere on the pitch.',
+    );
   });
 });
 

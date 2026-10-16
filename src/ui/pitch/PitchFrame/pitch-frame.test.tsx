@@ -43,3 +43,35 @@ describe('PitchFrame', () => {
     expect(top.querySelector('[data-mark="square"]')).not.toBeNull();
   });
 });
+
+describe('PitchFrame inset', () => {
+  function renderInset(attacking: Side) {
+    const { container } = render(
+      <PitchFrame attacking={attacking} mine="Harbour FC" opponent="Rovers" inset>
+        <div data-testid="pitch" />
+      </PitchFrame>,
+    );
+    return {
+      frame: container.firstElementChild as HTMLElement,
+      rows: screen.getAllByRole('group'),
+    };
+  }
+
+  it('marks the frame as inset so the team labels sit inside the pitch corners', () => {
+    const { frame } = renderInset('mine');
+    expect(frame).toHaveAttribute('data-inset', 'true');
+  });
+
+  it('keeps the same top and bottom labels as the rows above and below the pitch', () => {
+    const { rows } = renderInset('mine');
+    expect(rows[0]!.textContent).toContain('Rovers');
+    expect(rows[1]!.textContent).toContain('Harbour FC');
+    expect(rows[1]!.textContent).toContain('Attacking ↑');
+  });
+
+  it('places the corner labels around the pitch, not as sibling rows', () => {
+    const { frame } = renderInset('opponent');
+    const pitch = screen.getByTestId('pitch');
+    expect(frame.firstElementChild).toBe(pitch);
+  });
+});

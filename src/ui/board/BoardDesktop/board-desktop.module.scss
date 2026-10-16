@@ -1,48 +1,56 @@
 .board {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
     min-height: 100%;
 }
 
 .top {
     display: flex;
-    padding: var(--space-2) var(--space-4);
     align-items: center;
     gap: var(--space-2);
+    height: 56px;
+    padding: 0 var(--space-4);
     background-color: var(--surface-panel);
 }
 
-.main {
-    display: flex;
-    padding: var(--space-5) var(--space-3);
-    align-items: flex-start;
+.spacer {
     flex: 1;
-    gap: var(--space-4);
 }
 
-.column {
-    flex: 0 0 auto;
+.main {
+    display: grid;
+    grid-template-columns: var(--board-column) var(--gp-pitch-w) var(--board-column);
+    align-items: start;
+    justify-content: center;
+    column-gap: 24px;
+    padding: 12px 24px 16px;
+}
+
+.setup,
+.instrument {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+    max-height: var(--gp-pitch-h);
+    overflow-y: auto;
+
+    > * {
+        flex-shrink: 0;
+    }
 }
 
 .pitch {
-    flex: 1;
+    position: relative;
+    grid-column: 2;
+    width: var(--gp-pitch-w);
     min-width: 0;
 }
 
-.matchup {
-    margin: 0;
-}
-
-.roles-hint {
-    margin: 0;
-}
-
-.role-choice {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-2);
+.transport {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface-panel);
 }
 
 .picker {
@@ -50,4 +58,25 @@
     z-index: 20;
     width: 380px;
     max-height: calc(100vh - 16px);
+}
+
+.board[data-layout='two'] {
+    .main {
+        grid-template-columns: var(--gp-pitch-w) var(--board-column);
+    }
+
+    .pitch {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+    }
+
+    .instrument {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .setup {
+        grid-column: 2;
+        grid-row: 2;
+    }
 }

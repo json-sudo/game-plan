@@ -1,0 +1,28 @@
+.card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+}
+
+.glyph {
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.zone {
+    font: var(--type-label);
+    color: var(--text);
+}
+
+.hint {
+    font: var(--type-body);
+    color: var(--text-muted);
+}

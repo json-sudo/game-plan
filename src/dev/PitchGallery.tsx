@@ -102,7 +102,13 @@ export function PitchGallery() {
             <PlayerToken x={56} y={50} team="opponent" label="5" side="left" />
             <PlayerToken x={20} y={70} team="mine" label="3" dragging />
             <PlayerToken x={38} y={70} team="mine" label="6" ghost />
-            <PlayerToken x={56} y={70} team="opponent" label="2" phone />
+            <PlayerToken
+              x={56}
+              y={70}
+              team="opponent"
+              label="2"
+              scale={{ ppu: 4.7, tokenPx: 30, hitPx: 44 }}
+            />
           </PitchSample>
           <PitchSample label="Pitch with carrier ball">
             <PlayerToken x={30} y={40} team="mine" label="10" />

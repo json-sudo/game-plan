@@ -17,7 +17,7 @@ function advanceTo(time: number) {
 }
 
 function ballTransform() {
-  return screen.getByRole('img', { name: 'Ball' }).style.transform;
+  return screen.getByRole('button', { name: 'Ball' }).style.transform;
 }
 
 beforeEach(() => {

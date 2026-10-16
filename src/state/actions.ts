@@ -6,6 +6,7 @@ import type { PitchDocument, SquadSize } from './document';
 import {
   applyFormation,
   applyMatchup,
+  applyMatchupChoice,
   resetPitch,
   setKeeper,
   setSquadSize,
@@ -18,6 +19,7 @@ import { documentIssues } from './validate';
 export type Action =
   | { type: 'applyFormation'; team: Side; formationId: string }
   | { type: 'applyMatchup' }
+  | { type: 'applyMatchupChoice'; mine: string; opponent: string }
   | { type: 'setAttacker'; attacker: Side }
   | { type: 'renameTeam'; team: Side; name: string }
   | { type: 'setSquadSize'; team: Side; size: SquadSize }
@@ -46,6 +48,8 @@ export function applyAction(
       return applyFormation(doc, action.team, action.formationId, data);
     case 'applyMatchup':
       return applyMatchup(doc, data);
+    case 'applyMatchupChoice':
+      return applyMatchupChoice(doc, action, data);
     case 'setAttacker':
       return setAttacker(doc, action.attacker, data);
     case 'renameTeam':

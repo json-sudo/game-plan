@@ -1,4 +1,12 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import { useStore, type StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
 import type { Point } from '../../../data/types';
@@ -7,10 +15,12 @@ import {
   computePhases,
   MOTION_DURATIONS_MS,
   PHASES,
+  zoneOf,
   type Phase,
 } from '../../../engine';
 import { activeRoleOf, phasePlayersOf } from '../../../state/context';
 import {
+  BALL_START,
   playerSide,
   placedPlayers,
   playerLabel,
@@ -30,43 +40,51 @@ import {
   ARROWS_ALL_LABEL,
   ARROWS_LABEL,
   ARROWS_SELECTED_LABEL,
+  BALL_TOOLTIP,
   CLEAR_LABEL,
   MODE_OPTIONS,
   PITCH_LABEL,
   RESET_DISABLED_REASON,
   RESET_LABEL,
-  THEME_DARK_LABEL,
-  THEME_LIGHT_LABEL,
   SIDE_COLUMN_LABEL,
   SETUP_COLUMN_LABEL,
+  THEME_DARK_LABEL,
+  THEME_LIGHT_LABEL,
+  TOKEN_TOOLTIP,
 } from '../../copy';
 import { FirstRunHint } from '../../feedback/FirstRunHint';
 import { SetupFlow } from '../../setup/SetupFlow';
+import { MatchupStep } from '../../setup/MatchupStep';
 import { roleOptions } from '../../setup/setup-model';
 import { Button } from '../../controls/Button';
 import { SegmentedControl } from '../../controls/SegmentedControl';
 import { Bench } from '../../bench/Bench';
+import { useBelowBreakpoint } from '../../../shared/hooks/useBelowBreakpoint';
 import { usePieceMotion } from '../../hooks/usePieceMotion';
 import { usePitchDrag } from '../../hooks/usePitchDrag';
+import { BallCard } from '../../instrument/BallCard';
 import { Instrument } from '../../instrument/Instrument';
 import { TransportBar } from '../../instrument/TransportBar';
 import { ZoneMap } from '../../instrument/ZoneMap';
 import { Arrow } from '../../pitch/Arrow';
 import { Ball } from '../../pitch/Ball';
+import { ballKeyStep } from '../../pitch/Ball/ball-keys';
 import { Pitch } from '../../pitch/Pitch';
 import { PitchFrame } from '../../pitch/PitchFrame';
 import { PlayerToken } from '../../pitch/PlayerToken';
 import { RolePicker, type RolePickerRole } from '../../roles/RolePicker';
 import { PICKER_SIZE, anchorRolePicker } from './anchor-role-picker';
+import { useBoardMetrics } from '../use-board-metrics';
 import styles from './board-desktop.module.scss';
 
 const BALL_DRAG_ID = 'ball';
-const COLUMN_STYLE = { width: '300px', flexBasis: '300px' };
 const PHASE_INDEX: Record<Phase, 0 | 1 | 2> = { shape: 0, runs: 1, final: 2 };
 const ARROW_OPTIONS = [
   { value: 'all', label: ARROWS_ALL_LABEL },
   { value: 'selected', label: ARROWS_SELECTED_LABEL },
 ];
+const TOP_BAR_COMPACT_MAX_WIDTH = 1439;
+const DESKTOP_HIT_PX = 40;
 
 export interface BoardDesktopProps {
   store: StoreApi<PitchStore>;
@@ -126,6 +144,8 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
   const ui = useStore(store, (state) => state.ui);
   const canUndo = useStore(store, selectCanUndo);
   const positions = useStore(store, selectDisplayPositions);
+  const metrics = useBoardMetrics();
+  const compactBar = useBelowBreakpoint(TOP_BAR_COMPACT_MAX_WIDTH);
   const canReset = doc.teams.mine.applied !== null || doc.teams.opponent.applied !== null;
   const fm = ui.mode === 'fm';
   const carrier = doc.players.find((player) => player.id === doc.scenario?.carrierId);
@@ -151,6 +171,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
     () => JSON.stringify(store.getState().doc) === JSON.stringify(createExampleDocument()),
   );
   const [pickedId, setPickedId] = useState<string | null>(null);
+  const [ballFocused, setBallFocused] = useState(false);
   const [pickerPlace, setPickerPlace] = useState({ left: 0, top: 0 });
   const openToken = useRef<SVGGElement | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -241,7 +262,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
       setPickedId(null);
       if (focusToken) token?.focus();
     };
-    const onKey = (event: KeyboardEvent) => {
+    const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       event.preventDefault();
       close(true);
@@ -265,9 +286,28 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
     };
   }, [picked, drag.svgRef]);
 
+  const pieceScale = { ppu: metrics.ppu, tokenPx: metrics.tokenPx, hitPx: DESKTOP_HIT_PX };
+  const ballZone = zoneOf(doc.ball, doc.attacker);
+  const ballAtCentre = samePoint(doc.ball, BALL_START);
+  const onBallKey = (event: ReactKeyboardEvent<SVGGElement>) => {
+    const next = ballKeyStep(doc.ball, event.key, event.shiftKey);
+    if (!next) return;
+    event.preventDefault();
+    store.getState().dispatch({ type: 'dragBall', point: next });
+  };
+  const boardStyle = {
+    '--gp-pitch-w': `${metrics.pitchW}px`,
+    '--gp-pitch-h': `${metrics.pitchH}px`,
+  } as CSSProperties;
+
   return (
-    <div className={styles.board}>
-      <header className={styles.top}>
+    <div
+      className={styles.board}
+      data-layout={metrics.layout}
+      data-labels={metrics.labels}
+      style={boardStyle}
+    >
+      <header className={styles.top} data-compact={compactBar || undefined}>
         <SegmentedControl
           label="Mode"
           value={fm ? 'fm' : 'open'}
@@ -275,21 +315,43 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
           onChange={(value) => store.getState().setMode(value === 'fm' ? 'fm' : 'openPitch')}
         />
         <UndoControl canUndo={canUndo} redo={false} onUndo={() => store.getState().undo()} />
-        <Button
-          variant="ghost"
-          disabled={!canReset}
-          disabledReason={canReset ? undefined : RESET_DISABLED_REASON}
-          onClick={() => store.getState().dispatch({ type: 'reset' })}
-        >
-          {RESET_LABEL}
-        </Button>
-        <Button
-          variant="ghost"
-          icon="clear"
-          onClick={() => store.getState().dispatch({ type: 'clearScenario' })}
-        >
-          {CLEAR_LABEL}
-        </Button>
+        <span className={styles.spacer} />
+        {compactBar ? (
+          <Button
+            variant="icon"
+            icon="reset"
+            label={RESET_LABEL}
+            disabled={!canReset}
+            disabledReason={canReset ? undefined : RESET_DISABLED_REASON}
+            onClick={() => store.getState().dispatch({ type: 'reset' })}
+          />
+        ) : (
+          <Button
+            variant="ghost"
+            icon="reset"
+            disabled={!canReset}
+            disabledReason={canReset ? undefined : RESET_DISABLED_REASON}
+            onClick={() => store.getState().dispatch({ type: 'reset' })}
+          >
+            {RESET_LABEL}
+          </Button>
+        )}
+        {compactBar ? (
+          <Button
+            variant="icon"
+            icon="clear"
+            label={CLEAR_LABEL}
+            onClick={() => store.getState().dispatch({ type: 'clearScenario' })}
+          />
+        ) : (
+          <Button
+            variant="ghost"
+            icon="clear"
+            onClick={() => store.getState().dispatch({ type: 'clearScenario' })}
+          >
+            {CLEAR_LABEL}
+          </Button>
+        )}
         <Button
           variant="icon"
           icon={ui.theme === 'dark' ? 'sun' : 'moon'}
@@ -300,35 +362,43 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
         />
       </header>
       <div className={styles.main}>
-        <section
-          className={styles.column}
-          data-column="setup"
-          aria-label={SETUP_COLUMN_LABEL}
-          style={COLUMN_STYLE}
-        >
-          <SetupFlow store={store} />
-          <SegmentedControl
-            label={ARROWS_LABEL}
-            showLabel
-            value={ui.arrows}
-            options={ARROW_OPTIONS}
-            onChange={(value) => {
-              if (value === 'all' || value === 'selected') {
-                store.getState().patchUi({ arrows: value });
-              }
-            }}
-          />
+        <section className={styles.setup} data-column="setup" aria-label={SETUP_COLUMN_LABEL}>
+          {fm ? (
+            <>
+              <SetupFlow store={store} />
+              <SegmentedControl
+                label={ARROWS_LABEL}
+                showLabel
+                value={ui.arrows}
+                options={ARROW_OPTIONS}
+                onChange={(value) => {
+                  if (value === 'all' || value === 'selected') {
+                    store.getState().patchUi({ arrows: value });
+                  }
+                }}
+              />
+            </>
+          ) : (
+            <MatchupStep store={store} />
+          )}
         </section>
         <div className={styles.pitch} data-column="pitch">
           {showHint ? <FirstRunHint onDismiss={() => setShowHint(false)} /> : null}
           <PitchFrame
+            inset
             attacking={doc.attacker}
             mine={doc.teams.mine.name}
             opponent={doc.teams.opponent.name}
           >
             <Pitch label={PITCH_LABEL} svgRef={drag.svgRef}>
               {movementArrows(doc, ui.arrows, ui.selectedPlayerId).map((arrow) => (
-                <Arrow key={arrow.id} from={arrow.from} to={arrow.to} team={arrow.team} />
+                <Arrow
+                  key={arrow.id}
+                  from={arrow.from}
+                  to={arrow.to}
+                  team={arrow.team}
+                  scale={pieceScale}
+                />
               ))}
               {placedPlayers(doc).map((player) => {
                 const point = positions.get(player.id);
@@ -336,17 +406,21 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
                 const dragging =
                   ui.drag?.target.kind === 'player' && ui.drag.target.id === player.id;
                 const role = fm ? roleLabel(doc, player) : undefined;
+                const selected = picked?.id === player.id;
                 return (
                   <PlayerToken
                     key={player.id}
                     x={point.x}
                     y={point.y}
+                    scale={pieceScale}
                     team={player.team}
                     keeper={player.isKeeper}
                     label={playerLabel(player)}
                     side={playerSide(player)}
                     role={role}
-                    showRole={fm}
+                    showRole={Boolean(role) && (metrics.labels === 'full' || selected)}
+                    selected={selected}
+                    title={role ? TOKEN_TOOLTIP(playerLabel(player), role) : undefined}
                     dragging={dragging}
                     onPointerDown={(event) => {
                       openToken.current = event.currentTarget;
@@ -356,63 +430,81 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
                   />
                 );
               })}
-              <Ball x={ballPoint.x} y={ballPoint.y} onPointerDown={drag.startDrag(BALL_DRAG_ID)} />
+              <Ball
+                x={ballPoint.x}
+                y={ballPoint.y}
+                scale={pieceScale}
+                title={BALL_TOOLTIP}
+                selected={ballFocused}
+                dragging={ui.drag?.target.kind === 'ball'}
+                onPointerDown={drag.startDrag(BALL_DRAG_ID)}
+                onFocus={() => setBallFocused(true)}
+                onBlur={() => setBallFocused(false)}
+                onKeyDown={onBallKey}
+              />
             </Pitch>
           </PitchFrame>
         </div>
         <section
-          className={styles.column}
+          className={styles.instrument}
           data-column="instrument"
           aria-label={SIDE_COLUMN_LABEL}
-          style={COLUMN_STYLE}
         >
-          <Instrument>
-            <ZoneMap
-              value={doc.scenario?.zone ?? null}
-              carrier={carrier ? playerLabel(carrier) : undefined}
-              attackerName={doc.teams[doc.attacker].name}
-              onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
-            />
-            {fm ? (
-              <TransportBar
-                phase={PHASE_INDEX[ui.phase]}
-                playing={ui.playing}
-                onPhase={(index) => {
-                  const phase = PHASES[index];
-                  if (!phase) return;
-                  store.getState().patchUi({ phase, playing: false });
-                }}
-                onTogglePlay={() => {
-                  const state = store.getState();
-                  if (state.ui.playing) {
-                    state.patchUi({ playing: false });
-                    return;
-                  }
-                  state.patchUi({
-                    playing: true,
-                    phase: state.ui.phase === 'final' ? 'shape' : state.ui.phase,
-                  });
-                }}
+          {fm ? (
+            <Instrument>
+              <ZoneMap
+                value={doc.scenario?.zone ?? null}
+                carrier={carrier ? playerLabel(carrier) : undefined}
+                attackerName={doc.teams[doc.attacker].name}
+                onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
               />
-            ) : null}
-          </Instrument>
-          {fm ? null : (
-            <Bench
-              pieces={doc.players.flatMap((player) =>
-                player.base
-                  ? []
-                  : [
-                      {
-                        id: player.id,
-                        label: playerLabel(player),
-                        team: player.team,
-                        keeper: player.isKeeper,
-                        name: player.customName,
-                      },
-                    ],
-              )}
-              placed={placedPlayers(doc).length}
-            />
+              <div className={styles.transport}>
+                <TransportBar
+                  phase={PHASE_INDEX[ui.phase]}
+                  playing={ui.playing}
+                  onPhase={(index) => {
+                    const phase = PHASES[index];
+                    if (!phase) return;
+                    store.getState().patchUi({ phase, playing: false });
+                  }}
+                  onTogglePlay={() => {
+                    const state = store.getState();
+                    if (state.ui.playing) {
+                      state.patchUi({ playing: false });
+                      return;
+                    }
+                    state.patchUi({
+                      playing: true,
+                      phase: state.ui.phase === 'final' ? 'shape' : state.ui.phase,
+                    });
+                  }}
+                />
+              </div>
+            </Instrument>
+          ) : (
+            <>
+              <BallCard
+                zone={ballZone}
+                atCentre={ballAtCentre}
+                onCentre={() => store.getState().dispatch({ type: 'dragBall', point: BALL_START })}
+              />
+              <Bench
+                pieces={doc.players.flatMap((player) =>
+                  player.base
+                    ? []
+                    : [
+                        {
+                          id: player.id,
+                          label: playerLabel(player),
+                          team: player.team,
+                          keeper: player.isKeeper,
+                          name: player.customName,
+                        },
+                      ],
+                )}
+                placed={placedPlayers(doc).length}
+              />
+            </>
           )}
         </section>
       </div>

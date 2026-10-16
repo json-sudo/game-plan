@@ -92,14 +92,14 @@ function phasePoint(doc: PitchDocument, phase: 'shape' | 'final'): { name: strin
   return { name: tokenName(doc, player), at };
 }
 
-async function readTranslate(page: Page, role: 'button' | 'img', name: string): Promise<Point> {
+async function readTranslate(page: Page, role: 'button', name: string): Promise<Point> {
   const style = await page.getByRole(role, { name, exact: true }).getAttribute('style');
   const match = style?.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
   if (!match) throw new Error(`no translate on ${name}: ${style}`);
   return { x: Number(match[1]), y: Number(match[2]) };
 }
 
-async function expectSettledAt(page: Page, role: 'button' | 'img', name: string, expected: Point) {
+async function expectSettledAt(page: Page, role: 'button', name: string, expected: Point) {
   await expect
     .poll(async () => {
       const at = await readTranslate(page, role, name);
@@ -153,7 +153,7 @@ test('zone pick, Play through the phases, and Next disabled at Final', async ({ 
     'aria-pressed',
     'true',
   );
-  await expectSettledAt(page, 'img', 'Ball', ballAt('R-F'));
+  await expectSettledAt(page, 'button', 'Ball', ballAt('R-F'));
 
   expectPoint(await readTranslate(page, 'button', moving.name), moving.at);
   await expect(page.getByRole('button', { name: 'Shape', exact: true })).toHaveAttribute(
@@ -194,7 +194,8 @@ test('Reset, Undo, Open pitch, and reload return to the FM example', async ({ pa
   await page.getByRole('radio', { name: 'Open pitch' }).click();
   await expect(page.getByRole('button', { name: 'Play' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Bench' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Ball zone' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ball zone' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Ball' })).toBeVisible();
 
   await page.reload();
   await expect(page.getByRole('radio', { name: 'FM mode', exact: true })).toBeChecked();
@@ -209,8 +210,8 @@ test('the ball can be dragged to a new spot in open pitch', async ({ page }) => 
   await page.waitForLoadState('networkidle');
   await page.getByRole('radio', { name: 'Open pitch', exact: true }).click();
 
-  const before = await readTranslate(page, 'img', 'Ball');
-  const ball = await page.getByRole('img', { name: 'Ball', exact: true }).boundingBox();
+  const before = await readTranslate(page, 'button', 'Ball');
+  const ball = await page.getByRole('button', { name: 'Ball', exact: true }).boundingBox();
   const pitch = await page.getByRole('img', { name: 'Pitch', exact: true }).boundingBox();
   if (!ball || !pitch) throw new Error('ball or pitch not laid out');
   const start = { x: ball.x + ball.width / 2, y: ball.y + ball.height / 2 };
@@ -221,7 +222,7 @@ test('the ball can be dragged to a new spot in open pitch', async ({ page }) => 
 
   await expect
     .poll(async () => {
-      const at = await readTranslate(page, 'img', 'Ball');
+      const at = await readTranslate(page, 'button', 'Ball');
       return Math.hypot(at.x - before.x, at.y - before.y);
     })
     .toBeGreaterThan(5);

@@ -120,6 +120,29 @@ export function applyMatchup(doc: PitchDocument, data: DataSet): PitchDocument {
   return settle(placed, data);
 }
 
+export interface MatchupChoice {
+  mine: string;
+  opponent: string;
+}
+
+export function applyMatchupChoice(
+  doc: PitchDocument,
+  choice: MatchupChoice,
+  data: DataSet,
+): PitchDocument {
+  const chosen: PitchDocument = {
+    ...doc,
+    teams: {
+      ...doc.teams,
+      mine: { ...doc.teams.mine, formationId: choice.mine },
+      opponent: { ...doc.teams.opponent, formationId: choice.opponent },
+    },
+  };
+  const placed = applyMatchup(chosen, data);
+  if (placed === chosen) return doc;
+  return { ...placed, ball: BALL_START, scenario: null };
+}
+
 function blankTeam(doc: PitchDocument, team: Side): PitchDocument {
   const meta = doc.teams[team];
   const pieces = spareRoster(team, [], [], meta.squadSize);

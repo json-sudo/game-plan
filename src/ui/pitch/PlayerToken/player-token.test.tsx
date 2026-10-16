@@ -62,22 +62,30 @@ describe('PlayerToken', () => {
     expect(screen.getByText('Defender')).toBeInTheDocument();
   });
 
-  it('drops brackets from labels on the phone', () => {
-    const desktop = renderToken({ label: 'AM(L)' });
-    expect(screen.getByText('AM(L)')).toBeInTheDocument();
-    desktop.unmount();
-    renderToken({ label: 'AM(L)', phone: true });
+  it('drops brackets from the label on the pitch but keeps the FM form in the accessible name', () => {
+    renderToken({ label: 'AM(L)' });
     expect(screen.getByText('AML')).toBeInTheDocument();
     expect(screen.queryByText('AM(L)')).not.toBeInTheDocument();
+    expect(screen.getByRole('button')).toHaveAccessibleName(expect.stringContaining('AM(L)'));
   });
 
-  it('uses the larger phone size', () => {
-    const desktop = renderToken();
-    const desktopR = desktop.container.querySelector('circle[data-part="body"]')!.getAttribute('r');
-    desktop.unmount();
-    const phone = renderToken({ phone: true });
-    const phoneR = phone.container.querySelector('circle[data-part="body"]')!.getAttribute('r');
-    expect(Number(phoneR)).toBeGreaterThan(Number(desktopR));
+  it('sizes the body from the token size in pixels', () => {
+    const small = renderToken({ scale: { ppu: 8, tokenPx: 26, hitPx: 40 } });
+    const smallR = Number(
+      small.container.querySelector('circle[data-part="body"]')!.getAttribute('r'),
+    );
+    small.unmount();
+    const large = renderToken({ scale: { ppu: 8, tokenPx: 34, hitPx: 40 } });
+    const largeR = Number(
+      large.container.querySelector('circle[data-part="body"]')!.getAttribute('r'),
+    );
+    expect(smallR).toBeCloseTo(13 / 8);
+    expect(largeR).toBeCloseTo(17 / 8);
+  });
+
+  it('shows its tooltip as a title for hover', () => {
+    renderToken({ label: 'AM(L)', title: 'AM(L) · Inside Forward' });
+    expect(screen.getByText('AM(L) · Inside Forward', { selector: 'title' })).toBeInTheDocument();
   });
 
   it('shows the selected halo and pressed state', () => {

@@ -47,6 +47,18 @@ export const NEXT_AT_FINAL_HINT = 'Already at Final position. Press Play to star
 export const ATTACKING_TAG = 'Attacking ↑';
 export const DEFENDING_TAG = 'Defending';
 export const OPEN_PITCH_HINT = 'Places both teams attack against defence, with space between them.';
+export const MATCHUP_HEADING = 'Matchup';
+export const MATCHUP_APPLY_LABEL = 'Apply matchup';
+export const MATCHUP_CLOSE_LABEL = 'Close matchup';
+export const MATCHUP_BUTTON_LABEL = 'Matchup';
+export const BENCH_BUTTON_LABEL = (count: number) => `Bench (${count})`;
+export const BALL_CARD_LABEL = 'Ball';
+export const BALL_CARD_CENTRE_SPOT = 'Centre spot';
+export const BALL_CARD_HINT = 'Drag the ball anywhere on the pitch.';
+export const BALL_TO_CENTRE_LABEL = 'Ball to the centre spot';
+export const BALL_AT_CENTRE_REASON = 'The ball is on the centre spot.';
+export const BALL_TOOLTIP = 'Ball. Drag it anywhere on the pitch.';
+export const TOKEN_TOOLTIP = (position: string, role: string) => `${position} · ${role}`;
 
 export const ZONE_MAP_HEADING = 'Ball zone';
 export const NO_ZONE_TITLE = 'No zone yet';
