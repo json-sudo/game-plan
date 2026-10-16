@@ -41,8 +41,8 @@ describe('RolePicker', () => {
 
   it('marks only the current role', () => {
     render(<RolePicker slotLabel="AM(R)" phase="IP" roles={ROLES} current="if" />);
-    const current = screen.getByRole('radio', { name: /Inside forward/ });
-    expect(within(current).getByText('Current')).toBeInTheDocument();
+    const row = screen.getByRole('radio', { name: /Inside forward/ }).closest('label')!;
+    expect(within(row).getByText('Current')).toBeInTheDocument();
     expect(screen.getAllByText('Current')).toHaveLength(1);
   });
 

@@ -428,6 +428,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
             onChoose={(roleId) =>
               store.getState().dispatch({ type: 'setRole', playerId: picked.id, roleId })
             }
+            onClose={() => setPickedId(null)}
           />
         </div>
       ) : null}

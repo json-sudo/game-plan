@@ -518,16 +518,16 @@ describe('role picker anchor', () => {
     expect(
       within(picker)
         .getAllByRole('radio')
-        .map((row) => compact(row.textContent)),
+        .map((input) => compact(input.closest('label')?.textContent)),
     ).toEqual(
       roles.map((role) =>
         compact(role.id === current.id ? `${role.name} ${ROLE_CURRENT_MARK}` : role.name),
       ),
     );
     expect(
-      within(within(picker).getByRole('radio', { name: radioName(current.name) })).getByText(
-        ROLE_CURRENT_MARK,
-      ),
+      within(
+        within(picker).getByRole('radio', { name: radioName(current.name) }).closest('label')!,
+      ).getByText(ROLE_CURRENT_MARK),
     ).toBeInTheDocument();
 
     act(() => store.getState().setMode('openPitch'));
