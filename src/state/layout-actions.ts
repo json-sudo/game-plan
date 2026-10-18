@@ -31,7 +31,12 @@ function benched(player: Player): Player {
   return { ...rest, family: null };
 }
 
-function spareRoster(team: Side, previous: Player[], reserved: Player[], count: number): Player[] {
+export function spareRoster(
+  team: Side,
+  previous: Player[],
+  reserved: Player[],
+  count: number,
+): Player[] {
   const reused = previous.filter(isSpare).slice(0, count).map(benched);
   const taken = new Set([...reserved, ...reused].map((player) => player.id));
   const created = Array.from({ length: count - reused.length }, (): Player => {

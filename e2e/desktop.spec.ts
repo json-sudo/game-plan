@@ -7,6 +7,9 @@ import { applyAction, type Action } from '../src/state/actions';
 import { activeRoleOf } from '../src/state/context';
 import type { PitchDocument, Player } from '../src/state/document';
 import { createExampleDocument } from '../src/state/example';
+import { encodeShareHash } from '../src/share';
+import { applyTacticAction } from '../src/state/tactic-actions';
+import { createExampleTactic } from '../src/state/tactic';
 import { selectPhasePositions } from '../src/state/selectors';
 import { playerLabel, playerSide } from '../src/state/document';
 import { TOKEN_TEAM_LABELS, tokenSideLabel } from '../src/ui/copy';
@@ -176,7 +179,9 @@ test('zone pick, Play through the phases, and Next disabled at Final', async ({ 
   expectPoint(await readTranslate(page, 'button', moving.name), phasePoint(played, 'final').at);
 });
 
-test('Reset, Undo, Open pitch, and reload return to the FM example', async ({ page }) => {
+test('Reset, Undo and Open pitch keep the FM layout, and a reload opens the empty Open pitch', async ({
+  page,
+}) => {
   const shift = pieceThatShifts('L-D');
   await page.goto('/');
   await page.getByRole('button', { name: ZONE_NAME['L-D'] }).click();
@@ -197,12 +202,36 @@ test('Reset, Undo, Open pitch, and reload return to the FM example', async ({ pa
   await expect(page.getByRole('heading', { name: 'Ball zone' })).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Ball' })).toBeVisible();
 
+  await expect(page.getByRole('button', { name: shift.name })).toHaveCount(0);
+
+  await page.getByRole('radio', { name: 'FM mode', exact: true }).click();
+  await expect(page.getByText(ZONE_NAME['L-D'], { exact: true })).toBeVisible();
+  expectPoint(await readTranslate(page, 'button', shift.name), shift.shifted);
+
   await page.reload();
-  await expect(page.getByRole('radio', { name: 'FM mode', exact: true })).toBeChecked();
-  await expect(page.getByRole('complementary', { name: 'How to use the example' })).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Open pitch', exact: true })).toBeChecked();
+  await expect(page.getByRole('heading', { name: 'Bench' })).toBeVisible();
+  await expect(page.getByRole('button', { name: shift.name })).toHaveCount(0);
+  await expect(page.getByRole('complementary', { name: 'How to use the example' })).toHaveCount(0);
+});
+
+test('a new-format share link opens in the mode it was made in with both layouts intact', async ({
+  page,
+}) => {
+  const tactic = applyTacticAction(createExampleTactic(), 'openPitch', {
+    type: 'applyFormation',
+    team: 'mine',
+    formationId: '4_3_3_dm_wide',
+  });
+  const encoded = encodeShareHash({ tactic, mode: 'openPitch' }, 'shape');
+  if (encoded.status !== 'ok') throw new Error('expected the tactic to fit in a link');
+  await page.goto(`/${encoded.hash}`);
+  await expect(page.getByRole('radio', { name: 'Open pitch', exact: true })).toBeChecked();
+  await expect(page.getByRole('button', { name: 'ST, my team', exact: true })).toBeVisible();
+
+  await page.getByRole('radio', { name: 'FM mode', exact: true }).click();
   await expect(page.getByText(ZONE_NAME['R-F'], { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Bench' })).toHaveCount(0);
 });
 
 test('the ball can be dragged to a new spot in open pitch', async ({ page }) => {

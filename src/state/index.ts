@@ -40,9 +40,20 @@ export {
   selectTeamPlayers,
 } from './selectors';
 export type { PhasePositions } from './selectors';
+export { copyFmPositions, applyTacticAction } from './tactic-actions';
+export {
+  MODES,
+  createExampleTactic,
+  createInitialTactic,
+  otherMode,
+  tacticFromDocument,
+} from './tactic';
+export type { Tactic, TacticSnapshot } from './tactic';
+export { tacticIssues } from './tactic-validate';
 export { createPitchStore, initialUi } from './store';
 export type {
   ArrowMode,
+  LoadTacticOptions,
   PitchStore,
   PitchStoreOptions,
   DragState,

@@ -7,7 +7,6 @@ import { ballAtopPosition } from '../../../engine';
 import {
   createInitialDocument,
   placedPlayers,
-  playersOf,
   playerLabel,
   playerSide,
   type Player,
@@ -127,7 +126,7 @@ describe('BoardDesktop', () => {
     });
   });
 
-  it('switches mode through the store and fills roles when entering FM mode', async () => {
+  it('switches mode through the store and keeps the two layouts apart', async () => {
     const user = userEvent.setup();
     const store = createPitchStore({ doc: createInitialDocument() });
     act(() => {
@@ -138,11 +137,7 @@ describe('BoardDesktop', () => {
     render(<BoardDesktop store={store} />);
     await user.click(screen.getByRole('radio', { name: 'FM mode' }));
     expect(store.getState().ui.mode).toBe('fm');
-    expect(
-      playersOf(store.getState().doc, 'mine')
-        .filter((player) => player.base)
-        .every((player) => player.role !== undefined),
-    ).toBe(true);
+    expect(placedPlayers(store.getState().doc)).toHaveLength(0);
     await user.click(screen.getByRole('radio', { name: 'Open pitch' }));
     expect(store.getState().ui.mode).toBe('openPitch');
   });
@@ -539,7 +534,12 @@ describe('role picker anchor', () => {
       ).getByText(ROLE_CURRENT_MARK),
     ).toBeInTheDocument();
 
-    act(() => store.getState().setMode('openPitch'));
+    act(() => {
+      store.getState().setMode('openPitch');
+      store
+        .getState()
+        .dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_3_3_dm_wide' });
+    });
     expect(screen.queryByRole('region', { name: playerLabel(player) })).not.toBeInTheDocument();
     silencePitchMatrix();
     await user.click(screen.getByRole('button', { name: `${labelWithSide(player)}, my team` }));

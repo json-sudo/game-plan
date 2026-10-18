@@ -1,10 +1,12 @@
 export {
   CURRENT_TACTICS_VERSION,
   MAX_SLOTS,
+  MAX_TACTICS_STORAGE_CHARS,
   SLOT_NAME_MAX_LENGTH,
   TACTICS_STORAGE_KEY,
   documentSchema,
   savedSlotSchema,
+  tacticSchema,
 } from './schema';
 export type { TacticsWrapper, SavedSlot } from './schema';
 export {

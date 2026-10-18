@@ -1,11 +1,21 @@
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import type { Phase } from '../engine';
 import type { Point } from '../data/types';
-import { applyAction, type Action } from './actions';
-import { createInitialDocument, type PitchDocument } from './document';
+import type { Action } from './actions';
+import type { PitchDocument } from './document';
 import { commit, emptyHistory, redo, undo, type History } from './history';
+import { copyFmPositions, applyTacticAction } from './tactic-actions';
+import { tacticIssues } from './tactic-validate';
+import {
+  createInitialTactic,
+  tacticFromDocument,
+  type Mode,
+  type Tactic,
+  type TacticSnapshot,
+} from './tactic';
+import { FM26_DATA } from '../data/fm26';
 
-export type Mode = 'openPitch' | 'fm';
+export type { Mode } from './tactic';
 export type ArrowMode = 'all' | 'selected';
 export type Theme = 'light' | 'dark';
 export type DragTarget = { kind: 'player'; id: string } | { kind: 'ball' };
@@ -26,11 +36,19 @@ export interface UiState {
   drag: DragState | null;
 }
 
+export interface LoadTacticOptions {
+  mode: Mode;
+  phase?: Phase;
+}
+
 export interface PitchStore {
+  tactic: Tactic;
   doc: PitchDocument;
-  history: History<PitchDocument>;
+  history: History<TacticSnapshot>;
   ui: UiState;
   dispatch: (action: Action) => void;
+  copyFmPositions: () => void;
+  loadTactic: (tactic: Tactic, options: LoadTacticOptions) => boolean;
   undo: () => void;
   redo: () => void;
   patchUi: (patch: Partial<UiState>) => void;
@@ -42,6 +60,7 @@ export interface PitchStore {
 }
 
 export interface PitchStoreOptions {
+  tactic?: Tactic;
   doc?: PitchDocument;
   ui?: Partial<UiState>;
 }
@@ -65,40 +84,76 @@ function dragAction(drag: DragState): Action {
     : { type: 'movePlayer', playerId: drag.target.id, point: drag.point };
 }
 
+function initialTactic(options: PitchStoreOptions, mode: Mode): Tactic {
+  if (options.tactic) return options.tactic;
+  return options.doc ? tacticFromDocument(options.doc, mode) : createInitialTactic();
+}
+
 export function createPitchStore(options: PitchStoreOptions = {}): StoreApi<PitchStore> {
-  const { doc = createInitialDocument(), ui = {} } = options;
+  const initialUiState: UiState = { ...initialUi('openPitch'), ...options.ui };
+  const tactic = initialTactic(options, initialUiState.mode);
   return createStore<PitchStore>()((set, get) => {
-    const dispatch = (action: Action) => {
-      const { doc: current, history } = get();
-      const next = applyAction(current, action);
+    const snapshot = (): TacticSnapshot => ({ tactic: get().tactic, mode: get().ui.mode });
+    const restore = (entry: TacticSnapshot, ui: UiState) =>
+      ({
+        tactic: entry.tactic,
+        doc: entry.tactic[entry.mode],
+        ui: { ...ui, mode: entry.mode },
+      }) satisfies Partial<PitchStore>;
+    const replaceTactic = (next: Tactic) => {
+      const { tactic: current, history, ui } = get();
       if (next === current) return;
-      set({ doc: next, history: commit(history, current) });
+      set({
+        tactic: next,
+        doc: next[ui.mode],
+        history: commit(history, snapshot()),
+      });
+    };
+    const dispatch = (action: Action) => {
+      const { tactic: current, ui } = get();
+      replaceTactic(applyTacticAction(current, ui.mode, action));
     };
     return {
-      doc,
-      history: emptyHistory<PitchDocument>(),
-      ui: { ...initialUi('openPitch'), ...ui },
+      tactic,
+      doc: tactic[initialUiState.mode],
+      history: emptyHistory<TacticSnapshot>(),
+      ui: initialUiState,
       dispatch,
+      copyFmPositions: () => replaceTactic(copyFmPositions(get().tactic)),
+      loadTactic: (next, { mode, phase }) => {
+        if (tacticIssues(next, FM26_DATA) !== null) return false;
+        const { history, ui } = get();
+        set({
+          tactic: next,
+          doc: next[mode],
+          history: commit(history, snapshot()),
+          ui: {
+            ...ui,
+            mode,
+            phase: phase ?? 'shape',
+            playing: false,
+            selectedPlayerId: null,
+            drag: null,
+          },
+        });
+        return true;
+      },
       undo: () => {
-        const step = undo(get().history, get().doc);
-        if (step) set({ doc: step.present, history: step.history });
+        const step = undo(get().history, snapshot());
+        if (step) set({ ...restore(step.present, get().ui), history: step.history });
       },
       redo: () => {
-        const step = redo(get().history, get().doc);
-        if (step) set({ doc: step.present, history: step.history });
+        const step = redo(get().history, snapshot());
+        if (step) set({ ...restore(step.present, get().ui), history: step.history });
       },
-      patchUi: (patch) => set({ ui: { ...get().ui, ...patch } }),
+      patchUi: (patch) => {
+        const ui = { ...get().ui, ...patch };
+        set({ ui, doc: get().tactic[ui.mode] });
+      },
       setMode: (mode) => {
-        if (get().ui.mode === mode) return;
-        const { doc: current, history, ui: currentUi } = get();
-        const ui = { ...currentUi, mode };
-        if (mode !== 'fm') return set({ ui });
-        const fill = (entry: PitchDocument) => applyAction(entry, { type: 'fillDefaultRoles' });
-        set({
-          ui,
-          doc: fill(current),
-          history: { past: history.past.map(fill), future: history.future.map(fill) },
-        });
+        const { ui, tactic: current } = get();
+        if (ui.mode === mode) return;
+        set({ ui: { ...ui, mode }, doc: current[mode] });
       },
       beginDrag: (target, point) => set({ ui: { ...get().ui, drag: { target, point } } }),
       updateDrag: (point) => {

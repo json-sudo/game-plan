@@ -15,7 +15,7 @@ import { formationSummary } from '../setup-model';
 import { SetupFlow } from '.';
 
 function renderFlow(step: 1 | 2 | 3, doc = createInitialDocument()) {
-  const store = createPitchStore({ doc, ui: { setupStep: step } });
+  const store = createPitchStore({ doc, ui: { setupStep: step, mode: 'fm' } });
   render(<SetupFlow store={store} phone />);
   return store;
 }
