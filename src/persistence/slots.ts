@@ -109,7 +109,7 @@ export function saveSlot(
   storage: Storage = localStorage,
   now: number = Date.now(),
 ): SaveResult {
-  const { tactic, mode } = snapshot;
+  const { tactic } = snapshot;
   if (tacticIssues(tactic, FM26_DATA) !== null || !canSaveTactic(snapshot)) {
     return { status: 'error', message: "This tactic can't be saved." };
   }
@@ -121,7 +121,7 @@ export function saveSlot(
     return { status: 'error', message: 'Both save slots are full. Choose one to overwrite.' };
   }
   const slotId = existing ? existing.id : createSlotId();
-  const saved: SavedSlot = { id: slotId, name: trimmedName, savedAt: now, mode, tactic };
+  const saved: SavedSlot = { id: slotId, name: trimmedName, savedAt: now, tactic };
   const nextSlots = existing
     ? slots.map((slot) => (slot === existing ? saved : slot))
     : [...slots, saved];

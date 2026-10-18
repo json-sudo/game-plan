@@ -19,6 +19,16 @@ import {
   type DecodeResult,
 } from './codec';
 
+function exampleSlotId(team: string, slot: string): string {
+  const found = createExampleTactic().fm.players.find((p) => p.team === team && p.slot === slot);
+  if (!found) throw new Error(`no example ${team} player at ${slot}`);
+  return found.id;
+}
+
+const MINE_DM = exampleSlotId('mine', 'DM');
+const MINE_ST = exampleSlotId('mine', 'ST');
+const OPPONENT_DML = exampleSlotId('opponent', 'DML');
+
 const example = createExampleTactic();
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -86,14 +96,14 @@ function arranged(): Tactic {
     createExampleTactic(),
     'openPitch',
     { type: 'applyFormation', team: 'mine', formationId: '4_4_2' },
-    { type: 'movePlayer', playerId: 'mine-ST', point: { x: 12.34, y: 56.78 } },
+    { type: 'movePlayer', playerId: MINE_ST, point: { x: 12.34, y: 56.78 } },
     { type: 'dragBall', point: { x: 70.5, y: 33.25 } },
   );
   return run(
     base,
     'fm',
     { type: 'tapZone', zone: 'L-D' },
-    { type: 'setPieceName', playerId: 'mine-ST', name: 'Zoë 🙂' },
+    { type: 'setPieceName', playerId: MINE_ST, name: 'Zoë 🙂' },
   );
 }
 
@@ -139,7 +149,7 @@ describe('round trip', () => {
       'fm',
       { type: 'renameTeam', team: 'mine', name: 'Ünïcödé FC ⚽' },
       { type: 'renameTeam', team: 'opponent', name: 'Rivals "quoted"' },
-      { type: 'setPieceName', playerId: 'mine-ST', name: 'Zoë 🙂' },
+      { type: 'setPieceName', playerId: MINE_ST, name: 'Zoë 🙂' },
       { type: 'setSquadSize', team: 'opponent', size: 20 },
       { type: 'setAttacker', attacker: 'opponent' },
     );
@@ -155,8 +165,8 @@ describe('round trip', () => {
     const tactic = run(
       copyFmPositions(example),
       'openPitch',
-      { type: 'benchPlayer', playerId: 'mine-DM' },
-      { type: 'benchPlayer', playerId: 'opponent-DM' },
+      { type: 'benchPlayer', playerId: MINE_DM },
+      { type: 'benchPlayer', playerId: OPPONENT_DML },
     );
     const cleared = run(tactic, 'fm', { type: 'clearScenario' });
     const result = decodeShareHash(hashOf(cleared, 'openPitch'));
@@ -319,7 +329,7 @@ describe('rejected links', () => {
     expect(crafted((p) => (fmPlayers(p)[0][6] = 'zzzz'))).toMatchObject(rejected('invalid'));
     expect(crafted((p) => (fmPlayers(p)[0][2] = 99))).toMatchObject(rejected('malformed'));
     expect(crafted((p) => (fmPlayers(p)[0][3] = 'STL'))).toMatchObject(rejected('invalid'));
-    expect(crafted((p) => (fmLayout(p)[SCENARIO] = ['Z-Q', 'mine-ST']))).toMatchObject(
+    expect(crafted((p) => (fmLayout(p)[SCENARIO] = ['Z-Q', MINE_ST]))).toMatchObject(
       rejected('malformed'),
     );
     expect(crafted((p) => (fmLayout(p)[SCENARIO] = ['C-F', 'ghost']))).toMatchObject(

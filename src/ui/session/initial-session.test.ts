@@ -8,7 +8,7 @@ import {
   createInitialTactic,
   placedPlayers,
 } from '../../state';
-import { resolveInitialSession } from './initial-session';
+import { openedShareLink, resolveInitialSession, sessionNotices } from './initial-session';
 
 function memoryStorage(initial: Record<string, string> = {}): Storage {
   const map = new Map<string, string>(Object.entries(initial));
@@ -159,5 +159,51 @@ describe('share link', () => {
     expect(session.share.status).toBe('error');
     expect(session.tactic).toEqual(createExampleTactic());
     expect(session.mode).toBe('fm');
+  });
+});
+
+describe('session notices', () => {
+  it('reports nothing for an ordinary visit', () => {
+    const session = resolveInitialSession({ storage: storageWithSave(), location: noLink });
+    expect(sessionNotices(session)).toEqual([]);
+    expect(openedShareLink(session)).toBe(false);
+  });
+
+  it('reports an old link and marks it for clearing', () => {
+    const session = resolveInitialSession({ storage: visited(), location: { hash: '#s=v3.abc' } });
+    expect(sessionNotices(session)).toEqual([
+      { id: 'share', tone: 'error', title: expect.stringMatching(/old Game Plan/) },
+    ]);
+    expect(openedShareLink(session)).toBe(true);
+  });
+
+  it('marks a valid link for clearing so a reload does not reapply it', () => {
+    const encoded = encodeShareHash({ tactic: createExampleTactic(), mode: 'fm' }, 'shape');
+    if (encoded.status !== 'ok') throw new Error('expected a link');
+    const session = resolveInitialSession({ storage: visited(), location: encoded });
+    expect(sessionNotices(session)).toEqual([]);
+    expect(openedShareLink(session)).toBe(true);
+  });
+
+  it('reports blocked storage', () => {
+    const session = resolveInitialSession({ storage: blockedStorage(), location: noLink });
+    expect(sessionNotices(session)).toEqual([
+      expect.objectContaining({ id: 'storage', title: 'Saving is off in this browser.' }),
+    ]);
+  });
+
+  it('reports skipped and unreadable saves', () => {
+    const skipped = visited({
+      [TACTICS_STORAGE_KEY]: JSON.stringify({ version: 4, slots: [{ nope: true }] }),
+    });
+    expect(sessionNotices(resolveInitialSession({ storage: skipped, location: noLink }))).toEqual([
+      { id: 'saved', tone: 'error', title: '1 saved tactic was skipped.' },
+    ]);
+    const legacy = visited({
+      [TACTICS_STORAGE_KEY]: JSON.stringify({ version: 3, slots: [{ id: 'a' }] }),
+    });
+    expect(sessionNotices(resolveInitialSession({ storage: legacy, location: noLink }))).toEqual([
+      expect.objectContaining({ id: 'saved', title: 'Saved tactics were skipped.' }),
+    ]);
   });
 });

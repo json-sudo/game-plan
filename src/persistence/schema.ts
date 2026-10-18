@@ -3,7 +3,6 @@ import { familySchema, pointSchema, slotIdSchema, zoneIdSchema } from '../data/s
 import {
   PIECE_NAME_MAX_LENGTH,
   TEAM_NAME_MAX_LENGTH,
-  type Mode,
   type PitchDocument,
   type Tactic,
 } from '../state';
@@ -43,8 +42,6 @@ export const documentSchema = z.object({
   scenario: z.object({ zone: zoneIdSchema, carrierId: z.string().min(1).max(64) }).nullable(),
 }) satisfies z.ZodType<PitchDocument>;
 
-export const modeSchema = z.enum(['openPitch', 'fm']);
-
 export const tacticSchema = z.object({
   openPitch: documentSchema,
   fm: documentSchema,
@@ -54,7 +51,6 @@ export const savedSlotSchema = z.object({
   id: z.string().min(1).max(64),
   name: z.string().max(SLOT_NAME_MAX_LENGTH),
   savedAt: z.number().finite(),
-  mode: modeSchema,
   tactic: tacticSchema,
 }) satisfies z.ZodType<SavedSlot>;
 
@@ -67,7 +63,6 @@ export interface SavedSlot {
   id: string;
   name: string;
   savedAt: number;
-  mode: Mode;
   tactic: Tactic;
 }
 

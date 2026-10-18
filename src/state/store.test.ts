@@ -5,6 +5,14 @@ import { createInitialDocument, playersOf } from './document';
 import { HISTORY_LIMIT } from './history';
 import { createPitchStore, initialUi } from './store';
 
+function exampleSlotId(team: string, slot: string): string {
+  const found = createExampleDocument().players.find((p) => p.team === team && p.slot === slot);
+  if (!found) throw new Error(`no example ${team} player at ${slot}`);
+  return found.id;
+}
+
+const MINE_ST = exampleSlotId('mine', 'ST');
+
 function blankStore() {
   return createPitchStore({ doc: createInitialDocument() });
 }
@@ -132,15 +140,15 @@ describe('undo and redo', () => {
     dispatch({ type: 'clearScenario' });
     expect(store.getState().history.past).toHaveLength(0);
     dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_3_3_dm_wide' });
-    const applied = store.getState().doc.players.find((player) => player.id === 'mine-ST')!.base;
-    dispatch({ type: 'movePlayer', playerId: 'mine-ST', point: { x: 1, y: 1 } });
+    const applied = store.getState().doc.players.find((player) => player.id === MINE_ST)!.base;
+    dispatch({ type: 'movePlayer', playerId: MINE_ST, point: { x: 1, y: 1 } });
     dispatch({ type: 'reset' });
-    expect(store.getState().doc.players.find((player) => player.id === 'mine-ST')!.base).toEqual(
+    expect(store.getState().doc.players.find((player) => player.id === MINE_ST)!.base).toEqual(
       applied,
     );
     expect(store.getState().doc.teams.mine.applied).toBe('formation');
     undo();
-    expect(store.getState().doc.players.find((player) => player.id === 'mine-ST')!.base).toEqual({
+    expect(store.getState().doc.players.find((player) => player.id === MINE_ST)!.base).toEqual({
       x: 1,
       y: 1,
     });
@@ -148,25 +156,25 @@ describe('undo and redo', () => {
 
   it('undoing a role change restores the old role', () => {
     const store = exampleStore();
-    const before = store.getState().doc.players.find((p) => p.id === 'mine-ST')!.role;
+    const before = store.getState().doc.players.find((p) => p.id === MINE_ST)!.role;
     const other = FM26_DATA.roles.find(
       (r) => r.possession === 'in' && r.families.includes('ST') && r.id !== before,
     )!;
-    store.getState().dispatch({ type: 'setRole', playerId: 'mine-ST', roleId: other.id });
-    expect(store.getState().doc.players.find((p) => p.id === 'mine-ST')!.role).toBe(other.id);
+    store.getState().dispatch({ type: 'setRole', playerId: MINE_ST, roleId: other.id });
+    expect(store.getState().doc.players.find((p) => p.id === MINE_ST)!.role).toBe(other.id);
     store.getState().undo();
-    expect(store.getState().doc.players.find((p) => p.id === 'mine-ST')!.role).toBe(before);
+    expect(store.getState().doc.players.find((p) => p.id === MINE_ST)!.role).toBe(before);
   });
 });
 
 describe('ui state', () => {
   it('patchUi changes only the ui and never touches history', () => {
     const store = exampleStore();
-    store.getState().patchUi({ phase: 'runs', selectedPlayerId: 'mine-ST', arrows: 'selected' });
+    store.getState().patchUi({ phase: 'runs', selectedPlayerId: MINE_ST, arrows: 'selected' });
     const state = store.getState();
     expect(state.ui).toMatchObject({
       phase: 'runs',
-      selectedPlayerId: 'mine-ST',
+      selectedPlayerId: MINE_ST,
       arrows: 'selected',
     });
     expect(state.history.past).toHaveLength(0);
@@ -185,7 +193,7 @@ describe('drag', () => {
     const store = exampleStore();
     const start = store.getState().doc;
     const { beginDrag, updateDrag, endDrag } = store.getState();
-    beginDrag({ kind: 'player', id: 'mine-ST' }, { x: 30, y: 20 });
+    beginDrag({ kind: 'player', id: MINE_ST }, { x: 30, y: 20 });
     updateDrag({ x: 31, y: 21 });
     updateDrag({ x: 32, y: 22 });
     expect(store.getState().ui.drag?.point).toEqual({ x: 32, y: 22 });
@@ -194,7 +202,7 @@ describe('drag', () => {
     endDrag();
     const state = store.getState();
     expect(state.ui.drag).toBeNull();
-    expect(state.doc.players.find((p) => p.id === 'mine-ST')!.base).toEqual({ x: 32, y: 22 });
+    expect(state.doc.players.find((p) => p.id === MINE_ST)!.base).toEqual({ x: 32, y: 22 });
     expect(state.history.past).toHaveLength(1);
   });
 
@@ -208,7 +216,7 @@ describe('drag', () => {
 
   it('cancelDrag discards the live position without a commit', () => {
     const store = exampleStore();
-    store.getState().beginDrag({ kind: 'player', id: 'mine-ST' }, { x: 1, y: 1 });
+    store.getState().beginDrag({ kind: 'player', id: MINE_ST }, { x: 1, y: 1 });
     store.getState().cancelDrag();
     expect(store.getState().ui.drag).toBeNull();
     expect(store.getState().history.past).toHaveLength(0);

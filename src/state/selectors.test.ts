@@ -13,6 +13,15 @@ import {
 } from './selectors';
 import { createPitchStore } from './store';
 
+function exampleSlotId(team: string, slot: string): string {
+  const found = createExampleDocument().players.find((p) => p.team === team && p.slot === slot);
+  if (!found) throw new Error(`no example ${team} player at ${slot}`);
+  return found.id;
+}
+
+const MINE_GK = exampleSlotId('mine', 'GK');
+const MINE_ST = exampleSlotId('mine', 'ST');
+
 describe('selectPhasePositions', () => {
   it('matches the engine for the example pitch and keeps the carrier on the ball', () => {
     const doc = createExampleDocument();
@@ -43,9 +52,9 @@ describe('selectPhasePositions', () => {
   it('gives the base shape in every phase when there is no scenario', () => {
     const doc = { ...createExampleDocument(), scenario: null };
     const phases = selectPhasePositions(doc);
-    const st = doc.players.find((p) => p.id === 'mine-ST')!;
-    expect(phases.shape.get('mine-ST')).toEqual(st.base);
-    expect(phases.final.get('mine-ST')).toEqual(st.base);
+    const st = doc.players.find((p) => p.id === MINE_ST)!;
+    expect(phases.shape.get(MINE_ST)).toEqual(st.base);
+    expect(phases.final.get(MINE_ST)).toEqual(st.base);
   });
 
   it('moves players between shape and final when a zone with movement data is applied', () => {
@@ -82,15 +91,15 @@ describe('store selectors', () => {
     const store = createPitchStore({ doc: createExampleDocument(), ui: { phase: 'final' } });
     const state = store.getState();
     expect(selectDisplayPositions(state)).toBe(selectPhasePositions(state.doc).final);
-    store.getState().beginDrag({ kind: 'player', id: 'mine-ST' }, { x: 5, y: 6 });
+    store.getState().beginDrag({ kind: 'player', id: MINE_ST }, { x: 5, y: 6 });
     const dragged = selectDisplayPositions(store.getState());
-    expect(dragged.get('mine-ST')).toEqual({ x: 5, y: 6 });
-    expect(dragged.get('mine-GK')).toEqual(selectPhasePositions(state.doc).final.get('mine-GK'));
+    expect(dragged.get(MINE_ST)).toEqual({ x: 5, y: 6 });
+    expect(dragged.get(MINE_GK)).toEqual(selectPhasePositions(state.doc).final.get(MINE_GK));
   });
 
   it('returns the same drag positions until the drag or phase changes', () => {
     const store = createPitchStore({ doc: createExampleDocument(), ui: { phase: 'final' } });
-    store.getState().beginDrag({ kind: 'player', id: 'mine-ST' }, { x: 5, y: 6 });
+    store.getState().beginDrag({ kind: 'player', id: MINE_ST }, { x: 5, y: 6 });
     const dragged = selectDisplayPositions(store.getState());
     expect(selectDisplayPositions(store.getState())).toBe(dragged);
     store.getState().patchUi({ phase: 'shape' });
@@ -100,6 +109,6 @@ describe('store selectors', () => {
     store.getState().updateDrag({ x: 7, y: 8 });
     const moved = selectDisplayPositions(store.getState());
     expect(moved).not.toBe(shape);
-    expect(moved.get('mine-ST')).toEqual({ x: 7, y: 8 });
+    expect(moved.get(MINE_ST)).toEqual({ x: 7, y: 8 });
   });
 });

@@ -11,7 +11,7 @@ import {
   type PitchDocument,
   type Player,
 } from './document';
-import { spareRoster } from './layout-actions';
+import { benchedPlayer } from './layout-actions';
 import { syncRoster } from './tactic-sync';
 import type { Mode, Tactic } from './tactic';
 
@@ -68,14 +68,14 @@ function benchedEverywhere(doc: PitchDocument, team: Side): PitchDocument {
   return { ...doc, players: replaceTeamPlayers(doc, team, players) };
 }
 
-function starterOf(player: Player): Player {
+function starterOf(player: Player, starter: Player): Player {
   return {
     id: player.id,
     team: player.team,
-    family: player.family,
-    slot: player.slot,
-    isKeeper: player.isKeeper,
-    base: player.base,
+    family: starter.family,
+    slot: starter.slot,
+    isKeeper: starter.isKeeper,
+    base: starter.base,
     ...(player.customName ? { customName: player.customName } : {}),
   };
 }
@@ -87,26 +87,31 @@ function copyTeam(
   data: DataSet,
 ): PitchDocument {
   const formationId = fm.teams[team].formationId;
-  const starters = playersOf(fm, team)
-    .filter((player) => player.slot !== null && player.base !== undefined)
-    .map(starterOf);
-  if (!formationOf(data, formationId) || starters.length === 0) {
+  const starters = new Map(
+    playersOf(fm, team)
+      .filter((player) => player.slot !== null && player.base !== undefined)
+      .map((player) => [player.id, player]),
+  );
+  if (!formationOf(data, formationId) || starters.size === 0) {
     return benchedEverywhere(openPitch, team);
   }
+  const players = playersOf(openPitch, team).map((player) => {
+    const starter = starters.get(player.id);
+    return starter ? starterOf(player, starter) : benchedPlayer(player);
+  });
   const meta = openPitch.teams[team];
-  const spares = spareRoster(
-    team,
-    playersOf(openPitch, team),
-    starters,
-    Math.max(0, meta.squadSize - starters.length),
-  );
   return {
     ...openPitch,
     teams: {
       ...openPitch.teams,
-      [team]: { ...meta, formationId, keeper: starters.some((p) => p.isKeeper), applied: null },
+      [team]: {
+        ...meta,
+        formationId,
+        keeper: players.some((player) => player.isKeeper),
+        applied: null,
+      },
     },
-    players: replaceTeamPlayers(openPitch, team, [...starters, ...spares]),
+    players: replaceTeamPlayers(openPitch, team, players),
   };
 }
 

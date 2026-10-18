@@ -1,5 +1,5 @@
 import type { DataSet } from '../data/types';
-import { SIDES, type PitchDocument } from './document';
+import { SIDES, keeperOf, type PitchDocument } from './document';
 import type { Tactic } from './tactic';
 import { documentIssues } from './validate';
 
@@ -24,11 +24,19 @@ function rosterIssue(tactic: Tactic): string | null {
       if (count !== layout.teams[side].squadSize) return `${side} squad does not match its size`;
     }
   }
-  const fmNames = new Map(fm.players.map((player) => [player.id, player.customName]));
-  const mismatch = openPitch.players.find(
-    (player) => fmNames.has(player.id) && fmNames.get(player.id) !== player.customName,
-  );
-  return mismatch ? `${mismatch.id} has a different name in each layout` : null;
+  const fmPlayers = new Map(fm.players.map((player) => [player.id, player]));
+  const mismatch = openPitch.players.find((player) => {
+    const peer = fmPlayers.get(player.id);
+    return !peer || peer.team !== player.team || peer.customName !== player.customName;
+  });
+  if (mismatch) return `${mismatch.id} is not the same player in each layout`;
+  for (const side of SIDES) {
+    const open = keeperOf(openPitch, side);
+    const fmKeeper = keeperOf(fm, side);
+    if (open && fmKeeper && open.id !== fmKeeper.id)
+      return `${side} keeper differs between layouts`;
+  }
+  return null;
 }
 
 export function tacticIssues(tactic: Tactic, data: DataSet): string | null {

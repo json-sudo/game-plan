@@ -30,6 +30,16 @@ import {
 } from '../../copy';
 import { BoardDesktop } from '.';
 
+function exampleSlotId(team: string, slot: string): string {
+  const found = createExampleDocument().players.find((p) => p.team === team && p.slot === slot);
+  if (!found) throw new Error(`no example ${team} player at ${slot}`);
+  return found.id;
+}
+
+const MINE_AMCL = exampleSlotId('mine', 'AMCL');
+const MINE_ST = exampleSlotId('mine', 'ST');
+const OPPONENT_AMC = exampleSlotId('opponent', 'AMC');
+
 function labelWithSide(player: Player): string {
   const side = playerSide(player);
   return [playerLabel(player), side ? tokenSideLabel(side) : null].filter(Boolean).join(', ');
@@ -111,16 +121,16 @@ describe('BoardDesktop', () => {
         formationId: '4_3_3_dm_wide',
       });
     });
-    const applied = store.getState().doc.players.find((player) => player.id === 'mine-ST')!.base;
+    const applied = store.getState().doc.players.find((player) => player.id === MINE_ST)!.base;
     act(() => {
-      store.getState().dispatch({ type: 'movePlayer', playerId: 'mine-ST', point: { x: 1, y: 1 } });
+      store.getState().dispatch({ type: 'movePlayer', playerId: MINE_ST, point: { x: 1, y: 1 } });
     });
     await user.click(screen.getByRole('button', { name: 'Reset' }));
-    expect(store.getState().doc.players.find((player) => player.id === 'mine-ST')!.base).toEqual(
+    expect(store.getState().doc.players.find((player) => player.id === MINE_ST)!.base).toEqual(
       applied,
     );
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(store.getState().doc.players.find((player) => player.id === 'mine-ST')!.base).toEqual({
+    expect(store.getState().doc.players.find((player) => player.id === MINE_ST)!.base).toEqual({
       x: 1,
       y: 1,
     });
@@ -159,7 +169,7 @@ describe('BoardDesktop', () => {
     fireEvent.pointerMove(window, { clientX: 60, clientY: 80 });
     fireEvent.pointerUp(window, { clientX: 60, clientY: 80 });
     expect(store.getState().history.past).toHaveLength(past + 1);
-    expect(store.getState().doc.players.find((player) => player.id === 'mine-ST')!.base).toEqual({
+    expect(store.getState().doc.players.find((player) => player.id === MINE_ST)!.base).toEqual({
       x: 30,
       y: 40,
     });
@@ -213,8 +223,8 @@ describe('desktop board', () => {
     expect(mine).toContain('4-3-3');
     expect(opponent).toContain('4-2-3-1');
 
-    const mineWide = doc.players.find((player) => player.id === 'mine-AMCL')!;
-    const oppStriker = doc.players.find((player) => player.id === 'opponent-AMC')!;
+    const mineWide = doc.players.find((player) => player.id === MINE_AMCL)!;
+    const oppStriker = doc.players.find((player) => player.id === OPPONENT_AMC)!;
     const mineRole = FM26_DATA.roles.find((role) => role.id === mineWide.role)!.name;
     const oppRole = FM26_DATA.roles.find((role) => role.id === oppStriker.role)!.name;
     const mineToken = screen.getByRole('button', {
@@ -420,7 +430,7 @@ describe('setup and hint', () => {
     expect(screen.getByRole('group', { name: 'My team' })).not.toHaveTextContent('Attacking');
 
     const roles = exampleStore({ setupStep: 3 });
-    const striker = roles.getState().doc.players.find((player) => player.id === 'mine-ST')!;
+    const striker = roles.getState().doc.players.find((player) => player.id === MINE_ST)!;
     const nextRole = FM26_DATA.roles.find(
       (role) =>
         role.id !== striker.role &&
@@ -435,7 +445,7 @@ describe('setup and hint', () => {
     );
     expect(roleDispatch).toHaveBeenCalledWith({
       type: 'setRole',
-      playerId: 'mine-ST',
+      playerId: MINE_ST,
       roleId: nextRole.id,
     });
     const token = screen.getByRole('button', { name: `ST, ${nextRole.name}, my team` });
@@ -474,7 +484,7 @@ describe('setup and hint', () => {
 });
 
 function widePlayer(store: StoreApi<PitchStore>) {
-  const player = store.getState().doc.players.find((item) => item.id === 'mine-AMCL');
+  const player = store.getState().doc.players.find((item) => item.id === MINE_AMCL);
   if (!player?.slot || !player.family || !player.role)
     throw new Error('example wide player missing');
   return player;

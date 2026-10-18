@@ -1,8 +1,8 @@
 import { FM26_DATA } from '../data/fm26';
-import type { DataSet, Side } from '../data/types';
+import type { DataSet } from '../data/types';
 import { createExampleDocument } from './example';
 import { SIDES, createInitialDocument, type PitchDocument } from './document';
-import { setSquadSize } from './layout-actions';
+import { blankTeam } from './layout-actions';
 
 export type Mode = 'openPitch' | 'fm';
 
@@ -35,14 +35,12 @@ export function withLayout(tactic: Tactic, mode: Mode, doc: PitchDocument): Tact
 }
 
 function blankLike(doc: PitchDocument): PitchDocument {
-  return SIDES.reduce((blank: PitchDocument, team: Side): PitchDocument => {
-    const { name, squadSize } = doc.teams[team];
-    const sized = setSquadSize(blank, team, squadSize);
-    return {
-      ...sized,
-      teams: { ...sized.teams, [team]: { ...sized.teams[team], name } },
-    };
-  }, createInitialDocument());
+  const roster: PitchDocument = {
+    ...createInitialDocument(),
+    teams: doc.teams,
+    players: doc.players,
+  };
+  return SIDES.reduce(blankTeam, roster);
 }
 
 export function tacticFromDocument(doc: PitchDocument, mode: Mode): Tactic {

@@ -2,11 +2,18 @@ import {
   isFirstVisit,
   loadTactics,
   pickAutoLoadSlot,
+  skippedTacticsMessage,
   type LoadTacticsResult,
 } from '../../persistence';
 import { readShareFromLocation, type DecodeResult } from '../../share';
 import type { Phase } from '../../engine';
 import { createExampleTactic, createInitialTactic, type Mode, type Tactic } from '../../state';
+import {
+  SAVED_TACTICS_UNREADABLE_BODY,
+  SAVED_TACTICS_UNREADABLE_TITLE,
+  STORAGE_UNAVAILABLE_BODY,
+  STORAGE_UNAVAILABLE_TITLE,
+} from '../copy';
 
 export type SessionVisit = 'first' | 'returning' | 'shared';
 
@@ -19,6 +26,13 @@ export interface InitialSession {
   visit: SessionVisit;
   tactics: LoadTacticsResult;
   share: SessionShareFeedback;
+}
+
+export interface SessionNotice {
+  id: 'share' | 'storage' | 'saved';
+  tone: 'error' | 'info';
+  title: string;
+  body?: string;
 }
 
 export interface SessionSources {
@@ -80,4 +94,39 @@ export function resolveInitialSession(sources: SessionSources = {}): InitialSess
     tactics,
     share,
   };
+}
+
+function tacticsNotice(tactics: LoadTacticsResult): SessionNotice | null {
+  if (tactics.status === 'unavailable') {
+    return {
+      id: 'storage',
+      tone: 'info',
+      title: STORAGE_UNAVAILABLE_TITLE,
+      body: STORAGE_UNAVAILABLE_BODY,
+    };
+  }
+  if (tactics.status === 'corrupt') {
+    return {
+      id: 'saved',
+      tone: 'error',
+      title: SAVED_TACTICS_UNREADABLE_TITLE,
+      body: SAVED_TACTICS_UNREADABLE_BODY,
+    };
+  }
+  const skipped = tactics.status === 'ok' ? skippedTacticsMessage(tactics.skipped) : null;
+  return skipped ? { id: 'saved', tone: 'error', title: skipped } : null;
+}
+
+export function sessionNotices(session: InitialSession): SessionNotice[] {
+  const share: SessionNotice | null =
+    session.share.status === 'error'
+      ? { id: 'share', tone: 'error', title: session.share.message }
+      : null;
+  return [share, tacticsNotice(session.tactics)].filter(
+    (notice): notice is SessionNotice => notice !== null,
+  );
+}
+
+export function openedShareLink(session: InitialSession): boolean {
+  return session.visit === 'shared' || session.share.status === 'error';
 }

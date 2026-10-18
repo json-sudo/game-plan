@@ -1,5 +1,13 @@
-import { SIDES, mapPlayer, type PitchDocument, type Player } from './document';
-import { setSquadSize } from './layout-actions';
+import type { Side } from '../data/types';
+import {
+  SIDES,
+  keeperOf,
+  playersOf,
+  replaceTeamPlayers,
+  type PitchDocument,
+  type Player,
+} from './document';
+import { benchedPlayer } from './layout-actions';
 import { otherMode, type Mode, type Tactic } from './tactic';
 
 function withCustomName(player: Player, name: string | undefined): Player {
@@ -8,57 +16,84 @@ function withCustomName(player: Player, name: string | undefined): Player {
   return name === undefined ? rest : { ...rest, customName: name };
 }
 
-function adoptTeams(
-  before: PitchDocument,
-  after: PitchDocument,
-  target: PitchDocument,
-): PitchDocument | null {
-  return SIDES.reduce<PitchDocument | null>((current, team) => {
-    if (!current) return null;
-    const named =
-      before.teams[team].name === after.teams[team].name
-        ? current
-        : {
-            ...current,
-            teams: {
-              ...current.teams,
-              [team]: { ...current.teams[team], name: after.teams[team].name },
-            },
-          };
-    const size = after.teams[team].squadSize;
-    if (before.teams[team].squadSize === size || named.teams[team].squadSize === size) return named;
-    const resized = setSquadSize(named, team, size);
-    return resized === named ? null : resized;
-  }, target);
+function withPlacementOf(player: Player, from: Player): Player {
+  const { base: _base, role: _role, ...rest } = player;
+  return {
+    ...rest,
+    family: from.family,
+    slot: from.slot,
+    isKeeper: from.isKeeper,
+    ...(from.base ? { base: from.base } : {}),
+    ...(from.role ? { role: from.role } : {}),
+  };
 }
 
-function syncCustomNames(
-  before: PitchDocument,
-  after: PitchDocument,
-  target: PitchDocument,
-): { source: PitchDocument; target: PitchDocument } {
-  const known = new Map(before.players.map((player) => [player.id, player.customName]));
-  const peers = new Map(target.players.map((player) => [player.id, player.customName]));
-  const source = after.players.map((player) =>
-    !known.has(player.id) && peers.has(player.id)
-      ? withCustomName(player, peers.get(player.id))
-      : player,
+function swapPlacements(doc: PitchDocument, a: Player, b: Player): PitchDocument {
+  const players = doc.players.map((player) =>
+    player.id === a.id
+      ? withPlacementOf(player, b)
+      : player.id === b.id
+        ? withPlacementOf(player, a)
+        : player,
   );
-  const synced = source.reduce(
-    (doc, player) =>
-      known.has(player.id) && peers.has(player.id) && known.get(player.id) !== player.customName
-        ? mapPlayer(doc, player.id, (peer) => withCustomName(peer, player.customName))
-        : doc,
-    target,
+  const carrierId = doc.scenario?.carrierId;
+  const swappedCarrier = carrierId === a.id ? b.id : carrierId === b.id ? a.id : null;
+  const scenario =
+    doc.scenario && swappedCarrier ? { ...doc.scenario, carrierId: swappedCarrier } : doc.scenario;
+  return { ...doc, players, scenario };
+}
+
+function adoptKeepers(source: PitchDocument, target: PitchDocument): PitchDocument {
+  return SIDES.reduce((doc, team) => {
+    const own = keeperOf(doc, team);
+    const shared = keeperOf(target, team);
+    if (!own || !shared || own.id === shared.id) return doc;
+    const peer = doc.players.find((player) => player.id === shared.id);
+    return peer ? swapPlacements(doc, own, peer) : doc;
+  }, source);
+}
+
+function adoptTeam(source: PitchDocument, target: PitchDocument, team: Side): PitchDocument | null {
+  const roster = playersOf(source, team);
+  const ids = new Set(roster.map((player) => player.id));
+  const current = playersOf(target, team);
+  const known = new Set(current.map((player) => player.id));
+  const dropped = current.filter((player) => !ids.has(player.id));
+  if (
+    dropped.some((player) => player.base !== undefined || player.slot !== null || player.isKeeper)
+  ) {
+    return null;
+  }
+  const added = roster.filter((player) => !known.has(player.id)).map(benchedPlayer);
+  const { name, squadSize } = source.teams[team];
+  const meta = target.teams[team];
+  if (!dropped.length && !added.length && meta.name === name && meta.squadSize === squadSize) {
+    return target;
+  }
+  const kept = current.filter((player) => ids.has(player.id));
+  return {
+    ...target,
+    teams: { ...target.teams, [team]: { ...meta, name, squadSize } },
+    players: replaceTeamPlayers(target, team, [...kept, ...added]),
+  };
+}
+
+function adoptNames(source: PitchDocument, target: PitchDocument): PitchDocument {
+  const names = new Map(source.players.map((player) => [player.id, player.customName]));
+  const players = target.players.map((player) =>
+    names.has(player.id) ? withCustomName(player, names.get(player.id)) : player,
   );
-  const changed = source.some((player, index) => player !== after.players[index]);
-  return { source: changed ? { ...after, players: source } : after, target: synced };
+  const changed = players.some((player, index) => player !== target.players[index]);
+  return changed ? { ...target, players } : target;
 }
 
 export function syncRoster(before: Tactic, source: Mode, after: PitchDocument): Tactic | null {
   const targetMode = otherMode(source);
-  const teams = adoptTeams(before[source], after, before[targetMode]);
+  const synced = adoptKeepers(after, before[targetMode]);
+  const teams = SIDES.reduce<PitchDocument | null>(
+    (doc, team) => (doc ? adoptTeam(synced, doc, team) : null),
+    before[targetMode],
+  );
   if (!teams) return null;
-  const names = syncCustomNames(before[source], after, teams);
-  return { ...before, [source]: names.source, [targetMode]: names.target } as Tactic;
+  return { ...before, [source]: synced, [targetMode]: adoptNames(synced, teams) } as Tactic;
 }

@@ -25,6 +25,14 @@ import {
   skippedTacticsMessage,
 } from './slots';
 
+function exampleSlotId(team: string, slot: string): string {
+  const found = createExampleDocument().players.find((p) => p.team === team && p.slot === slot);
+  if (!found) throw new Error(`no example ${team} player at ${slot}`);
+  return found.id;
+}
+
+const MINE_ST = exampleSlotId('mine', 'ST');
+
 function memoryStorage(initial: Record<string, string> = {}): Storage {
   const map = new Map<string, string>(Object.entries(initial));
   return {
@@ -60,7 +68,7 @@ const exampleTactic = createExampleTactic();
 const example: TacticSnapshot = { tactic: exampleTactic, mode: 'fm' };
 
 function slot(id: string, savedAt: number, tactic: Tactic = exampleTactic): SavedSlot {
-  return { id, name: `Slot ${id}`, savedAt, mode: 'fm', tactic };
+  return { id, name: `Slot ${id}`, savedAt, tactic };
 }
 
 function wrapperOf(...slots: SavedSlot[]): TacticsWrapper {
@@ -154,31 +162,25 @@ describe('loadTactics', () => {
         id: expect.any(String),
         name: 'Alpha',
         savedAt: 100,
-        mode: 'fm',
         tactic: exampleTactic,
       }),
     });
   });
 
   it('keeps custom piece names through a save', () => {
-    const named = createExampleTactic();
-    const players = named.fm.players.map((p) =>
-      p.id === 'mine-ST' ? { ...p, customName: 'Ada' } : p,
-    );
+    const named = applyTacticAction(createExampleTactic(), 'fm', {
+      type: 'setPieceName',
+      playerId: MINE_ST,
+      name: 'Ada',
+    });
     const storage = memoryStorage();
-    saveSlot(
-      null,
-      null,
-      'Alpha',
-      { tactic: { ...named, fm: { ...named.fm, players } }, mode: 'fm' },
-      storage,
-      100,
-    );
+    saveSlot(null, null, 'Alpha', { tactic: named, mode: 'fm' }, storage, 100);
     const loaded = loadTactics(storage);
     if (loaded.status !== 'ok') throw new Error('expected ok');
-    expect(
-      loaded.wrapper.slots[0].tactic.fm.players.find((p) => p.id === 'mine-ST')?.customName,
-    ).toBe('Ada');
+    const { tactic } = loaded.wrapper.slots[0];
+    for (const layout of [tactic.fm, tactic.openPitch]) {
+      expect(layout.players.find((p) => p.id === MINE_ST)?.customName).toBe('Ada');
+    }
   });
 });
 
@@ -266,12 +268,6 @@ describe('new-format only', () => {
     expect(result).toMatchObject({ status: 'ok', skipped: 1, wrapper: { slots: [{ id: 'b' }] } });
   });
 
-  it('skips a slot without an explicit mode', () => {
-    const { mode: _mode, ...modeless } = slot('a', 1);
-    const result = loadTactics(storedWith({ version: 4, slots: [modeless] }));
-    expect(result).toMatchObject({ status: 'ok', skipped: 1, wrapper: { slots: [] } });
-  });
-
   it('skips a slot whose layouts disagree about the roster', () => {
     const renamed = createExampleTactic();
     const mismatched: Tactic = {
@@ -306,7 +302,7 @@ describe('both layouts in a save', () => {
     return applyTacticAction(
       applyTacticAction(placed, 'openPitch', {
         type: 'movePlayer',
-        playerId: 'mine-ST',
+        playerId: MINE_ST,
         point: { x: 11, y: 22 },
       }),
       'fm',
@@ -322,13 +318,13 @@ describe('both layouts in a save', () => {
     const loaded = loadTactics(storage);
     if (loaded.status !== 'ok') throw new Error('expected ok');
     const [only] = loaded.wrapper.slots;
-    expect(only.mode).toBe('openPitch');
+    expect(only).not.toHaveProperty('mode');
     expect(only.tactic).toEqual(tactic);
-    expect(only.tactic.openPitch.players.find((p) => p.id === 'mine-ST')?.base).toEqual({
+    expect(only.tactic.openPitch.players.find((p) => p.id === MINE_ST)?.base).toEqual({
       x: 11,
       y: 22,
     });
-    expect(only.tactic.fm.players.find((p) => p.id === 'mine-ST')?.base).not.toEqual({
+    expect(only.tactic.fm.players.find((p) => p.id === MINE_ST)?.base).not.toEqual({
       x: 11,
       y: 22,
     });
