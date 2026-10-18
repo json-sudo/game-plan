@@ -11,9 +11,9 @@ import {
   type PitchDocument,
   type Player,
 } from './document';
-import { benchedPlayer } from './layout-actions';
+import { benchedPlayer, isRemovable, setSquadSize } from './layout-actions';
 import { syncRoster } from './tactic-sync';
-import type { Mode, Tactic } from './tactic';
+import { otherMode, type Mode, type Tactic } from './tactic';
 
 const FM_ONLY_ACTIONS: ReadonlySet<Action['type']> = new Set([
   'tapZone',
@@ -43,6 +43,19 @@ function applyToLayout(
     : applyAction(doc, action, data);
 }
 
+function applyToTacticLayout(
+  tactic: Tactic,
+  mode: Mode,
+  action: Action,
+  data: DataSet,
+): PitchDocument {
+  if (action.type !== 'setSquadSize') return applyToLayout(tactic[mode], mode, action, data);
+  const placedElsewhere = playersOf(tactic[otherMode(mode)], action.team)
+    .filter((player) => !isRemovable(player))
+    .map((player) => player.id);
+  return setSquadSize(tactic[mode], action.team, action.size, new Set(placedElsewhere));
+}
+
 export function applyTacticAction(
   tactic: Tactic,
   mode: Mode,
@@ -50,7 +63,7 @@ export function applyTacticAction(
   data: DataSet = FM26_DATA,
 ): Tactic {
   const current = tactic[mode];
-  const next = applyToLayout(current, mode, action, data);
+  const next = applyToTacticLayout(tactic, mode, action, data);
   if (next === current) return tactic;
   return syncRoster(tactic, mode, next) ?? tactic;
 }
