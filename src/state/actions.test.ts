@@ -477,21 +477,6 @@ describe('reset', () => {
   });
 });
 
-describe('loadDocument', () => {
-  it('replaces the document with a valid one', () => {
-    const incoming = matchup();
-    expect(applyAction(createInitialDocument(), { type: 'loadDocument', doc: incoming })).toBe(
-      incoming,
-    );
-  });
-
-  it('refuses an invalid document', () => {
-    const doc = createInitialDocument();
-    const broken: PitchDocument = { ...matchup(), scenario: { zone: 'C-F', carrierId: 'ghost' } };
-    expect(applyAction(doc, { type: 'loadDocument', doc: broken })).toBe(doc);
-  });
-});
-
 describe('purity', () => {
   it('never mutates the input document', () => {
     const doc = matchup();

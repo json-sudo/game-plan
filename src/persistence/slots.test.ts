@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { createExampleDocument, createInitialDocument, type PitchDocument } from '../state';
+import {
+  applyTacticAction,
+  copyFmPositions,
+  createExampleDocument,
+  createExampleTactic,
+  createInitialTactic,
+  type Tactic,
+  type TacticSnapshot,
+} from '../state';
 import {
   TACTICS_STORAGE_KEY,
   CURRENT_TACTICS_VERSION,
+  MAX_TACTICS_STORAGE_CHARS,
   type TacticsWrapper,
   type SavedSlot,
 } from './schema';
@@ -47,10 +56,11 @@ function throwingStorage(failOn: 'get' | 'set' = 'set', error: unknown = new Err
   } as unknown as Storage;
 }
 
-const example = createExampleDocument();
+const exampleTactic = createExampleTactic();
+const example: TacticSnapshot = { tactic: exampleTactic, mode: 'fm' };
 
-function slot(id: string, savedAt: number, tactic: PitchDocument = example): SavedSlot {
-  return { id, name: `Slot ${id}`, savedAt, tactic };
+function slot(id: string, savedAt: number, tactic: Tactic = exampleTactic): SavedSlot {
+  return { id, name: `Slot ${id}`, savedAt, mode: 'fm', tactic };
 }
 
 function wrapperOf(...slots: SavedSlot[]): TacticsWrapper {
@@ -62,15 +72,28 @@ function storedWith(raw: unknown): Storage {
 }
 
 describe('canSaveTactic', () => {
-  it('needs at least 9 placed players across both teams', () => {
-    const blank = createInitialDocument();
-    const place = (count: number): PitchDocument => ({
+  it('needs at least 9 placed players in the active layout', () => {
+    const blank = createInitialTactic();
+    const place = (count: number): Tactic => ({
       ...blank,
-      players: blank.players.map((p, i) => (i < count ? { ...p, base: { x: 10, y: 10 } } : p)),
+      openPitch: {
+        ...blank.openPitch,
+        players: blank.openPitch.players.map((p, i) =>
+          i < count ? { ...p, base: { x: 10, y: 10 } } : p,
+        ),
+      },
     });
-    expect(canSaveTactic(place(8))).toBe(false);
-    expect(canSaveTactic(place(9))).toBe(true);
+    const open = (tactic: Tactic): TacticSnapshot => ({ tactic, mode: 'openPitch' });
+    expect(canSaveTactic(open(place(8)))).toBe(false);
+    expect(canSaveTactic(open(place(9)))).toBe(true);
     expect(canSaveTactic(example)).toBe(true);
+  });
+
+  it('ignores the other layout in both directions', () => {
+    expect(canSaveTactic({ tactic: exampleTactic, mode: 'openPitch' })).toBe(false);
+    const swapped: Tactic = { openPitch: exampleTactic.fm, fm: exampleTactic.openPitch };
+    expect(canSaveTactic({ tactic: swapped, mode: 'fm' })).toBe(false);
+    expect(canSaveTactic({ tactic: swapped, mode: 'openPitch' })).toBe(true);
   });
 });
 
@@ -87,7 +110,7 @@ describe('loadTactics', () => {
     const raw = (value: string) => memoryStorage({ [TACTICS_STORAGE_KEY]: value });
     expect(loadTactics(raw('{not json'))).toEqual({ status: 'corrupt' });
     expect(loadTactics(raw('"text"'))).toEqual({ status: 'corrupt' });
-    expect(loadTactics(storedWith({ version: 3, slots: 'no' }))).toEqual({ status: 'corrupt' });
+    expect(loadTactics(storedWith({ version: 4, slots: 'no' }))).toEqual({ status: 'corrupt' });
     expect(loadTactics(storedWith({ version: 999, slots: [] }))).toEqual({ status: 'corrupt' });
     expect(loadTactics(storedWith({ version: 0, slots: [] }))).toEqual({ status: 'corrupt' });
   });
@@ -99,19 +122,22 @@ describe('loadTactics', () => {
 
   it('skips and counts entries that fail the schema', () => {
     const good = slot('a', 1);
-    const result = loadTactics(storedWith({ version: 3, slots: [good, { nope: true }] }));
+    const result = loadTactics(storedWith({ version: 4, slots: [good, { nope: true }] }));
     expect(result).toEqual({ status: 'ok', wrapper: wrapperOf(good), skipped: 1 });
   });
 
   it('skips entries whose tactic breaks a data rule', () => {
-    const broken: PitchDocument = { ...example, scenario: { zone: 'C-F', carrierId: 'ghost' } };
+    const broken: Tactic = {
+      ...exampleTactic,
+      fm: { ...exampleTactic.fm, scenario: { zone: 'C-F', carrierId: 'ghost' } },
+    };
     const result = loadTactics(storedWith(wrapperOf(slot('a', 1), slot('b', 2, broken))));
     expect(result).toMatchObject({ status: 'ok', skipped: 1, wrapper: { slots: [{ id: 'a' }] } });
   });
 
   it('skips every entry beyond the slot limit', () => {
     const result = loadTactics(
-      storedWith({ version: 3, slots: [slot('a', 1), slot('b', 2), slot('c', 3)] }),
+      storedWith({ version: 4, slots: [slot('a', 1), slot('b', 2), slot('c', 3)] }),
     );
     expect(result).toMatchObject({ status: 'ok', skipped: 1 });
   });
@@ -124,22 +150,35 @@ describe('loadTactics', () => {
     expect(loaded).toEqual({
       status: 'ok',
       skipped: 0,
-      wrapper: wrapperOf({ id: expect.any(String), name: 'Alpha', savedAt: 100, tactic: example }),
+      wrapper: wrapperOf({
+        id: expect.any(String),
+        name: 'Alpha',
+        savedAt: 100,
+        mode: 'fm',
+        tactic: exampleTactic,
+      }),
     });
   });
 
   it('keeps custom piece names through a save', () => {
-    const named: PitchDocument = {
-      ...example,
-      players: example.players.map((p) => (p.id === 'mine-ST' ? { ...p, customName: 'Ada' } : p)),
-    };
+    const named = createExampleTactic();
+    const players = named.fm.players.map((p) =>
+      p.id === 'mine-ST' ? { ...p, customName: 'Ada' } : p,
+    );
     const storage = memoryStorage();
-    saveSlot(null, null, 'Alpha', named, storage, 100);
+    saveSlot(
+      null,
+      null,
+      'Alpha',
+      { tactic: { ...named, fm: { ...named.fm, players } }, mode: 'fm' },
+      storage,
+      100,
+    );
     const loaded = loadTactics(storage);
     if (loaded.status !== 'ok') throw new Error('expected ok');
-    expect(loaded.wrapper.slots[0].tactic.players.find((p) => p.id === 'mine-ST')?.customName).toBe(
-      'Ada',
-    );
+    expect(
+      loaded.wrapper.slots[0].tactic.fm.players.find((p) => p.id === 'mine-ST')?.customName,
+    ).toBe('Ada');
   });
 });
 
@@ -181,8 +220,15 @@ describe('saveSlot', () => {
   });
 
   it('refuses a pitch that breaks a data rule', () => {
-    const broken: PitchDocument = { ...example, scenario: { zone: 'C-F', carrierId: 'ghost' } };
-    expect(saveSlot(null, null, 'X', broken, memoryStorage())).toMatchObject({ status: 'error' });
+    const broken: Tactic = {
+      ...exampleTactic,
+      fm: { ...exampleTactic.fm, scenario: { zone: 'C-F', carrierId: 'ghost' } },
+    };
+    expect(
+      saveSlot(null, null, 'X', { tactic: broken, mode: 'fm' }, memoryStorage()),
+    ).toMatchObject({
+      status: 'error',
+    });
   });
 
   it('reports a full storage and leaves the prior wrapper untouched', () => {
@@ -200,6 +246,124 @@ describe('saveSlot', () => {
       message: expect.stringMatching(/storage is full/i),
     });
     expect(wrapper.slots).toEqual([a]);
+  });
+});
+
+describe('new-format only', () => {
+  const v3Document = createExampleDocument();
+
+  it('treats a stored v3 wrapper as unsupported and never reads its slots', () => {
+    const legacy = {
+      version: 3,
+      slots: [{ id: 'a', name: 'Old', savedAt: 1, tactic: v3Document }],
+    };
+    expect(loadTactics(storedWith(legacy))).toEqual({ status: 'corrupt' });
+  });
+
+  it('skips a v3-shaped slot inside a v4 wrapper without partially applying it', () => {
+    const legacySlot = { id: 'a', name: 'Old', savedAt: 5, tactic: v3Document };
+    const result = loadTactics(storedWith({ version: 4, slots: [legacySlot, slot('b', 1)] }));
+    expect(result).toMatchObject({ status: 'ok', skipped: 1, wrapper: { slots: [{ id: 'b' }] } });
+  });
+
+  it('skips a slot without an explicit mode', () => {
+    const { mode: _mode, ...modeless } = slot('a', 1);
+    const result = loadTactics(storedWith({ version: 4, slots: [modeless] }));
+    expect(result).toMatchObject({ status: 'ok', skipped: 1, wrapper: { slots: [] } });
+  });
+
+  it('skips a slot whose layouts disagree about the roster', () => {
+    const renamed = createExampleTactic();
+    const mismatched: Tactic = {
+      ...renamed,
+      openPitch: {
+        ...renamed.openPitch,
+        teams: {
+          ...renamed.openPitch.teams,
+          mine: { ...renamed.openPitch.teams.mine, name: 'Elsewhere' },
+        },
+      },
+    };
+    const result = loadTactics(storedWith(wrapperOf(slot('a', 1, mismatched), slot('b', 2))));
+    expect(result).toMatchObject({ status: 'ok', skipped: 1, wrapper: { slots: [{ id: 'b' }] } });
+  });
+
+  it('skips a slot whose open pitch pieces carry roles', () => {
+    const roled: Tactic = { ...exampleTactic, openPitch: exampleTactic.fm };
+    const result = loadTactics(storedWith(wrapperOf(slot('a', 1, roled))));
+    expect(result).toMatchObject({ status: 'ok', skipped: 1, wrapper: { slots: [] } });
+  });
+
+  it('refuses stored data over the size limit', () => {
+    const padded = { version: 4, slots: [], padding: 'x'.repeat(MAX_TACTICS_STORAGE_CHARS) };
+    expect(loadTactics(storedWith(padded))).toEqual({ status: 'corrupt' });
+  });
+});
+
+describe('both layouts in a save', () => {
+  function arranged(): Tactic {
+    const placed = copyFmPositions(exampleTactic);
+    return applyTacticAction(
+      applyTacticAction(placed, 'openPitch', {
+        type: 'movePlayer',
+        playerId: 'mine-ST',
+        point: { x: 11, y: 22 },
+      }),
+      'fm',
+      { type: 'tapZone', zone: 'L-D' },
+    );
+  }
+
+  it('saves and reloads both layouts independently, with the mode it was saved in', () => {
+    const tactic = arranged();
+    const storage = memoryStorage();
+    const saved = saveSlot(null, null, 'Both', { tactic, mode: 'openPitch' }, storage, 7);
+    expect(saved.status).toBe('ok');
+    const loaded = loadTactics(storage);
+    if (loaded.status !== 'ok') throw new Error('expected ok');
+    const [only] = loaded.wrapper.slots;
+    expect(only.mode).toBe('openPitch');
+    expect(only.tactic).toEqual(tactic);
+    expect(only.tactic.openPitch.players.find((p) => p.id === 'mine-ST')?.base).toEqual({
+      x: 11,
+      y: 22,
+    });
+    expect(only.tactic.fm.players.find((p) => p.id === 'mine-ST')?.base).not.toEqual({
+      x: 11,
+      y: 22,
+    });
+    expect(only.tactic.fm.scenario?.zone).toBe('L-D');
+    expect(only.tactic.openPitch.scenario).toBeNull();
+  });
+
+  it('counts only the active layout against the save threshold', () => {
+    const storage = memoryStorage();
+    const open = saveSlot(
+      null,
+      null,
+      'Open',
+      { tactic: exampleTactic, mode: 'openPitch' },
+      storage,
+    );
+    expect(open).toEqual({ status: 'error', message: "This tactic can't be saved." });
+    expect(storage.getItem(TACTICS_STORAGE_KEY)).toBeNull();
+    expect(saveSlot(null, null, 'Fm', example, storage).status).toBe('ok');
+  });
+
+  it('autoloads the newest valid slot and skips an invalid newer one', () => {
+    const broken = { ...slot('new', 900), tactic: { openPitch: {}, fm: {} } };
+    const result = loadTactics(storedWith({ version: 4, slots: [slot('old', 100), broken] }));
+    if (result.status !== 'ok') throw new Error('expected ok');
+    expect(result.skipped).toBe(1);
+    expect(pickAutoLoadSlot(result.wrapper)?.id).toBe('old');
+  });
+
+  it('refuses to write a wrapper over the size limit', () => {
+    const bloated = { ...slot('a', 1), name: 'n'.repeat(MAX_TACTICS_STORAGE_CHARS) };
+    const storage = memoryStorage();
+    const result = saveSlot(wrapperOf(bloated), null, 'B', example, storage);
+    expect(result).toMatchObject({ status: 'error', message: expect.stringMatching(/too large/i) });
+    expect(storage.getItem(TACTICS_STORAGE_KEY)).toBeNull();
   });
 });
 

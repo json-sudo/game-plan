@@ -105,3 +105,7 @@ export const DRIBBLE_LABELS = {
   down: 'Dribble back',
   left: 'Dribble left',
 } as const;
+
+export const COPY_FM_POSITIONS_LABEL = 'Copy FM positions';
+export const COPY_FM_POSITIONS_CONFIRMATION =
+  'This will replace any pieces currently placed on the Open pitch.';

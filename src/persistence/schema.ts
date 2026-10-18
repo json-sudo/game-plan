@@ -1,9 +1,16 @@
 import { z } from 'zod';
 import { familySchema, pointSchema, slotIdSchema, zoneIdSchema } from '../data/schemas';
-import { PIECE_NAME_MAX_LENGTH, TEAM_NAME_MAX_LENGTH, type PitchDocument } from '../state';
+import {
+  PIECE_NAME_MAX_LENGTH,
+  TEAM_NAME_MAX_LENGTH,
+  type Mode,
+  type PitchDocument,
+  type Tactic,
+} from '../state';
 
 export const TACTICS_STORAGE_KEY = 'gameplan:tactics';
-export const CURRENT_TACTICS_VERSION = 3;
+export const CURRENT_TACTICS_VERSION = 4;
+export const MAX_TACTICS_STORAGE_CHARS = 262144;
 export const MAX_SLOTS = 2;
 export const SLOT_NAME_MAX_LENGTH = 24;
 
@@ -36,12 +43,20 @@ export const documentSchema = z.object({
   scenario: z.object({ zone: zoneIdSchema, carrierId: z.string().min(1).max(64) }).nullable(),
 }) satisfies z.ZodType<PitchDocument>;
 
+export const modeSchema = z.enum(['openPitch', 'fm']);
+
+export const tacticSchema = z.object({
+  openPitch: documentSchema,
+  fm: documentSchema,
+}) satisfies z.ZodType<Tactic>;
+
 export const savedSlotSchema = z.object({
   id: z.string().min(1).max(64),
   name: z.string().max(SLOT_NAME_MAX_LENGTH),
   savedAt: z.number().finite(),
-  tactic: documentSchema,
-});
+  mode: modeSchema,
+  tactic: tacticSchema,
+}) satisfies z.ZodType<SavedSlot>;
 
 export const wrapperHeadSchema = z.object({
   version: z.number().int().min(1),
@@ -52,7 +67,8 @@ export interface SavedSlot {
   id: string;
   name: string;
   savedAt: number;
-  tactic: PitchDocument;
+  mode: Mode;
+  tactic: Tactic;
 }
 
 export interface TacticsWrapper {
