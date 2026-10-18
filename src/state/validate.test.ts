@@ -5,9 +5,18 @@ import { createExampleDocument } from './example';
 import { createInitialDocument, type PitchDocument, type Player } from './document';
 import { MAX_PIECES_PER_TEAM, documentIssues } from './validate';
 
+function exampleSlotId(team: string, slot: string): string {
+  const found = createExampleDocument().players.find((p) => p.team === team && p.slot === slot);
+  if (!found) throw new Error(`no example ${team} player at ${slot}`);
+  return found.id;
+}
+
+const MINE_ST = exampleSlotId('mine', 'ST');
+const OPPONENT_ST = exampleSlotId('opponent', 'ST');
+
 const valid = createExampleDocument();
 
-function withPlayer(update: Partial<Player>, id = 'mine-ST'): PitchDocument {
+function withPlayer(update: Partial<Player>, id = MINE_ST): PitchDocument {
   return {
     ...valid,
     players: valid.players.map((player) => (player.id === id ? { ...player, ...update } : player)),
@@ -75,7 +84,7 @@ describe('documentIssues', () => {
 
   it('rejects a scenario with a bad carrier or zone', () => {
     expect(issue({ ...valid, scenario: { zone: 'C-F', carrierId: 'ghost' } })).toMatch(/carrier/);
-    expect(issue({ ...valid, scenario: { zone: 'C-F', carrierId: 'opponent-ST' } })).toMatch(
+    expect(issue({ ...valid, scenario: { zone: 'C-F', carrierId: OPPONENT_ST } })).toMatch(
       /carrier/,
     );
     const real = valid.scenario!;

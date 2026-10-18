@@ -109,3 +109,9 @@ export const DRIBBLE_LABELS = {
 export const COPY_FM_POSITIONS_LABEL = 'Copy FM positions';
 export const COPY_FM_POSITIONS_CONFIRMATION =
   'This will replace any pieces currently placed on the Open pitch.';
+
+export const STORAGE_UNAVAILABLE_TITLE = 'Saving is off in this browser.';
+export const STORAGE_UNAVAILABLE_BODY =
+  'Storage is unavailable, so tactics cannot be saved here. Share a link instead.';
+export const SAVED_TACTICS_UNREADABLE_TITLE = 'Saved tactics were skipped.';
+export const SAVED_TACTICS_UNREADABLE_BODY = 'They could not be read.';

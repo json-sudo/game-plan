@@ -1,14 +1,26 @@
 import { describe, expect, it } from 'vitest';
 import { FM26_DATA } from '../data/fm26';
-import { BALL_START, placedPlayers, playersOf } from './document';
+import { BALL_START, keeperOf, placedPlayers, playersOf, type PitchDocument } from './document';
 import { createExampleDocument } from './example';
 import { createPitchStore } from './store';
 import { copyFmPositions } from './tactic-actions';
 import { createExampleTactic, createInitialTactic, tacticFromDocument } from './tactic';
 import { tacticIssues } from './tactic-validate';
 
+function exampleSlotId(team: string, slot: string): string {
+  const found = createExampleDocument().players.find((p) => p.team === team && p.slot === slot);
+  if (!found) throw new Error(`no example ${team} player at ${slot}`);
+  return found.id;
+}
+
+const MINE_ST = exampleSlotId('mine', 'ST');
+
 function exampleStore() {
   return createPitchStore({ tactic: createExampleTactic(), ui: { mode: 'fm' } });
+}
+
+function rosterOf(doc: PitchDocument) {
+  return doc.players.map((player) => `${player.team}:${player.id}`).sort();
 }
 
 function positions(doc: ReturnType<typeof createExampleDocument>) {
@@ -59,14 +71,16 @@ describe('independent layouts', () => {
     const store = exampleStore();
     const fmBefore = store.getState().tactic.fm;
     store.getState().setMode('openPitch');
-    store.getState().dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_4_2' });
-    store.getState().dispatch({ type: 'movePlayer', playerId: 'mine-ST', point: { x: 10, y: 10 } });
+    store
+      .getState()
+      .dispatch({ type: 'applyFormation', team: 'mine', formationId: '3_4_3_dm_wide' });
+    store.getState().dispatch({ type: 'movePlayer', playerId: MINE_ST, point: { x: 10, y: 10 } });
     expect(store.getState().tactic.fm).toBe(fmBefore);
 
     const openBefore = store.getState().tactic.openPitch;
     store.getState().setMode('fm');
     store.getState().dispatch({ type: 'tapZone', zone: 'L-D' });
-    store.getState().dispatch({ type: 'movePlayer', playerId: 'mine-ST', point: { x: 5, y: 5 } });
+    store.getState().dispatch({ type: 'movePlayer', playerId: MINE_ST, point: { x: 5, y: 5 } });
     expect(store.getState().tactic.openPitch).toBe(openBefore);
   });
 
@@ -75,17 +89,19 @@ describe('independent layouts', () => {
     const before = store.getState().tactic;
     const { dispatch } = store.getState();
     dispatch({ type: 'tapZone', zone: 'L-D' });
-    dispatch({ type: 'setCarrier', playerId: 'mine-ST' });
+    dispatch({ type: 'setCarrier', playerId: MINE_ST });
     dispatch({ type: 'dribble', direction: 'forward' });
     dispatch({ type: 'fillDefaultRoles' });
-    dispatch({ type: 'setRole', playerId: 'mine-ST', roleId: null });
+    dispatch({ type: 'setRole', playerId: MINE_ST, roleId: null });
     expect(store.getState().tactic).toBe(before);
     expect(store.getState().history.past).toHaveLength(0);
   });
 
   it('moves the open pitch ball on its own, never choosing a carrier or moving a piece', () => {
     const store = createPitchStore({ tactic: createExampleTactic() });
-    store.getState().dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_4_2' });
+    store
+      .getState()
+      .dispatch({ type: 'applyFormation', team: 'mine', formationId: '3_4_3_dm_wide' });
     const { tactic } = store.getState();
     store.getState().dispatch({ type: 'dragBall', point: { x: 12, y: 30 } });
     const next = store.getState().tactic;
@@ -132,25 +148,88 @@ describe('shared roster', () => {
     store
       .getState()
       .dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_3_3_dm_wide' });
-    store.getState().dispatch({ type: 'setPieceName', playerId: 'mine-ST', name: 'Ada' });
+    store.getState().dispatch({ type: 'setPieceName', playerId: MINE_ST, name: 'Ada' });
     const { fm } = store.getState().tactic;
-    expect(fm.players.find((p) => p.id === 'mine-ST')?.customName).toBe('Ada');
+    expect(fm.players.find((p) => p.id === MINE_ST)?.customName).toBe('Ada');
     store.getState().setMode('fm');
-    store.getState().dispatch({ type: 'setPieceName', playerId: 'mine-ST', name: '' });
+    store.getState().dispatch({ type: 'setPieceName', playerId: MINE_ST, name: '' });
     const openPitch = store.getState().tactic.openPitch;
-    expect(openPitch.players.find((p) => p.id === 'mine-ST')?.customName).toBeUndefined();
+    expect(openPitch.players.find((p) => p.id === MINE_ST)?.customName).toBeUndefined();
   });
 
   it('lets a new piece take the name it already has in the other layout', () => {
     const store = exampleStore();
-    store.getState().dispatch({ type: 'setPieceName', playerId: 'mine-ST', name: 'Ada' });
+    store.getState().dispatch({ type: 'setPieceName', playerId: MINE_ST, name: 'Ada' });
     store.getState().setMode('openPitch');
     store
       .getState()
       .dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_3_3_dm_wide' });
     const { openPitch, fm } = store.getState().tactic;
-    expect(openPitch.players.find((p) => p.id === 'mine-ST')?.customName).toBe('Ada');
-    expect(fm.players.find((p) => p.id === 'mine-ST')?.customName).toBe('Ada');
+    expect(openPitch.players.find((p) => p.id === MINE_ST)?.customName).toBe('Ada');
+    expect(fm.players.find((p) => p.id === MINE_ST)?.customName).toBe('Ada');
+  });
+});
+
+describe('roster identity', () => {
+  it('gives both layouts of the first-visit example the same players', () => {
+    const { openPitch, fm } = createExampleTactic();
+    expect(rosterOf(openPitch)).toEqual(rosterOf(fm));
+  });
+
+  it('keeps each player through formation changes in either layout', () => {
+    const store = exampleStore();
+    const keeper = keeperOf(store.getState().doc, 'mine')!;
+    store.getState().dispatch({ type: 'setPieceName', playerId: keeper.id, name: 'Alisson' });
+    store.getState().setMode('openPitch');
+    store
+      .getState()
+      .dispatch({ type: 'applyFormation', team: 'mine', formationId: '3_4_3_dm_wide' });
+    store.getState().setMode('fm');
+    store
+      .getState()
+      .dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_2_3_1_dm_wide' });
+    const { tactic } = store.getState();
+    expect(rosterOf(tactic.openPitch)).toEqual(rosterOf(tactic.fm));
+    for (const layout of [tactic.openPitch, tactic.fm]) {
+      expect(keeperOf(layout, 'mine')).toMatchObject({ id: keeper.id, customName: 'Alisson' });
+    }
+    expect(tacticIssues(tactic, FM26_DATA)).toBeNull();
+  });
+
+  it('makes the FM keeper the open pitch keeper when the keeper is switched on', () => {
+    const store = exampleStore();
+    const keeper = keeperOf(store.getState().doc, 'mine')!;
+    store.getState().setMode('openPitch');
+    store.getState().dispatch({ type: 'movePlayer', playerId: keeper.id, point: { x: 30, y: 30 } });
+    store.getState().dispatch({ type: 'setKeeper', team: 'mine', keeper: true });
+    const { tactic } = store.getState();
+    expect(keeperOf(tactic.openPitch, 'mine')?.id).toBe(keeper.id);
+    expect(tacticIssues(tactic, FM26_DATA)).toBeNull();
+  });
+
+  it('rejects layouts that do not hold the same players', () => {
+    const tactic = createExampleTactic();
+    const strangers: PitchDocument = {
+      ...tactic.openPitch,
+      players: tactic.openPitch.players.map((player) => ({ ...player, id: `${player.id}-x` })),
+    };
+    expect(tacticIssues({ ...tactic, openPitch: strangers }, FM26_DATA)).toMatch(
+      /not the same player/,
+    );
+  });
+
+  it('rejects layouts that disagree about who the keeper is', () => {
+    const tactic = createExampleTactic();
+    const keeper = keeperOf(tactic.fm, 'mine')!;
+    const other = playersOf(tactic.openPitch, 'mine').find((player) => player.id !== keeper.id)!;
+    const openPitch: PitchDocument = {
+      ...tactic.openPitch,
+      teams: { ...tactic.openPitch.teams, mine: { ...tactic.openPitch.teams.mine, keeper: true } },
+      players: tactic.openPitch.players.map((player) =>
+        player.id === other.id ? { ...player, family: 'GK', isKeeper: true } : player,
+      ),
+    };
+    expect(tacticIssues({ ...tactic, openPitch }, FM26_DATA)).toMatch(/keeper differs/);
   });
 });
 
@@ -213,8 +292,10 @@ describe('copyFmPositions', () => {
   it('replaces whatever was placed before and is one undo step', () => {
     const store = exampleStore();
     store.getState().setMode('openPitch');
-    store.getState().dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_4_2' });
-    store.getState().dispatch({ type: 'movePlayer', playerId: 'mine-ST', point: { x: 3, y: 3 } });
+    store
+      .getState()
+      .dispatch({ type: 'applyFormation', team: 'mine', formationId: '3_4_3_dm_wide' });
+    store.getState().dispatch({ type: 'movePlayer', playerId: MINE_ST, point: { x: 3, y: 3 } });
     const before = store.getState().tactic;
     const past = store.getState().history.past.length;
     store.getState().copyFmPositions();
@@ -222,6 +303,21 @@ describe('copyFmPositions', () => {
     expect(store.getState().tactic.openPitch.teams.mine.formationId).toBe('4_3_3_dm_wide');
     store.getState().undo();
     expect(store.getState().tactic).toBe(before);
+  });
+
+  it('keeps the open pitch roster and the names of benched players', () => {
+    const store = exampleStore();
+    store.getState().setMode('openPitch');
+    store.getState().dispatch({ type: 'setSquadSize', team: 'mine', size: 20 });
+    const spare = playersOf(store.getState().tactic.fm, 'mine').find((p) => !p.base)!;
+    store.getState().dispatch({ type: 'setPieceName', playerId: spare.id, name: 'Sub' });
+    const roster = rosterOf(store.getState().tactic.openPitch);
+    store.getState().copyFmPositions();
+    const { openPitch, fm } = store.getState().tactic;
+    expect(rosterOf(openPitch)).toEqual(roster);
+    expect(openPitch.players.find((p) => p.id === spare.id)).toMatchObject({ customName: 'Sub' });
+    expect(openPitch.players.find((p) => p.id === spare.id)?.base).toBeUndefined();
+    expect(keeperOf(openPitch, 'mine')?.id).toBe(keeperOf(fm, 'mine')?.id);
   });
 
   it('does nothing when the FM layout has no placed players', () => {
@@ -267,7 +363,7 @@ describe('loadTactic', () => {
 
   it('resets the transient ui when a tactic is loaded', () => {
     const store = exampleStore();
-    store.getState().patchUi({ selectedPlayerId: 'mine-ST', phase: 'final', playing: true });
+    store.getState().patchUi({ selectedPlayerId: MINE_ST, phase: 'final', playing: true });
     store.getState().loadTactic(createExampleTactic(), { mode: 'fm', phase: 'runs' });
     expect(store.getState().ui).toMatchObject({
       selectedPlayerId: null,

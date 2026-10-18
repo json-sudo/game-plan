@@ -26,25 +26,33 @@ function nextFreeId(team: Side, taken: ReadonlySet<string>): string {
   return benchPieceId(team, index);
 }
 
-function benched(player: Player): Player {
-  const { base: _base, role: _role, ...rest } = player;
-  return { ...rest, family: null };
+export function benchedPlayer(player: Player): Player {
+  return {
+    id: player.id,
+    team: player.team,
+    family: null,
+    slot: null,
+    isKeeper: false,
+    ...(player.customName ? { customName: player.customName } : {}),
+  };
 }
 
-export function spareRoster(
-  team: Side,
-  previous: Player[],
-  reserved: Player[],
-  count: number,
-): Player[] {
-  const reused = previous.filter(isSpare).slice(0, count).map(benched);
-  const taken = new Set([...reserved, ...reused].map((player) => player.id));
-  const created = Array.from({ length: count - reused.length }, (): Player => {
-    const id = nextFreeId(team, taken);
-    taken.add(id);
-    return { id, team, family: null, slot: null, isKeeper: false };
-  });
-  return [...reused, ...created];
+function slotHolders(formation: FormationDef, previous: Player[]): Array<Player | undefined> {
+  const free = new Set(previous);
+  const take = (match: (player: Player) => boolean) => {
+    const found = [...free].find(match);
+    if (found) free.delete(found);
+    return found;
+  };
+  const bySlot = formation.slots.map((slot) => take((player) => player.slot === slot.id));
+  const withKeeper = bySlot.map(
+    (holder, index) =>
+      holder ??
+      (formation.slots[index].family === 'GK' ? take((player) => player.isKeeper) : undefined),
+  );
+  return withKeeper.map(
+    (holder) => holder ?? take((player) => !player.isKeeper) ?? take(() => true),
+  );
 }
 
 function slotPlayers(
@@ -53,18 +61,21 @@ function slotPlayers(
   layout: TeamLayout,
   previous: Player[],
 ): Player[] {
-  const bySlot = new Map(previous.flatMap((p) => (p.slot ? [[p.slot, p] as const] : [])));
-  return formation.slots.map((slot) => {
-    const prior = bySlot.get(slot.id);
+  const holders = slotHolders(formation, previous);
+  const taken = new Set(previous.map((player) => player.id));
+  return formation.slots.map((slot, index) => {
+    const holder = holders[index];
+    const id = holder?.id ?? nextFreeId(team, taken);
+    taken.add(id);
     return {
-      id: `${team}-${slot.id}`,
+      id,
       team,
       family: slot.family,
       slot: slot.id,
       isKeeper: slot.family === 'GK',
       base: roundPoint(layout.get(slot.id)!),
-      ...(prior?.customName ? { customName: prior.customName } : {}),
-      ...(prior?.role ? { role: prior.role } : {}),
+      ...(holder?.customName ? { customName: holder.customName } : {}),
+      ...(holder?.slot === slot.id && holder.role ? { role: holder.role } : {}),
     };
   });
 }
@@ -78,12 +89,8 @@ function placeTeam(
 ): PitchDocument {
   const previous = playersOf(doc, team);
   const placed = slotPlayers(team, formation, layout, previous);
-  const spares = spareRoster(
-    team,
-    previous,
-    placed,
-    Math.max(0, doc.teams[team].squadSize - placed.length),
-  );
+  const placedIds = new Set(placed.map((player) => player.id));
+  const spares = previous.filter((player) => !placedIds.has(player.id)).map(benchedPlayer);
   return {
     ...doc,
     teams: {
@@ -148,9 +155,9 @@ export function applyMatchupChoice(
   return { ...placed, ball: BALL_START, scenario: null };
 }
 
-function blankTeam(doc: PitchDocument, team: Side): PitchDocument {
+export function blankTeam(doc: PitchDocument, team: Side): PitchDocument {
   const meta = doc.teams[team];
-  const pieces = spareRoster(team, [], [], meta.squadSize);
+  const pieces = playersOf(doc, team).map(benchedPlayer);
   return {
     ...doc,
     teams: { ...doc.teams, [team]: { ...meta, formationId: null, keeper: false, applied: null } },

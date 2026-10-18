@@ -115,6 +115,10 @@ export function playerLabel(player: Pick<Player, 'id' | 'family' | 'slot'>): str
   return player.family ?? player.slot ?? player.id;
 }
 
+export function keeperOf(doc: PitchDocument, team: Side): Player | undefined {
+  return playersOf(doc, team).find((player) => player.isKeeper);
+}
+
 export function placedPlayers(doc: PitchDocument): Player[] {
   return doc.players.filter((player) => player.base !== undefined);
 }
