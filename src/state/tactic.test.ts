@@ -249,6 +249,38 @@ describe('roster changes that the other layout cannot follow', () => {
   });
 });
 
+describe('shrinking a squad', () => {
+  const mineIds = (count: number) =>
+    Array.from({ length: count }, (_, index) => `mine-${index + 1}`);
+
+  it('drops spares the other layout has not placed instead of refusing', () => {
+    const store = createPitchStore({ tactic: createInitialTactic() });
+    store.getState().dispatch({ type: 'setSquadSize', team: 'mine', size: 26 });
+    mineIds(20).forEach((playerId, index) => {
+      store.getState().dispatch({ type: 'movePlayer', playerId, point: { x: 3 + index, y: 50 } });
+    });
+    store.getState().dispatch({ type: 'setKeeper', team: 'mine', keeper: true });
+    const keeper = keeperOf(store.getState().doc, 'mine')!;
+    store.getState().setMode('fm');
+    store
+      .getState()
+      .dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_3_3_dm_wide' });
+    expect(keeperOf(store.getState().doc, 'mine')?.id).toBe(keeper.id);
+    store.getState().setMode('openPitch');
+    store.getState().dispatch({ type: 'setKeeper', team: 'mine', keeper: false });
+    mineIds(20).forEach((playerId) => {
+      store.getState().dispatch({ type: 'benchPlayer', playerId });
+    });
+    store.getState().dispatch({ type: 'setSquadSize', team: 'mine', size: 11 });
+    const { tactic } = store.getState();
+    expect(tactic.openPitch.teams.mine.squadSize).toBe(11);
+    expect(playersOf(tactic.fm, 'mine').filter((p) => p.base)).toHaveLength(11);
+    expect(tactic.openPitch.players.some((p) => p.id === keeper.id)).toBe(true);
+    expect(rosterOf(tactic.openPitch)).toEqual(rosterOf(tactic.fm));
+    expect(tacticIssues(tactic, FM26_DATA)).toBeNull();
+  });
+});
+
 describe('patchUi', () => {
   it('keeps the active document in step when the mode is patched', () => {
     const store = exampleStore();

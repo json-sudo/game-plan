@@ -176,10 +176,19 @@ export function resetPitch(doc: PitchDocument, data: DataSet): PitchDocument {
   }, cleared);
 }
 
-export function setSquadSize(doc: PitchDocument, team: Side, size: SquadSize): PitchDocument {
+export function isRemovable(player: Player): boolean {
+  return isSpare(player) && player.base === undefined;
+}
+
+export function setSquadSize(
+  doc: PitchDocument,
+  team: Side,
+  size: SquadSize,
+  kept: ReadonlySet<string> = new Set(),
+): PitchDocument {
   const players = playersOf(doc, team);
   const surplus = players.length - size;
-  if (surplus > 0) return shrinkSquad(doc, team, players, surplus, size);
+  if (surplus > 0) return shrinkSquad(doc, team, players, surplus, size, kept);
   const taken = new Set(players.map((player) => player.id));
   const added = Array.from({ length: -surplus }, (): Player => {
     const id = nextFreeId(team, taken);
@@ -195,8 +204,9 @@ function shrinkSquad(
   players: Player[],
   surplus: number,
   size: SquadSize,
+  kept: ReadonlySet<string>,
 ): PitchDocument {
-  const removable = players.filter((player) => isSpare(player) && player.base === undefined);
+  const removable = players.filter((player) => isRemovable(player) && !kept.has(player.id));
   if (removable.length < surplus) return doc;
   const dropped = new Set(removable.slice(-surplus));
   return withSquadSize(
