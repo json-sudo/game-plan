@@ -6,12 +6,12 @@ Status: updated 2026-10-18 after the direction, positioning, and persistence int
 
 Build nothing that depends on these until the captain confirms.
 
-| ID   | Item                | Notes                                                                                                                                         |
-| ---- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| O-14 | New dependencies    | `@vitest/coverage-v8` and `fflate` were not named in round 5. Working default: add both.                                                      |
-| O-17 | Wide midfield roles | Four Wide Midfielder roles have no slot in the twelve formations. Working default: stay hidden until a formation with wide midfield is added. |
-| O-18 | FM positioning     | Carrier eligibility is settled in §5.4. Approve exact role×zone destination/transition tables and the new Overlapping Centre-Back movement behavior before implementing FM position logic. |
-| F30  | Redo                | Should priority; may be cut. If cut, hide the button (`redo={false}`) and nothing else moves.                                                 |
+| ID   | Item                | Notes                                                                                                                                                                                      |
+| ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| O-14 | New dependencies    | `@vitest/coverage-v8` and `fflate` were not named in round 5. Working default: add both.                                                                                                   |
+| O-17 | Wide midfield roles | Four Wide Midfielder roles have no slot in the twelve formations. Working default: stay hidden until a formation with wide midfield is added.                                              |
+| O-18 | FM positioning      | Carrier eligibility is settled in §5.4. Approve exact role×zone destination/transition tables and the new Overlapping Centre-Back movement behavior before implementing FM position logic. |
+| F30  | Redo                | Should priority; may be cut. If cut, hide the button (`redo={false}`) and nothing else moves.                                                                                              |
 
 ## 3. Non-goals for v1
 
@@ -62,23 +62,23 @@ One pitch, one pitch component, two modes.
 - Open pitch has no zone selection. Its ball and player positions are freely independent.
 - **Carrier choice.** In FM mode, the user chooses the on-ball player from the attacking team's In Possession roles eligible for the selected zone. Changing the zone does not use nearest-player guessing. Player current/base coordinates do not filter the choices. Left/right mirrors swap side-specific player roles and retain central roles. Explicit formation and position-slot gates are included below.
 
-| Ball zone | Eligible carrier roles |
-|---|---|
-| Defensive · left flank | Full Back; Inside Wing-Back; Wing Back; Inside Full-Back; Overlapping Centre-Back only for the left outermost centre-back in a formation with at least three centre-back positions |
-| Defensive · left half-space | Full Back; Inside Full-Back; Half Back; Centre-Back, Advanced Centre-Back, Ball-Playing Centre-Back, and No-Nonsense Centre-Back for the left centre-back; Overlapping Centre-Back only when its formation/slot gate is met |
-| Defensive · centre | Half Back; Centre-Back, Advanced Centre-Back, Ball-Playing Centre-Back, and No-Nonsense Centre-Back; Overlapping Centre-Back only when its formation/slot gate is met. Eligibility does not depend on an Inside Full-Back being present. |
-| Defensive · right half-space | Mirror of defensive left half-space |
-| Defensive · right flank | Mirror of defensive left flank |
-| Middle · left flank | Full Back; Wing Back; Wide Central Midfielder; Wide Midfielder; Winger; Inside Forward; Playmaking Winger; Wide Forward; Inside Winger, for the left side |
-| Middle · left half-space | Same as middle left flank except Winger and Wide Forward; Channel Midfielder in M(C)/AM(C); Inside Forward; Inside Winger; Playmaking Winger |
-| Middle · centre | Central M(C)/AM(C) In Possession roles: Central Midfielder; Midfield Playmaker; Attacking Midfielder; Advanced Playmaker; Free Role; plus False Nine. Exclude Wide Central Midfielder, Channel Midfielder, Second Striker, and DM roles. |
-| Middle · right half-space | Mirror of middle left half-space |
-| Middle · right flank | Mirror of middle left flank |
-| Final · left flank | Winger; Inside Forward; Wide Forward; Inside Winger; Wing Back; Advanced Wing-Back only when assigned to a WB position. Exclude Playmaking Winger. |
-| Final · left half-space | Mirror of final right half-space; also include Inside Forward, Inside Winger, and Playmaking Winger |
-| Final · centre | All In Possession Striker roles; Second Striker when assigned to AM(C) |
-| Final · right half-space | Channel Midfielder in M(C)/AM(C); all In Possession Striker roles; Second Striker; Attacking Midfielder; Advanced Playmaker; Inside Forward; Inside Winger; Playmaking Winger |
-| Final · right flank | Mirror of final left flank |
+| Ball zone                    | Eligible carrier roles                                                                                                                                                                                                                   |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Defensive · left flank       | Full Back; Inside Wing-Back; Wing Back; Inside Full-Back; Overlapping Centre-Back only for the left outermost centre-back in a formation with at least three centre-back positions                                                       |
+| Defensive · left half-space  | Full Back; Inside Full-Back; Half Back; Centre-Back, Advanced Centre-Back, Ball-Playing Centre-Back, and No-Nonsense Centre-Back for the left centre-back; Overlapping Centre-Back only when its formation/slot gate is met              |
+| Defensive · centre           | Half Back; Centre-Back, Advanced Centre-Back, Ball-Playing Centre-Back, and No-Nonsense Centre-Back; Overlapping Centre-Back only when its formation/slot gate is met. Eligibility does not depend on an Inside Full-Back being present. |
+| Defensive · right half-space | Mirror of defensive left half-space                                                                                                                                                                                                      |
+| Defensive · right flank      | Mirror of defensive left flank                                                                                                                                                                                                           |
+| Middle · left flank          | Full Back; Wing Back; Wide Central Midfielder; Wide Midfielder; Winger; Inside Forward; Playmaking Winger; Wide Forward; Inside Winger, for the left side                                                                                |
+| Middle · left half-space     | Same as middle left flank except Winger and Wide Forward; Channel Midfielder in M(C)/AM(C); Inside Forward; Inside Winger; Playmaking Winger                                                                                             |
+| Middle · centre              | Central M(C)/AM(C) In Possession roles: Central Midfielder; Midfield Playmaker; Attacking Midfielder; Advanced Playmaker; Free Role; plus False Nine. Exclude Wide Central Midfielder, Channel Midfielder, Second Striker, and DM roles. |
+| Middle · right half-space    | Mirror of middle left half-space                                                                                                                                                                                                         |
+| Middle · right flank         | Mirror of middle left flank                                                                                                                                                                                                              |
+| Final · left flank           | Winger; Inside Forward; Wide Forward; Inside Winger; Wing Back; Advanced Wing-Back only when assigned to a WB position. Exclude Playmaking Winger.                                                                                       |
+| Final · left half-space      | Mirror of final right half-space; also include Inside Forward, Inside Winger, and Playmaking Winger                                                                                                                                      |
+| Final · centre               | All In Possession Striker roles; Second Striker when assigned to AM(C)                                                                                                                                                                   |
+| Final · right half-space     | Channel Midfielder in M(C)/AM(C); all In Possession Striker roles; Second Striker; Attacking Midfielder; Advanced Playmaker; Inside Forward; Inside Winger; Playmaking Winger                                                            |
+| Final · right flank          | Mirror of final left flank                                                                                                                                                                                                               |
 
 - **Formation and slot gates.** Overlapping Centre-Back is available only in formations with at least three centre-back positions and only to an outermost centre-back. Box-To-Box Midfielder and Box-To-Box Playmaker in DM positions are available only in formations with at least two DM positions. Advanced Wing-Back is eligible at final flank only from a Wing-Back position, not a Full-Back position. The Inside Full-Back condition changes centre-back positioning only; it does not restrict carrier eligibility.
 
@@ -114,22 +114,22 @@ One pitch, one pitch component, two modes.
 
 ## 6. Feature list (updated rows)
 
-| ID  | Feature                                                             | Priority | Acceptance criteria                                        |
-| --- | ------------------------------------------------------------------- | -------- | ---------------------------------------------------------- |
-| F01 | One pitch. Open pitch default for later visits. FM mode toggle      | Must     | Later visits open Open pitch. First visit opens FM example |
-| F02 | Empty Open pitch with 11-player squad default                       | Must     | Open pitch starts with no placed players and 11 players available on the bench |
-| F03 | Open pitch free player and independent ball movement                | Must     | Ball drag changes only ball position; player drag changes only that player |
-| F04 | Matchup formation picker                                            | Must     | Two choices per side are initially visible; More exposes the remaining formations |
-| F05 | Apply matchup shortcut                                              | Must     | Places both teams with separation; pieces remain freely movable afterward |
-| F06 | Clear in Open pitch; disabled in FM mode                             | Must     | Open pitch players return to bench and ball stays in place; FM Clear is disabled |
-| F15 | FM-only five-lane by three-third zone map (15 zones)                 | Must     | Tapping a zone places the FM scenario ball; zone name shown; no Open pitch dependency |
-| F16 | Explicit zone-eligible carrier selection                             | Must     | User chooses the on-ball role from the eligible options for the selected zone |
-| F18 | FM pass action and animation                                          | Must     | Ball visibly travels to selected teammate and carrier updates |
-| F19 | FM dribble action and animation                                       | Must     | Carrier and ball visibly move together in selected direction |
-| F20 | Untuned zone: zone shape with "Finish setting up your tactic"       | Must     | Label visible. No arrows                                   |
-| F21 | Copy FM base positions to Open pitch                                  | Must     | Confirmation warns that currently placed Open pitch pieces will be replaced; then the FM XI is placed at base positions, the ball stays put, and extra squad members remain benched |
-| F28 | Reduced motion                                                      | Must     | Every move completes in 200 ms or less                     |
-| F52 | Half-spaces and five lanes                                          | **Must** | Five lanes in zone map from v1                             |
+| ID  | Feature                                                        | Priority | Acceptance criteria                                                                                                                                                                 |
+| --- | -------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F01 | One pitch. Open pitch default for later visits. FM mode toggle | Must     | Later visits open Open pitch. First visit opens FM example                                                                                                                          |
+| F02 | Empty Open pitch with 11-player squad default                  | Must     | Open pitch starts with no placed players and 11 players available on the bench                                                                                                      |
+| F03 | Open pitch free player and independent ball movement           | Must     | Ball drag changes only ball position; player drag changes only that player                                                                                                          |
+| F04 | Matchup formation picker                                       | Must     | Two choices per side are initially visible; More exposes the remaining formations                                                                                                   |
+| F05 | Apply matchup shortcut                                         | Must     | Places both teams with separation; pieces remain freely movable afterward                                                                                                           |
+| F06 | Clear in Open pitch; disabled in FM mode                       | Must     | Open pitch players return to bench and ball stays in place; FM Clear is disabled                                                                                                    |
+| F15 | FM-only five-lane by three-third zone map (15 zones)           | Must     | Tapping a zone places the FM scenario ball; zone name shown; no Open pitch dependency                                                                                               |
+| F16 | Explicit zone-eligible carrier selection                       | Must     | User chooses the on-ball role from the eligible options for the selected zone                                                                                                       |
+| F18 | FM pass action and animation                                   | Must     | Ball visibly travels to selected teammate and carrier updates                                                                                                                       |
+| F19 | FM dribble action and animation                                | Must     | Carrier and ball visibly move together in selected direction                                                                                                                        |
+| F20 | Untuned zone: zone shape with "Finish setting up your tactic"  | Must     | Label visible. No arrows                                                                                                                                                            |
+| F21 | Copy FM base positions to Open pitch                           | Must     | Confirmation warns that currently placed Open pitch pieces will be replaced; then the FM XI is placed at base positions, the ball stays put, and extra squad members remain benched |
+| F28 | Reduced motion                                                 | Must     | Every move completes in 200 ms or less                                                                                                                                              |
+| F52 | Half-spaces and five lanes                                     | **Must** | Five lanes in zone map from v1                                                                                                                                                      |
 
 ## 7. Mobile scope
 
@@ -138,15 +138,15 @@ One pitch, one pitch component, two modes.
 | Role picker       | **Not shown.** Tapping a token selects it and shows its role |
 | First-run step 3  | "Step through with Next, or tap a player to see its role."   |
 | Dribble direction | Hidden                                                       |
-| Copy FM positions | Not available on phone in v1 |
+| Copy FM positions | Not available on phone in v1                                 |
 
 ## Settled design decisions
 
-| ID   | Item            | Decision                                                                                                   |
-| ---- | --------------- | ---------------------------------------------------------------------------------------------------------- |
+| ID   | Item               | Decision                                                                                                                |
+| ---- | ------------------ | ----------------------------------------------------------------------------------------------------------------------- |
 | D-3  | FM ball on carrier | Draw the ball above the token for attackers; if a defender ever carries, draw it lower. Open pitch ball is independent. |
-| D-7  | Lane edges      | Half-spaces between penalty-box and six-yard-box edges (~15.5–27.8 each side); centre 27.8–48.4.           |
-| O-16 | Pair labels     | Confirmed. D(C), M(C), ST and AM(C) pairs share one label; wide AM slots take AM(L)/AM(R) from x position. |
+| D-7  | Lane edges         | Half-spaces between penalty-box and six-yard-box edges (~15.5–27.8 each side); centre 27.8–48.4.                        |
+| O-16 | Pair labels        | Confirmed. D(C), M(C), ST and AM(C) pairs share one label; wide AM slots take AM(L)/AM(R) from x position.              |
 
 ## Copy rules (settled)
 
