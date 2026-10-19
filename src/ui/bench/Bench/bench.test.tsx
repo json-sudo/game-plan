@@ -4,11 +4,11 @@ import { Bench } from '.';
 import type { BenchPiece } from '../BenchChip';
 
 const PIECES: BenchPiece[] = [
-  { id: 'a', label: 'Sub 14', team: 'opponent' },
-  { id: 'b', label: 'Sub 12', team: 'mine' },
-  { id: 'c', label: 'Sub 12', team: 'opponent' },
-  { id: 'd', label: 'GK 2', team: 'opponent', keeper: true },
-  { id: 'e', label: 'Sub 3', team: 'mine' },
+  { id: 'a', label: 's3', team: 'opponent', order: 13 },
+  { id: 'b', label: 'ST', team: 'mine', order: 10 },
+  { id: 'c', label: 'ST', team: 'opponent', order: 10 },
+  { id: 'd', label: 'GK', team: 'opponent', keeper: true, order: 0 },
+  { id: 'e', label: 'D(C)', team: 'mine', order: 2 },
 ];
 
 function chipLabels() {
@@ -22,9 +22,9 @@ describe('Bench', () => {
     expect(screen.getByText('22 on pitch · 3 on bench')).toBeInTheDocument();
   });
 
-  it('orders keepers first, then by number, my team before the opponent', () => {
+  it('orders keepers first, then by squad order, my team before the opponent', () => {
     render(<Bench pieces={PIECES} placed={22} />);
-    expect(chipLabels()).toEqual(['GK 2', 'Sub 3', 'Sub 12', 'Sub 12', 'Sub 14']);
+    expect(chipLabels()).toEqual(['GK', 'D(C)', 'ST', 'ST', 's3']);
     const chips = screen.getAllByRole('button');
     expect(chips[2]).toHaveAccessibleName(expect.stringContaining('my team'));
     expect(chips[3]).toHaveAccessibleName(expect.stringContaining('opponent'));

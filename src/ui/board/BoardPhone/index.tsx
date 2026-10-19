@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useStore, type StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
 import { ballAtopPosition, MOTION_DURATIONS_MS, PHASES, zoneOf, type Phase } from '../../../engine';
+import { benchPieces } from '../../../state/bench-pieces';
 import { activeRoleOf } from '../../../state/context';
 import {
   BALL_START,
@@ -60,22 +61,6 @@ export interface BoardPhoneProps {
 function roleLabel(doc: PitchDocument, player: Player) {
   const roleId = activeRoleOf(doc, player, FM26_DATA);
   return FM26_DATA.roles.find((role) => role.id === roleId)?.name;
-}
-
-function benchPieces(doc: PitchDocument) {
-  return doc.players.flatMap((player) =>
-    player.base
-      ? []
-      : [
-          {
-            id: player.id,
-            label: playerLabel(player),
-            team: player.team,
-            keeper: player.isKeeper,
-            name: player.customName,
-          },
-        ],
-  );
 }
 
 export function BoardPhone({ store }: BoardPhoneProps) {
@@ -141,7 +126,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
   };
 
   const attacker = doc.attacker;
-  const benchCount = benchPieces(doc).length;
+  const benchCount = benchPieces(doc, FM26_DATA).length;
   const menuItems: PhoneMenuEntry[] = [
     {
       icon: 'edit',
@@ -317,7 +302,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
       {menuOpen ? <PhoneMenu items={menuItems} onClose={() => setMenuOpen(false)} /> : null}
       {benchOpen ? (
         <BenchSheet
-          pieces={benchPieces(doc)}
+          pieces={benchPieces(doc, FM26_DATA)}
           placed={placedPlayers(doc).length}
           squadSize={doc.teams[attacker].squadSize}
           keeper={doc.teams[attacker].keeper}

@@ -18,6 +18,7 @@ import {
   zoneOf,
   type Phase,
 } from '../../../engine';
+import { benchPieces } from '../../../state/bench-pieces';
 import { activeRoleOf, phasePlayersOf } from '../../../state/context';
 import {
   BALL_START,
@@ -488,22 +489,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
                 atCentre={ballAtCentre}
                 onCentre={() => store.getState().dispatch({ type: 'dragBall', point: BALL_START })}
               />
-              <Bench
-                pieces={doc.players.flatMap((player) =>
-                  player.base
-                    ? []
-                    : [
-                        {
-                          id: player.id,
-                          label: playerLabel(player),
-                          team: player.team,
-                          keeper: player.isKeeper,
-                          name: player.customName,
-                        },
-                      ],
-                )}
-                placed={placedPlayers(doc).length}
-              />
+              <Bench pieces={benchPieces(doc, FM26_DATA)} placed={placedPlayers(doc).length} />
             </>
           )}
         </section>

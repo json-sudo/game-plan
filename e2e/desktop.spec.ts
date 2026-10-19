@@ -213,6 +213,10 @@ test('Reset, Undo and Open pitch keep the FM layout, and a reload opens the empt
   await expect(page.getByRole('heading', { name: 'Bench' })).toBeVisible();
   await expect(page.getByRole('button', { name: shift.name })).toHaveCount(0);
   await expect(page.getByRole('complementary', { name: 'How to use the example' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^(mine|opponent)-\d+/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'ST, my team' })).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'ST, opponent' })).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'AM(C), opponent' })).toHaveCount(1);
 });
 
 test('a new-format share link opens in the mode it was made in with both layouts intact', async ({

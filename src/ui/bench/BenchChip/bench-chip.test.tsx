@@ -4,19 +4,19 @@ import { BenchChip } from '.';
 
 describe('BenchChip', () => {
   it('is focusable and shows the default label', () => {
-    render(<BenchChip label="Sub 14" team="mine" />);
+    render(<BenchChip label="CB" team="mine" />);
     const chip = screen.getByRole('button');
     chip.focus();
     expect(chip).toHaveFocus();
-    expect(chip).toHaveTextContent('Sub 14');
+    expect(chip).toHaveTextContent('CB');
   });
 
   it('shows the custom name in place of the default label and keeps both in the accessible name', () => {
-    render(<BenchChip label="Sub 14" team="opponent" name="Rodri" />);
+    render(<BenchChip label="CB" team="opponent" name="Rodri" />);
     const chip = screen.getByRole('button');
     expect(chip).toHaveTextContent('Rodri');
-    expect(chip).not.toHaveTextContent('Sub 14');
-    expect(chip).toHaveAccessibleName('Sub 14, Rodri, opponent');
+    expect(chip).not.toHaveTextContent('CB');
+    expect(chip).toHaveAccessibleName('CB, Rodri, opponent');
   });
 
   it('draws my team as a circle and the opponent as a square', () => {
