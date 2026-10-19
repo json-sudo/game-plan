@@ -18,6 +18,12 @@ import {
 } from '../../copy';
 import { BoardPhone } from '.';
 
+function exampleSlotId(team: string, slot: string): string {
+  const found = createExampleDocument().players.find((p) => p.team === team && p.slot === slot);
+  if (!found) throw new Error(`no example ${team} player at ${slot}`);
+  return found.id;
+}
+
 beforeEach(() => {
   window.matchMedia = vi
     .fn<() => { matches: boolean; addEventListener: () => void; removeEventListener: () => void }>()
@@ -132,17 +138,33 @@ describe('BoardPhone bench sheet', () => {
     expect(screen.getByRole('button', { name: /^Bench \(\d+\)$/ })).toHaveFocus();
   });
 
-  it('shows the squad size and keeper controls for the attacking side', async () => {
+  it('shows the squad size and keeper controls for both sides', async () => {
     const user = userEvent.setup();
     const store = createPitchStore({ doc: createInitialDocument(), ui: { mode: 'openPitch' } });
     render(<BoardPhone store={store} />);
     await user.click(screen.getByRole('button', { name: /^Bench \(\d+\)$/ }));
     const sheet = screen.getByRole('dialog', { name: 'Bench' });
-    const attacker = store.getState().doc.attacker;
-    await user.click(within(sheet).getByRole('radio', { name: '26' }));
-    expect(store.getState().doc.teams[attacker].squadSize).toBe(26);
-    await user.click(within(sheet).getByRole('switch', { name: 'Keeper' }));
-    expect(store.getState().doc.teams[attacker].keeper).toBe(true);
+    const mine = within(sheet).getByRole('radiogroup', { name: 'My team squad size' });
+    const opponent = within(sheet).getByRole('radiogroup', { name: 'Opponent squad size' });
+    await user.click(within(mine).getByRole('radio', { name: '26' }));
+    expect(store.getState().doc.teams.mine.squadSize).toBe(26);
+    await user.click(within(opponent).getByRole('radio', { name: '20' }));
+    expect(store.getState().doc.teams.opponent.squadSize).toBe(20);
+    await user.click(within(sheet).getByRole('switch', { name: 'My team keeper' }));
+    expect(store.getState().doc.teams.mine.keeper).toBe(true);
+    expect(store.getState().doc.teams.opponent.keeper).toBe(false);
+  });
+
+  it('places a tapped bench player on the pitch and closes the sheet', async () => {
+    const user = userEvent.setup();
+    const store = createPitchStore({ doc: createInitialDocument(), ui: { mode: 'openPitch' } });
+    render(<BoardPhone store={store} />);
+    await user.click(screen.getByRole('button', { name: /^Bench \(\d+\)$/ }));
+    const sheet = screen.getByRole('dialog', { name: 'Bench' });
+    await user.click(within(sheet).getByRole('button', { name: 'GK, my team' }));
+    expect(store.getState().doc.players.find((p) => p.id === 'mine-1')!.base).toBeDefined();
+    expect(screen.queryByRole('dialog', { name: 'Bench' })).not.toBeInTheDocument();
+    expect(store.getState().doc.ball).toEqual(createInitialDocument().ball);
   });
 
   it('is not offered in FM mode', async () => {
@@ -183,12 +205,53 @@ describe('BoardPhone board', () => {
     expect(menu.compareDocumentPosition(pitch) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('picking a zone dispatches the same tapZone action as desktop', async () => {
+  it('picking a zone puts the ball there and offers only the eligible players', async () => {
     const user = userEvent.setup();
     const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
     render(<BoardPhone store={store} />);
     await user.click(screen.getByRole('button', { name: zoneName('C-F') }));
-    expect(store.getState().doc.scenario?.zone).toBe('C-F');
+    expect(store.getState().doc.ball.y).toBeLessThan(35);
+    expect(store.getState().doc.scenario).toBeNull();
+    const picker = screen.getByRole('group', { name: 'Who has the ball?' });
+    expect(
+      within(picker)
+        .getAllByRole('radio')
+        .map((r) => r.getAttribute('aria-label')),
+    ).toEqual(['ST - Deep-Lying Forward']);
+    await user.click(within(picker).getByRole('radio', { name: 'ST - Deep-Lying Forward' }));
+    expect(store.getState().doc.scenario).toEqual({
+      zone: 'C-F',
+      carrierId: exampleSlotId('mine', 'ST'),
+    });
+  });
+
+  it('shows the carrier choice and pass control below the zone map in FM mode only', () => {
+    const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
+    render(<BoardPhone store={store} />);
+    const zoneMap = screen.getByRole('heading', { name: ZONE_MAP_HEADING });
+    const picker = screen.getByRole('group', { name: 'Who has the ball?' });
+    const pass = screen.getByRole('combobox', { name: 'Pass to' });
+    expect(zoneMap.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(picker.compareDocumentPosition(pass) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    act(() => store.getState().setMode('openPitch'));
+    expect(screen.queryByRole('group', { name: 'Who has the ball?' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Pass to' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: ZONE_MAP_HEADING })).not.toBeInTheDocument();
+  });
+
+  it('starts a pass from the pass control', async () => {
+    const user = userEvent.setup();
+    const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
+    render(<BoardPhone store={store} />);
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Pass to' }),
+      exampleSlotId('mine', 'DR'),
+    );
+    await user.click(screen.getByRole('button', { name: 'Pass' }));
+    expect(store.getState().ui.action).toEqual({
+      type: 'pass',
+      receiverId: exampleSlotId('mine', 'DR'),
+    });
   });
 });
 

@@ -2,15 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PITCH_W } from '../geometry/pitch';
 import { PITCH_TARGET_MARGIN } from './movement';
 import type { PhasePlayer } from './phases';
-import {
-  DRIBBLE_STEP,
-  dribble,
-  dragBall,
-  pass,
-  setCarrier,
-  tapZone,
-  type ScenarioContext,
-} from './scenario';
+import { DRIBBLE_STEP, dribble, pass, setCarrier, tapZone, type ScenarioContext } from './scenario';
 import { zoneCentre, zoneOf } from './zones';
 
 const player = (id: string, team: 'mine' | 'opponent', x: number, y: number, isKeeper = false) => ({
@@ -38,42 +30,42 @@ const context: ScenarioContext = {
 };
 
 describe('tapZone', () => {
-  it('puts the ball at the zone centre and picks the nearest attacker in that lane', () => {
-    const result = tapZone(context, 'R-F');
+  it('puts the ball at the zone centre', () => {
+    const result = tapZone(context, 'R-F', ['rb']);
     expect(result.ball).toEqual(zoneCentre('R-F', 'mine'));
     expect(result.zone).toBe('R-F');
-    expect(result.carrierId).toBe('rb');
   });
 
-  it('never picks a defender', () => {
-    const result = tapZone({ ...context, attacker: 'opponent' }, 'C-F');
-    expect(result.carrierId).toBe('o-st');
-  });
-});
-
-describe('dragBall', () => {
-  it('sets the zone from the point and the nearest attacker as carrier', () => {
-    const result = dragBall(context, { x: 12, y: 70 });
-    expect(result.zone).toBe('L-D');
-    expect(result.carrierId).toBe('lb');
+  it('keeps the current carrier only when that player is eligible in the new zone', () => {
+    expect(tapZone(context, 'C-D', ['cb', 'rb']).carrierId).toBe('cb');
+    expect(tapZone(context, 'R-F', ['rb']).carrierId).toBeNull();
   });
 
-  it('clamps the ball to the pitch', () => {
-    const result = dragBall(context, { x: -20, y: 400 });
-    expect(result.ball.x).toBeGreaterThanOrEqual(0);
-    expect(result.ball.y).toBeLessThanOrEqual(100);
+  it('never picks a carrier by distance when nobody is carrying', () => {
+    const open: ScenarioContext = { ...context, carrierId: null };
+    expect(tapZone(open, 'R-D', ['rb']).carrierId).toBeNull();
+    expect(tapZone({ ...open, attacker: 'opponent' }, 'C-F', ['o-st']).carrierId).toBeNull();
   });
 });
 
 describe('setCarrier', () => {
-  it('overrides the carrier with another attacker and keeps the ball', () => {
-    const result = setCarrier(context, 'rb');
+  it('takes an eligible attacker as carrier and keeps the ball', () => {
+    const result = setCarrier(context, 'rb', ['cb', 'rb']);
     expect(result.carrierId).toBe('rb');
     expect(result.ball).toEqual(context.ball);
   });
 
-  it('ignores a defender', () => {
-    expect(setCarrier(context, 'o-st').carrierId).toBe('cb');
+  it('chooses from nothing when no carrier is set yet', () => {
+    const open: ScenarioContext = { ...context, carrierId: null };
+    expect(setCarrier(open, 'cb', ['cb']).carrierId).toBe('cb');
+  });
+
+  it('ignores a player who is not eligible in the ball zone', () => {
+    expect(setCarrier(context, 'st', ['cb', 'rb']).carrierId).toBe('cb');
+  });
+
+  it('ignores a defender even when listed as eligible', () => {
+    expect(setCarrier(context, 'o-st', ['o-st']).carrierId).toBe('cb');
   });
 });
 
@@ -89,6 +81,12 @@ describe('pass', () => {
     const result = pass(context, 'st', new Map([['st', { x: 55, y: 30 }]]));
     expect(result.ball).toEqual({ x: 55, y: 30 });
     expect(result.zone).toBe('RH-F');
+  });
+
+  it('refuses a pass when nobody is carrying the ball', () => {
+    const result = pass({ ...context, carrierId: null }, 'st');
+    expect(result.carrierId).toBeNull();
+    expect(result.ball).toEqual(context.ball);
   });
 
   it('refuses a pass to the carrier, a defender or an unknown player', () => {

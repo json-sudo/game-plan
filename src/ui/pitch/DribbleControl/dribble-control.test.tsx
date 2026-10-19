@@ -43,4 +43,25 @@ describe('DribbleControl', () => {
     await userEvent.keyboard('{ArrowUp}{ArrowRight}{ArrowDown}{ArrowLeft}');
     expect(onDribble.mock.calls).toEqual([['up'], ['right'], ['down'], ['left']]);
   });
+
+  it('takes the names of its buttons from the caller, for a team attacking the other way', () => {
+    render(
+      <svg>
+        <DribbleControl
+          x={38}
+          y={50}
+          labels={{
+            up: 'Dribble back',
+            right: 'Dribble left',
+            down: 'Dribble forward',
+            left: 'Dribble right',
+          }}
+        />
+      </svg>,
+    );
+    expect(screen.getByRole('button', { name: 'Dribble forward' })).toHaveAttribute(
+      'transform',
+      'translate(38 55.4)',
+    );
+  });
 });

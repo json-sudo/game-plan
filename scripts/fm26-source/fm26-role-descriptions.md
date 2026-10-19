@@ -5,9 +5,9 @@ Date: 2026-10-10
 
 ## Sources and coverage
 
-- **fmsidekick.com** (all 74 roles). The role index `https://fmsidekick.com/database/roles/all` lists every role. Each role record is at `https://fmsidekick.com/api/roles/<id>`, and each row below cites its own record. The drafts paraphrase the record's `description` and `short_description` tags.
+- **fmsidekick.com** (74 roles). The role index `https://fmsidekick.com/database/roles/all` lists every role. Each role record is at `https://fmsidekick.com/api/roles/<id>`, and each row below cites its own record. The drafts paraphrase the record's `description` and `short_description` tags.
 - **sortitoutsi.net** (`https://sortitoutsi.net/tools/player-roles`) was **not read**. Repeated attempts on 2026-10-10 stopped at a Cloudflare security check, which was not passed, so no sortitoutsi role data is in this file. Its roles could not be cross-checked.
-- Count: 74 roles in total. 39 in possession (IP) and 35 out of possession (OOP). The earlier spike notes said about 38 IP and 35 OOP names, so the IP count has moved.
+- Count: 75 roles in total. 40 in possession (IP) and 35 out of possession (OOP). The earlier spike notes said about 38 IP and 35 OOP names, so the IP count has moved. `wide_centre_back_ip` is a captain-defined role with no fmsidekick record; its positioning targets are still pending.
 - Positions are written as the source prints them. `AM(L/R)` is a left or right attacking midfielder. `M(L/R)` is a wide midfielder. Section 2 of `fm26-formations.md` lists the slot families they match.
 
 ## In possession (IP)
@@ -53,6 +53,7 @@ Date: 2026-10-10
 | `no_nonsense_goalkeeper_ip` | No-Nonsense Goalkeeper | GK | This goalkeeper prioritizes defensive security by remaining deep near the goal line, minimizing technical risks when playing out from the back during the In Possession (IP) build-up phase. | fmsidekick `/api/roles/no_nonsense_goalkeeper_ip` |
 | `ball_playing_goalkeeper_ip` | Ball-Playing Goalkeeper | GK | This keeper functions as a vital link in the team's build-up strategy, frequently advancing from the goal line to offer a passing outlet and dictate tempo from the back. | fmsidekick `/api/roles/ball_playing_goalkeeper_ip` |
 | `goalkeeper_ip` | Goalkeeper | GK | This role dictates how the player manages distribution when In Possession (IP), adapting their passing methodology to align with the overarching build-up strategy. | fmsidekick `/api/roles/goalkeeper_ip` |
+| `wide_centre_back_ip` | Wide Centre-Back | D(C) | Follows the Overlapping Centre-Back rules but never overlaps, staying in the wide half-space or flank when the ball is near its side. | captain (Game Plan v2 `gp-ui-pitch.md` carrier eligibility) |
 
 ## Out of possession (OOP)
 

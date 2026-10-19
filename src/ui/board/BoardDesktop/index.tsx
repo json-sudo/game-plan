@@ -11,10 +11,10 @@ import { useStore, type StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
 import type { Point } from '../../../data/types';
 import {
-  ballAtopPosition,
-  computePhases,
   MOTION_DURATIONS_MS,
   PHASES,
+  PROVISIONAL_POSITION_ENGINE,
+  zoneName,
   zoneOf,
   type Phase,
 } from '../../../engine';
@@ -22,17 +22,22 @@ import { benchPieces, pieceLabel } from '../../../state/bench-pieces';
 import { activeRoleOf, phasePlayersOf } from '../../../state/context';
 import {
   BALL_START,
+  SIDES,
+  SQUAD_SIZES,
   playerSide,
   placedPlayers,
   possessionOf,
+  formationOf,
   type PitchDocument,
   type Player,
 } from '../../../state/document';
 import { createExampleDocument } from '../../../state/example';
+import { benchPlacementPoint } from '../../../state/placement';
+import { canSetSquadSize } from '../../../state/tactic-actions';
 import {
   selectCanUndo,
-  selectDisplayPositions,
   selectPhasePositions,
+  selectUnfinishedZones,
 } from '../../../state/selectors';
 import type { ArrowMode, PitchStore } from '../../../state/store';
 import { UndoControl } from '../../chrome/UndoControl';
@@ -59,25 +64,33 @@ import { roleOptions } from '../../setup/setup-model';
 import { Button } from '../../controls/Button';
 import { SegmentedControl } from '../../controls/SegmentedControl';
 import { Bench } from '../../bench/Bench';
+import { SquadControls, type SquadControlTeam } from '../../bench/SquadControls';
 import { useBelowBreakpoint } from '../../../shared/hooks/useBelowBreakpoint';
-import { usePieceMotion } from '../../hooks/usePieceMotion';
-import { usePitchDrag } from '../../hooks/usePitchDrag';
+import { BALL_PIECE_ID } from '../../hooks/usePitchMotion';
 import { BallCard } from '../../instrument/BallCard';
+import { CarrierPicker } from '../../instrument/CarrierPicker';
 import { Instrument } from '../../instrument/Instrument';
+import { PassControl } from '../../instrument/PassControl';
 import { TransportBar } from '../../instrument/TransportBar';
 import { ZoneMap } from '../../instrument/ZoneMap';
 import { Arrow } from '../../pitch/Arrow';
 import { Ball } from '../../pitch/Ball';
-import { ballKeyStep } from '../../pitch/Ball/ball-keys';
+import { DribbleControl } from '../../pitch/DribbleControl';
+import { pieceKeyStep } from '../../pitch/piece-keys';
 import { Pitch } from '../../pitch/Pitch';
 import { PitchFrame } from '../../pitch/PitchFrame';
 import { PlayerToken } from '../../pitch/PlayerToken';
 import { RolePicker, type RolePickerRole } from '../../roles/RolePicker';
 import { PICKER_SIZE, anchorRolePicker } from './anchor-role-picker';
+import { carrierOptionsOf } from '../carrier-options';
+import { dribbleLabels, engineDirection } from '../dribble-direction';
+import { passOptionsOf } from '../pass-options';
+import { tokenKeyCommand } from '../token-keys';
+import { useBoardDrag } from '../use-board-drag';
 import { useBoardMetrics } from '../use-board-metrics';
+import { useBoardPieces } from '../use-board-pieces';
 import styles from './board-desktop.module.scss';
 
-const BALL_DRAG_ID = 'ball';
 const PHASE_INDEX: Record<Phase, 0 | 1 | 2> = { shape: 0, runs: 1, final: 2 };
 const ARROW_OPTIONS = [
   { value: 'all', label: ARROWS_ALL_LABEL },
@@ -100,7 +113,7 @@ function roleLabel(doc: PitchDocument, player: Player) {
 }
 
 function roleMovement(doc: PitchDocument, playerId: string, roleId: string) {
-  const positions = computePhases({
+  const positions = PROVISIONAL_POSITION_ENGINE({
     attacker: doc.attacker,
     players: phasePlayersOf(doc, FM26_DATA).map((player) =>
       player.id === playerId ? { ...player, roleId } : player,
@@ -141,31 +154,21 @@ function movementArrows(doc: PitchDocument, arrows: ArrowMode, selectedPlayerId:
 
 export function BoardDesktop({ store }: BoardDesktopProps) {
   const doc = useStore(store, (state) => state.doc);
+  const tactic = useStore(store, (state) => state.tactic);
   const ui = useStore(store, (state) => state.ui);
   const canUndo = useStore(store, selectCanUndo);
-  const positions = useStore(store, selectDisplayPositions);
+  const view = useBoardPieces(store);
   const metrics = useBoardMetrics();
   const compactBar = useBelowBreakpoint(TOP_BAR_COMPACT_MAX_WIDTH);
   const canReset = doc.teams.mine.applied !== null || doc.teams.opponent.applied !== null;
   const fm = ui.mode === 'fm';
+  const acting = ui.action !== null;
   const carrier = doc.players.find((player) => player.id === doc.scenario?.carrierId);
-  const carrierPoint = carrier ? positions.get(carrier.id) : undefined;
-  const ballTarget =
-    ui.drag?.target.kind === 'ball'
-      ? ui.drag.point
-      : carrier && carrier.team === doc.attacker && carrierPoint
-        ? ballAtopPosition(carrierPoint)
-        : doc.ball;
-  const { x: ballX, y: ballY } = ballTarget;
-  const ballTargets = useMemo(
-    () => new Map([[BALL_DRAG_ID, { x: ballX, y: ballY }]]),
-    [ballX, ballY],
-  );
-  const ballPoint =
-    usePieceMotion({
-      targets: ballTargets,
-      draggingId: ui.drag?.target.kind === 'ball' ? BALL_DRAG_ID : null,
-    }).get(BALL_DRAG_ID) ?? ballTarget;
+  const carrierPoint = carrier ? view.pieces.get(carrier.id) : undefined;
+  const ballZone = zoneOf(doc.ball, doc.attacker);
+  const hasAttackerFormation = formationOf(FM26_DATA, doc.teams[doc.attacker].formationId) !== null;
+  const carrierOptions = useMemo(() => (fm ? carrierOptionsOf(doc, FM26_DATA) : []), [fm, doc]);
+  const passOptions = useMemo(() => (fm ? passOptionsOf(doc, FM26_DATA) : []), [fm, doc]);
 
   const [showHint, setShowHint] = useState(
     () => JSON.stringify(store.getState().doc) === JSON.stringify(createExampleDocument()),
@@ -175,7 +178,6 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
   const [pickerPlace, setPickerPlace] = useState({ left: 0, top: 0 });
   const openToken = useRef<SVGGElement | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
-  const gesture = useRef<{ id: string; moved: boolean } | null>(null);
   useEffect(() => {
     document.documentElement.dataset.theme = ui.theme;
   }, [ui.theme]);
@@ -195,45 +197,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
     if (!fm) setPickedId(null);
   }, [fm]);
 
-  const unmovedTap = () => {
-    const tap = gesture.current && !gesture.current.moved ? gesture.current.id : null;
-    gesture.current = null;
-    return tap;
-  };
-
-  const drag = usePitchDrag({
-    onDragStart: (id) => {
-      if (gesture.current?.id !== id) gesture.current = { id, moved: false };
-      const state = store.getState();
-      if (id === BALL_DRAG_ID) {
-        state.beginDrag({ kind: 'ball' }, state.doc.ball);
-        return;
-      }
-      const point = selectDisplayPositions(state).get(id);
-      if (point) state.beginDrag({ kind: 'player', id }, point);
-    },
-    onDragMove: (_id, point) => {
-      if (gesture.current) gesture.current.moved = true;
-      store.getState().updateDrag(point);
-    },
-    onDragEnd: (_id, point) => {
-      const tap = unmovedTap();
-      const state = store.getState();
-      if (tap) {
-        state.cancelDrag();
-        if (tap !== BALL_DRAG_ID && state.ui.mode === 'fm') setPickedId(tap);
-        return;
-      }
-      state.updateDrag(point);
-      state.endDrag();
-    },
-    onCancel: () => {
-      const tap = unmovedTap();
-      const state = store.getState();
-      state.cancelDrag();
-      if (tap && tap !== BALL_DRAG_ID && state.ui.mode === 'fm') setPickedId(tap);
-    },
-  });
+  const drag = useBoardDrag(store, setPickedId);
 
   const picked = fm && pickedId ? doc.players.find((player) => player.id === pickedId) : undefined;
   const pickedRoleId = picked ? activeRoleOf(doc, picked, FM26_DATA) : undefined;
@@ -287,13 +251,54 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
   }, [picked, drag.svgRef]);
 
   const pieceScale = { ppu: metrics.ppu, tokenPx: metrics.tokenPx, hitPx: DESKTOP_HIT_PX };
-  const ballZone = zoneOf(doc.ball, doc.attacker);
   const ballAtCentre = samePoint(doc.ball, BALL_START);
   const onBallKey = (event: ReactKeyboardEvent<SVGGElement>) => {
-    const next = ballKeyStep(doc.ball, event.key, event.shiftKey);
+    const next = pieceKeyStep(doc.ball, event.key, event.shiftKey);
     if (!next) return;
     event.preventDefault();
-    store.getState().dispatch({ type: 'dragBall', point: next });
+    store.getState().dispatch({ type: 'placeBall', point: next });
+  };
+  const onTokenKey = (player: Player) => (event: ReactKeyboardEvent<SVGGElement>) => {
+    const command = tokenKeyCommand({
+      key: event.key,
+      shift: event.shiftKey,
+      base: player.base,
+      mode: ui.mode,
+    });
+    if (!command) return;
+    event.preventDefault();
+    if (command.kind === 'select') {
+      openToken.current = event.currentTarget;
+      setPickedId(player.id);
+    } else if (command.kind === 'move') {
+      store.getState().dispatch({ type: 'movePlayer', playerId: player.id, point: command.point });
+    } else {
+      store.getState().dispatch({ type: 'benchPlayer', playerId: player.id });
+    }
+  };
+  const draggedPlayerId = ui.drag?.target.kind === 'player' ? ui.drag.target.id : null;
+  const draggedFromPitch = doc.players.some(
+    (player) => player.id === draggedPlayerId && player.base !== undefined,
+  );
+  const piecesOnPitch = doc.players.filter(
+    (player) => player.base !== undefined || player.id === draggedPlayerId,
+  );
+  const squadTeams: SquadControlTeam[] = SIDES.map((team) => ({
+    team,
+    name: doc.teams[team].name,
+    squadSize: doc.teams[team].squadSize,
+    keeper: doc.teams[team].keeper,
+    blockedSizes: SQUAD_SIZES.filter((size) => !canSetSquadSize(tactic, ui.mode, team, size)),
+  }));
+  const placeFromBench = (playerId: string) => {
+    if (drag.wasDragged()) return;
+    const player = doc.players.find((candidate) => candidate.id === playerId);
+    if (!player) return;
+    store.getState().dispatch({
+      type: 'movePlayer',
+      playerId,
+      point: benchPlacementPoint(doc, player.team),
+    });
   };
   const boardStyle = {
     '--gp-pitch-w': `${metrics.pitchW}px`,
@@ -391,7 +396,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
             opponent={doc.teams.opponent.name}
           >
             <Pitch label={PITCH_LABEL} svgRef={drag.svgRef}>
-              {movementArrows(doc, ui.arrows, ui.selectedPlayerId).map((arrow) => (
+              {(fm ? movementArrows(doc, ui.arrows, ui.selectedPlayerId) : []).map((arrow) => (
                 <Arrow
                   key={arrow.id}
                   from={arrow.from}
@@ -400,11 +405,10 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
                   scale={pieceScale}
                 />
               ))}
-              {placedPlayers(doc).map((player) => {
-                const point = positions.get(player.id);
+              {piecesOnPitch.map((player) => {
+                const point = view.pieces.get(player.id);
                 if (!point) return null;
-                const dragging =
-                  ui.drag?.target.kind === 'player' && ui.drag.target.id === player.id;
+                const dragging = draggedPlayerId === player.id;
                 const role = fm ? roleLabel(doc, player) : undefined;
                 const selected = picked?.id === player.id;
                 return (
@@ -426,20 +430,34 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
                     dragging={dragging}
                     onPointerDown={(event) => {
                       openToken.current = event.currentTarget;
-                      gesture.current = { id: player.id, moved: false };
                       drag.startDrag(player.id)(event);
                     }}
+                    onKeyDown={onTokenKey(player)}
                   />
                 );
               })}
+              {fm && carrierPoint && !acting ? (
+                <DribbleControl
+                  x={carrierPoint.x}
+                  y={carrierPoint.y}
+                  labels={dribbleLabels(doc.attacker)}
+                  onDribble={(arrow) =>
+                    store.getState().startAction({
+                      type: 'dribble',
+                      direction: engineDirection(arrow, doc.attacker),
+                    })
+                  }
+                />
+              ) : null}
               <Ball
-                x={ballPoint.x}
-                y={ballPoint.y}
+                x={view.ball.x}
+                y={view.ball.y}
                 scale={pieceScale}
-                title={BALL_TOOLTIP}
+                title={fm ? undefined : BALL_TOOLTIP}
+                fixed={fm}
                 selected={ballFocused}
                 dragging={ui.drag?.target.kind === 'ball'}
-                onPointerDown={drag.startDrag(BALL_DRAG_ID)}
+                onPointerDown={drag.startDrag(BALL_PIECE_ID)}
                 onFocus={() => setBallFocused(true)}
                 onBlur={() => setBallFocused(false)}
                 onKeyDown={onBallKey}
@@ -455,11 +473,33 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
           {fm ? (
             <Instrument>
               <ZoneMap
-                value={doc.scenario?.zone ?? null}
+                value={hasAttackerFormation ? ballZone : null}
+                unfinished={selectUnfinishedZones(doc)}
                 carrier={carrier ? pieceLabel(doc, carrier, FM26_DATA) : undefined}
                 attackerName={doc.teams[doc.attacker].name}
-                onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
+                onPick={(zone) => {
+                  if (!acting) store.getState().dispatch({ type: 'tapZone', zone });
+                }}
               />
+              {hasAttackerFormation ? (
+                <>
+                  <CarrierPicker
+                    zone={zoneName(ballZone)}
+                    options={carrierOptions}
+                    value={doc.scenario?.carrierId ?? null}
+                    onChoose={(playerId) => {
+                      if (!acting) store.getState().dispatch({ type: 'setCarrier', playerId });
+                    }}
+                  />
+                  <PassControl
+                    teammates={passOptions}
+                    busy={acting}
+                    onPass={(receiverId) =>
+                      store.getState().startAction({ type: 'pass', receiverId })
+                    }
+                  />
+                </>
+              ) : null}
               <div className={styles.transport}>
                 <TransportBar
                   phase={PHASE_INDEX[ui.phase]}
@@ -488,9 +528,25 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
               <BallCard
                 zone={ballZone}
                 atCentre={ballAtCentre}
-                onCentre={() => store.getState().dispatch({ type: 'dragBall', point: BALL_START })}
+                onCentre={() => store.getState().dispatch({ type: 'placeBall', point: BALL_START })}
               />
-              <Bench pieces={benchPieces(doc, FM26_DATA)} placed={placedPlayers(doc).length} />
+              <SquadControls
+                teams={squadTeams}
+                onSquadSize={(team, size) =>
+                  store.getState().dispatch({ type: 'setSquadSize', team, size })
+                }
+                onKeeper={(team, keeper) =>
+                  store.getState().dispatch({ type: 'setKeeper', team, keeper })
+                }
+              />
+              <Bench
+                benchRef={drag.benchRef}
+                dropping={drag.overBench && draggedFromPitch}
+                pieces={benchPieces(doc, FM26_DATA)}
+                placed={placedPlayers(doc).length}
+                onChipPointerDown={drag.startDrag}
+                onPlace={placeFromBench}
+              />
             </>
           )}
         </section>

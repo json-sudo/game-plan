@@ -48,7 +48,7 @@ describe('ball in open pitch', () => {
     const start = ballTransform();
 
     act(() => {
-      store.getState().dispatch({ type: 'dragBall', point: { x: 20, y: 30 } });
+      store.getState().dispatch({ type: 'placeBall', point: { x: 20, y: 30 } });
     });
     expect(ballTransform()).toBe(start);
 

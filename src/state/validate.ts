@@ -7,7 +7,6 @@ import {
   TEAM_NAME_MAX_LENGTH,
   formationOf,
   isRoleValidFor,
-  possessionOf,
   type PitchDocument,
   type Player,
 } from './document';
@@ -29,11 +28,8 @@ function playerIssue(doc: PitchDocument, player: Player, data: DataSet): string 
     if (!slot) return `${player.id} has a slot outside its team formation`;
     if (slot.family !== player.family) return `${player.id} does not match its slot family`;
   }
-  if (player.role !== undefined) {
-    const possession = possessionOf(doc, player.team);
-    if (!isRoleValidFor(data, player.role, player.family, possession)) {
-      return `${player.id} has a role that does not fit`;
-    }
+  if (player.role !== undefined && !isRoleValidFor(doc, data, player, player.role)) {
+    return `${player.id} has a role that does not fit`;
   }
   return null;
 }

@@ -1,6 +1,6 @@
 import type { PointerEvent } from 'react';
 import type { Side } from '../../../data/types';
-import { TOKEN_TEAM_LABELS } from '../../copy';
+import { BENCH_CHIP_HINT, TOKEN_TEAM_LABELS } from '../../copy';
 import styles from './bench-chip.module.scss';
 
 export interface BenchPiece {
@@ -14,9 +14,17 @@ export interface BenchPiece {
 
 export type BenchChipProps = Omit<BenchPiece, 'id' | 'order'> & {
   onPointerDown?: (event: PointerEvent<HTMLButtonElement>) => void;
+  onPlace?: () => void;
 };
 
-export function BenchChip({ label, team, keeper = false, name, onPointerDown }: BenchChipProps) {
+export function BenchChip({
+  label,
+  team,
+  keeper = false,
+  name,
+  onPointerDown,
+  onPlace,
+}: BenchChipProps) {
   const accessibleName = [label, name, TOKEN_TEAM_LABELS[team]].filter(Boolean).join(', ');
 
   return (
@@ -24,7 +32,9 @@ export function BenchChip({ label, team, keeper = false, name, onPointerDown }: 
       type="button"
       className={styles.chip}
       aria-label={accessibleName}
+      title={onPlace ? BENCH_CHIP_HINT : undefined}
       onPointerDown={onPointerDown}
+      onClick={onPlace}
     >
       <span
         className={styles.mark}

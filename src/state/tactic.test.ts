@@ -3,7 +3,7 @@ import { FM26_DATA } from '../data/fm26';
 import { BALL_START, keeperOf, placedPlayers, playersOf, type PitchDocument } from './document';
 import { createExampleDocument } from './example';
 import { createPitchStore } from './store';
-import { copyFmPositions } from './tactic-actions';
+import { canSetSquadSize, copyFmPositions } from './tactic-actions';
 import { createExampleTactic, createInitialTactic, tacticFromDocument } from './tactic';
 import { tacticIssues } from './tactic-validate';
 
@@ -13,6 +13,7 @@ function exampleSlotId(team: string, slot: string): string {
   return found.id;
 }
 
+const MINE_DL = exampleSlotId('mine', 'DL');
 const MINE_ST = exampleSlotId('mine', 'ST');
 
 function exampleStore() {
@@ -103,7 +104,7 @@ describe('independent layouts', () => {
       .getState()
       .dispatch({ type: 'applyFormation', team: 'mine', formationId: '3_4_3_dm_wide' });
     const { tactic } = store.getState();
-    store.getState().dispatch({ type: 'dragBall', point: { x: 12, y: 30 } });
+    store.getState().dispatch({ type: 'placeBall', point: { x: 12, y: 30 } });
     const next = store.getState().tactic;
     expect(next.openPitch.ball).toEqual({ x: 12, y: 30 });
     expect(next.openPitch.scenario).toBeNull();
@@ -115,7 +116,7 @@ describe('independent layouts', () => {
     const store = exampleStore();
     const fm = store.getState().tactic.fm;
     store.getState().setMode('openPitch');
-    store.getState().dispatch({ type: 'dragBall', point: { x: 40, y: 20 } });
+    store.getState().dispatch({ type: 'placeBall', point: { x: 40, y: 20 } });
     expect(store.getState().tactic.fm.ball).toEqual(fm.ball);
     expect(store.getState().tactic.fm.scenario).toEqual(fm.scenario);
   });
@@ -247,6 +248,24 @@ describe('roster changes that the other layout cannot follow', () => {
     expect(store.getState().tactic).toBe(before);
     expect(tacticIssues(before, FM26_DATA)).toBeNull();
   });
+
+  it('offers only the squad sizes the action will apply, counting both layouts', () => {
+    const store = exampleStore();
+    store.getState().dispatch({ type: 'setSquadSize', team: 'mine', size: 20 });
+    const grown = store.getState().tactic;
+    expect(canSetSquadSize(grown, 'fm', 'mine', 11)).toBe(true);
+    store.getState().setMode('openPitch');
+    Array.from({ length: 12 }, (_, index) => `mine-${index + 1}`).forEach((playerId, index) => {
+      store.getState().dispatch({ type: 'movePlayer', playerId, point: { x: 5 + index, y: 50 } });
+    });
+    const { tactic } = store.getState();
+    for (const mode of ['openPitch', 'fm'] as const) {
+      expect(canSetSquadSize(tactic, mode, 'mine', 11)).toBe(false);
+      expect(canSetSquadSize(tactic, mode, 'mine', 20)).toBe(true);
+      expect(canSetSquadSize(tactic, mode, 'mine', 26)).toBe(true);
+      expect(canSetSquadSize(tactic, mode, 'opponent', 11)).toBe(true);
+    }
+  });
 });
 
 describe('shrinking a squad', () => {
@@ -293,8 +312,9 @@ describe('copyFmPositions', () => {
   function copiedStore() {
     const store = exampleStore();
     store.getState().dispatch({ type: 'tapZone', zone: 'L-D' });
+    store.getState().dispatch({ type: 'setCarrier', playerId: MINE_DL });
     store.getState().setMode('openPitch');
-    store.getState().dispatch({ type: 'dragBall', point: { x: 55, y: 12 } });
+    store.getState().dispatch({ type: 'placeBall', point: { x: 55, y: 12 } });
     store.getState().dispatch({ type: 'setSquadSize', team: 'mine', size: 20 });
     store.getState().copyFmPositions();
     return store;

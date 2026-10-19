@@ -1,5 +1,12 @@
 import '@testing-library/jest-dom/vitest';
 
+if (typeof SVGElement !== 'undefined' && !('getScreenCTM' in SVGElement.prototype)) {
+  Object.defineProperty(SVGElement.prototype, 'getScreenCTM', {
+    configurable: true,
+    value: () => null,
+  });
+}
+
 if (typeof HTMLDialogElement !== 'undefined') {
   HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
     this.setAttribute('open', '');

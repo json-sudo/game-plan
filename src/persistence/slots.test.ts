@@ -31,6 +31,7 @@ function exampleSlotId(team: string, slot: string): string {
   return found.id;
 }
 
+const MINE_DL = exampleSlotId('mine', 'DL');
 const MINE_ST = exampleSlotId('mine', 'ST');
 
 function memoryStorage(initial: Record<string, string> = {}): Storage {
@@ -299,15 +300,13 @@ describe('new-format only', () => {
 describe('both layouts in a save', () => {
   function arranged(): Tactic {
     const placed = copyFmPositions(exampleTactic);
-    return applyTacticAction(
-      applyTacticAction(placed, 'openPitch', {
-        type: 'movePlayer',
-        playerId: MINE_ST,
-        point: { x: 11, y: 22 },
-      }),
-      'fm',
-      { type: 'tapZone', zone: 'L-D' },
-    );
+    const moved = applyTacticAction(placed, 'openPitch', {
+      type: 'movePlayer',
+      playerId: MINE_ST,
+      point: { x: 11, y: 22 },
+    });
+    const zoned = applyTacticAction(moved, 'fm', { type: 'tapZone', zone: 'L-D' });
+    return applyTacticAction(zoned, 'fm', { type: 'setCarrier', playerId: MINE_DL });
   }
 
   it('saves and reloads both layouts independently, with the mode it was saved in', () => {

@@ -32,6 +32,12 @@
         color: var(--control-text);
     }
 
+    &[aria-disabled='true'] {
+        color: var(--text-muted);
+        cursor: not-allowed;
+        opacity: 0.55;
+    }
+
     &:focus-visible {
         @include m.focus-ring;
     }
@@ -61,4 +67,8 @@
     color: var(--text-muted);
     font: 500 13px/16px var(--font-ui);
     white-space: nowrap;
+}
+
+.reason {
+    @include m.visually-hidden;
 }

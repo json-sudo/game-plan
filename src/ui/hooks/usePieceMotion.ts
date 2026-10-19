@@ -9,6 +9,8 @@ interface PieceMotionOptions {
   targets: ReadonlyMap<string, Point>;
   kind?: MotionKind;
   draggingId?: string | null;
+  restartKey?: unknown;
+  onSettled?: () => void;
 }
 
 function prefersReducedMotion(): boolean {
@@ -32,9 +34,15 @@ export function usePieceMotion({
   targets,
   kind = 'piece',
   draggingId = null,
+  restartKey,
+  onSettled,
 }: PieceMotionOptions): ReadonlyMap<string, Point> {
   const [rendered, setRendered] = useState<ReadonlyMap<string, Point>>(targets);
   const renderedRef = useRef(rendered);
+  const settledRef = useRef(onSettled);
+  useEffect(() => {
+    settledRef.current = onSettled;
+  });
 
   useEffect(() => {
     const from = visiblePositions(renderedRef.current, targets, draggingId);
@@ -48,6 +56,7 @@ export function usePieceMotion({
     });
     if (!moving) {
       settle(from);
+      settledRef.current?.();
       return;
     }
 
@@ -61,11 +70,12 @@ export function usePieceMotion({
       const done = isTransitionDone(elapsed, kind, reduced);
       const progress = easeProgress(progressAt(elapsed, duration), reduced);
       settle(done ? new Map(targets) : positionsAt(from, targets, progress));
-      if (!done) handle = requestAnimationFrame(frame);
+      if (done) settledRef.current?.();
+      else handle = requestAnimationFrame(frame);
     };
     handle = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(handle);
-  }, [targets, kind, draggingId]);
+  }, [targets, kind, draggingId, restartKey]);
 
   return visiblePositions(rendered, targets, draggingId);
 }

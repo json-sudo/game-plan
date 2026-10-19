@@ -28,7 +28,14 @@ export type {
   SquadSize,
   TeamMeta,
 } from './document';
-export { createExampleDocument, EXAMPLE_FORMATIONS, EXAMPLE_ZONE } from './example';
+export { eligibleCarrierIdsOf } from './eligible-carriers';
+export {
+  createExampleDocument,
+  EXAMPLE_CARRIER,
+  EXAMPLE_FORMATIONS,
+  EXAMPLE_ZONE,
+} from './example';
+export { benchPlacementPoint } from './placement';
 export { HISTORY_LIMIT, commit, emptyHistory, redo, undo } from './history';
 export type { History, HistoryStep } from './history';
 export {
@@ -38,9 +45,10 @@ export {
   selectPhasePositions,
   selectPhaseResult,
   selectTeamPlayers,
+  selectUnfinishedZones,
 } from './selectors';
 export type { PhasePositions } from './selectors';
-export { copyFmPositions, applyTacticAction } from './tactic-actions';
+export { canSetSquadSize, copyFmPositions, applyTacticAction } from './tactic-actions';
 export {
   MODES,
   createExampleTactic,
@@ -53,6 +61,7 @@ export { tacticIssues } from './tactic-validate';
 export { createPitchStore, initialUi } from './store';
 export type {
   ArrowMode,
+  BallAction,
   LoadTacticOptions,
   PitchStore,
   PitchStoreOptions,

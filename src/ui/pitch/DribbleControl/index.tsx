@@ -8,6 +8,7 @@ export interface DribbleControlProps {
   x: number;
   y: number;
   onDribble?: (direction: DribbleDirection) => void;
+  labels?: Record<DribbleDirection, string>;
   children?: ReactNode;
 }
 
@@ -32,7 +33,13 @@ const KEY_DIRECTIONS: Record<string, DribbleDirection> = {
 
 const DIRECTIONS = Object.keys(OFFSETS) as DribbleDirection[];
 
-export function DribbleControl({ x, y, onDribble, children }: DribbleControlProps) {
+export function DribbleControl({
+  x,
+  y,
+  onDribble,
+  labels = DRIBBLE_LABELS,
+  children,
+}: DribbleControlProps) {
   const onKeyDown = (event: KeyboardEvent<SVGGElement>) => {
     const direction = KEY_DIRECTIONS[event.key];
     if (!direction) return;
@@ -51,7 +58,7 @@ export function DribbleControl({ x, y, onDribble, children }: DribbleControlProp
             className={styles.button}
             role="button"
             tabIndex={0}
-            aria-label={DRIBBLE_LABELS[direction]}
+            aria-label={labels[direction]}
             transform={`translate(${x + dx} ${y + dy})`}
             onClick={() => onDribble?.(direction)}
             onKeyDown={(event) => {

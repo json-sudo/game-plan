@@ -1,6 +1,7 @@
 import { FM26_DATA } from '../data/fm26';
 import type { Point, Side } from '../data/types';
-import { PHASES, computePhases, type Phase } from '../engine';
+import type { ZoneId } from '../data/zones';
+import { PHASES, PROVISIONAL_POSITION_ENGINE, type Phase } from '../engine';
 import type { PhaseResult } from '../engine/fm/phases';
 import { phasePlayersOf } from './context';
 import type { PitchDocument, Player } from './document';
@@ -9,6 +10,7 @@ import type { PitchStore, DragState } from './store';
 export type PhasePositions = Record<Phase, Map<string, Point>>;
 
 const phaseCache = new WeakMap<PitchDocument, PhasePositions>();
+const baseCache = new WeakMap<PitchDocument, PhasePositions>();
 const resultCache = new WeakMap<PitchDocument, PhaseResult>();
 const teamCache = new WeakMap<PitchDocument, Record<Side, Player[]>>();
 const dragCache = new WeakMap<
@@ -30,7 +32,7 @@ function computeDocumentPhases(doc: PitchDocument): PhasePositions {
 
 function computeDocumentPhaseResult(doc: PitchDocument): PhaseResult {
   if (!doc.scenario) return { status: 'ready', positions: basePositions(doc) };
-  return computePhases({
+  return PROVISIONAL_POSITION_ENGINE({
     attacker: doc.attacker,
     players: phasePlayersOf(doc, FM26_DATA),
     ball: doc.ball,
@@ -51,11 +53,28 @@ export function selectPhaseResult(doc: PitchDocument): PhaseResult {
   return result;
 }
 
+const NO_UNFINISHED_ZONES: readonly ZoneId[] = [];
+
+export function selectUnfinishedZones(doc: PitchDocument): readonly ZoneId[] {
+  if (!doc.scenario || selectPhaseResult(doc).status !== 'setup-not-finished') {
+    return NO_UNFINISHED_ZONES;
+  }
+  return [doc.scenario.zone];
+}
+
 export function selectPhasePositions(doc: PitchDocument): PhasePositions {
   const cached = phaseCache.get(doc);
   if (cached) return cached;
   const computed = computeDocumentPhases(doc);
   phaseCache.set(doc, computed);
+  return computed;
+}
+
+function selectBasePositions(doc: PitchDocument): PhasePositions {
+  const cached = baseCache.get(doc);
+  if (cached) return cached;
+  const computed = basePositions(doc);
+  baseCache.set(doc, computed);
   return computed;
 }
 
@@ -71,7 +90,9 @@ export function selectTeamPlayers(doc: PitchDocument, team: Side): Player[] {
 }
 
 export function selectDisplayPositions(state: PitchStore): Map<string, Point> {
-  const positions = selectPhasePositions(state.doc)[state.ui.phase];
+  const phases =
+    state.ui.mode === 'fm' ? selectPhasePositions(state.doc) : selectBasePositions(state.doc);
+  const positions = phases[state.ui.phase];
   const { drag } = state.ui;
   if (!drag || drag.target.kind !== 'player') return positions;
   const cached = dragCache.get(drag);

@@ -18,7 +18,13 @@ describe('engine purity', () => {
 
   it('exposes the public API from the index', async () => {
     const api = await import('./index');
-    for (const name of ['zoneOf', 'nearestCarrier', 'targetFor', 'computePhases', 'positionAt']) {
+    for (const name of [
+      'zoneOf',
+      'eligibleCarrierIds',
+      'targetFor',
+      'computePhases',
+      'positionAt',
+    ]) {
       expect(typeof (api as Record<string, unknown>)[name]).toBe('function');
     }
   });

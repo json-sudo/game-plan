@@ -12,7 +12,7 @@ const SITE_UNITS = 100;
 const COORDINATE_DECIMALS = 5;
 const AM_LEFT_BELOW = 35;
 const AM_RIGHT_ABOVE = 65;
-const EXPECTED_ROLES = { in: 39, out: 35 };
+const EXPECTED_ROLES = { in: 40, out: 35 };
 const EXPECTED_FORMATIONS = 12;
 
 const FIXED_SLOT_FAMILY = {

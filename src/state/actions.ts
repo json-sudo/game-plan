@@ -13,7 +13,7 @@ import {
 } from './layout-actions';
 import { benchPlayer, movePlayer, renameTeam, setPieceName } from './piece-actions';
 import { fillDefaultRoles, setAttacker, setRole } from './role-actions';
-import { clearScenario, dragBall, dribble, pass, setCarrier, tapZone } from './scenario-actions';
+import { clearScenario, dribble, pass, placeBall, setCarrier, tapZone } from './scenario-actions';
 
 export type Action =
   | { type: 'applyFormation'; team: Side; formationId: string }
@@ -29,7 +29,7 @@ export type Action =
   | { type: 'movePlayer'; playerId: string; point: Point }
   | { type: 'benchPlayer'; playerId: string }
   | { type: 'tapZone'; zone: ZoneId }
-  | { type: 'dragBall'; point: Point }
+  | { type: 'placeBall'; point: Point }
   | { type: 'setCarrier'; playerId: string }
   | { type: 'pass'; receiverId: string; positions?: ReadonlyMap<string, Point> }
   | { type: 'dribble'; direction: DribbleDirection }
@@ -68,8 +68,8 @@ export function applyAction(
       return benchPlayer(doc, action.playerId);
     case 'tapZone':
       return tapZone(doc, action.zone, data);
-    case 'dragBall':
-      return dragBall(doc, action.point, data);
+    case 'placeBall':
+      return placeBall(doc, action.point);
     case 'setCarrier':
       return setCarrier(doc, action.playerId, data);
     case 'pass':

@@ -1,0 +1,17 @@
+.zone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: 56px;
+    padding: 0 var(--space-3);
+    border: 1px dashed var(--accent-ink);
+    border-radius: var(--radius-md);
+    color: var(--accent-ink);
+    font: var(--type-small);
+    text-align: center;
+
+    &[data-over] {
+        background: var(--zone-selected);
+    }
+}

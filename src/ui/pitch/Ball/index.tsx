@@ -13,6 +13,7 @@ export interface BallProps {
   scale?: PieceScale;
   selected?: boolean;
   dragging?: boolean;
+  fixed?: boolean;
   label?: string;
   title?: string;
   onPointerDown?: (event: PointerEvent<SVGGElement>) => void;
@@ -27,6 +28,7 @@ export function Ball({
   scale = DEFAULT_PIECE_SCALE,
   selected = false,
   dragging = false,
+  fixed = false,
   label = BALL_LABEL,
   title,
   onPointerDown,
@@ -43,18 +45,19 @@ export function Ball({
       className={styles.ball}
       style={{ transform }}
       data-dragging={dragging || undefined}
-      role="button"
-      tabIndex={0}
+      data-fixed={fixed || undefined}
+      role={fixed ? 'img' : 'button'}
+      tabIndex={fixed ? undefined : 0}
       aria-label={label}
-      aria-pressed={selected}
-      onPointerDown={onPointerDown}
-      onKeyDown={onKeyDown}
-      onFocus={onFocus}
-      onBlur={onBlur}
+      aria-pressed={fixed ? undefined : selected}
+      onPointerDown={fixed ? undefined : onPointerDown}
+      onKeyDown={fixed ? undefined : onKeyDown}
+      onFocus={fixed ? undefined : onFocus}
+      onBlur={fixed ? undefined : onBlur}
     >
       {title ? <title>{title}</title> : null}
-      <circle className={styles.hit} r={units.hitRadius} />
-      {selected ? (
+      {fixed ? null : <circle className={styles.hit} r={units.hitRadius} />}
+      {selected && !fixed ? (
         <circle
           className={styles.halo}
           r={r + (units.haloRadius - units.radius)}
