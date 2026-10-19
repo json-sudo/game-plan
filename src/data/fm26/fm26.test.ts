@@ -51,9 +51,9 @@ describe('data set', () => {
 });
 
 describe('roles', () => {
-  it('has 74 roles, 39 in possession and 35 out of possession', () => {
-    expect(ROLES).toHaveLength(74);
-    expect(ROLES.filter((role) => role.possession === 'in')).toHaveLength(39);
+  it('has 75 roles, 40 in possession and 35 out of possession', () => {
+    expect(ROLES).toHaveLength(75);
+    expect(ROLES.filter((role) => role.possession === 'in')).toHaveLength(40);
     expect(ROLES.filter((role) => role.possession === 'out')).toHaveLength(35);
   });
 
@@ -187,6 +187,10 @@ describe('formations', () => {
   });
 });
 
+// Roles whose positioning targets await the positioning interview.
+const POSITIONING_PENDING_ROLE_IDS = ['wide_centre_back_ip'];
+const POSITIONED_ROLES = ROLES.filter((role) => !POSITIONING_PENDING_ROLE_IDS.includes(role.id));
+
 describe('movement table', () => {
   const roleIds = new Set(ROLES.map((role) => role.id));
 
@@ -199,8 +203,8 @@ describe('movement table', () => {
     expect(unknownZones).toEqual([]);
   });
 
-  it('has an entry for every role in all 15 zones, with both sides and provenance', () => {
-    const problems = ROLES.flatMap((role) =>
+  it('has an entry for every positioned role in all 15 zones, with both sides and provenance', () => {
+    const problems = POSITIONED_ROLES.flatMap((role) =>
       ZONE_IDS.filter((zone) => {
         const cell = MOVEMENT[role.id]?.[zone];
         const provenance = ['spike', 'initial'];
@@ -214,6 +218,13 @@ describe('movement table', () => {
       }).map((zone) => `${role.id} ${zone}`),
     );
     expect(problems).toEqual([]);
+  });
+
+  it('has no movement entry for roles awaiting positioning', () => {
+    for (const roleId of POSITIONING_PENDING_ROLE_IDS) {
+      expect(roleIds.has(roleId)).toBe(true);
+      expect(MOVEMENT[roleId]).toBeUndefined();
+    }
   });
 
   it('keeps the spike values for the three spike zones of spike roles', () => {
@@ -254,7 +265,7 @@ describe('half-space movement', () => {
     for (const lane of ['LH', 'RH'] as const) {
       const flank = lane === 'LH' ? 'L' : 'R';
       for (const third of ['D', 'M', 'F'] as const) {
-        for (const role of ROLES) {
+        for (const role of POSITIONED_ROLES) {
           const cell = MOVEMENT[role.id]?.[`${lane}-${third}`];
           const flankCell = MOVEMENT[role.id]?.[`${flank}-${third}`];
           expect(cell?.from).toEqual({ ball: 'initial', far: 'initial' });

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { FM26_DATA } from '../data/fm26';
-import { createExampleDocument, EXAMPLE_FORMATIONS, EXAMPLE_ZONE } from './example';
+import {
+  createExampleDocument,
+  EXAMPLE_CARRIER,
+  EXAMPLE_FORMATIONS,
+  EXAMPLE_ZONE,
+} from './example';
 import { placedPlayers } from './document';
 import { documentIssues } from './validate';
 
@@ -12,7 +17,7 @@ describe('createExampleDocument', () => {
     expect(doc.attacker).toBe('mine');
     expect(placedPlayers(doc)).toHaveLength(22);
     expect(doc.players.every((p) => p.role !== undefined)).toBe(true);
-    expect(doc.scenario?.zone).toBe(EXAMPLE_ZONE);
+    expect(doc.scenario).toEqual({ zone: EXAMPLE_ZONE, carrierId: EXAMPLE_CARRIER });
     expect(documentIssues(doc, FM26_DATA)).toBeNull();
   });
 });

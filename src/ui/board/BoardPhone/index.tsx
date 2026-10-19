@@ -1,23 +1,30 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useStore, type StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
-import { ballAtopPosition, MOTION_DURATIONS_MS, PHASES, zoneOf, type Phase } from '../../../engine';
+import { MOTION_DURATIONS_MS, PHASES, zoneName, zoneOf, type Phase } from '../../../engine';
 import { benchPieces, pieceLabel } from '../../../state/bench-pieces';
 import { activeRoleOf } from '../../../state/context';
 import {
   BALL_START,
+  SIDES,
+  SQUAD_SIZES,
+  formationOf,
   playerSide,
   placedPlayers,
   type PitchDocument,
   type Player,
 } from '../../../state/document';
 import { createExampleDocument } from '../../../state/example';
-import { selectCanUndo, selectDisplayPositions } from '../../../state/selectors';
+import { canSetSquadSize } from '../../../state/tactic-actions';
+import { benchPlacementPoint } from '../../../state/placement';
+import { selectCanUndo, selectUnfinishedZones } from '../../../state/selectors';
 import type { PitchStore } from '../../../state/store';
 import { PhoneMenu, type PhoneMenuEntry } from '../../chrome/PhoneMenu';
 import { FirstRunHint } from '../../feedback/FirstRunHint';
 import { UndoControl } from '../../chrome/UndoControl';
+import { BenchDropZone } from '../../bench/BenchDropZone';
 import { BenchSheet } from '../../bench/BenchSheet';
+import type { SquadControlTeam } from '../../bench/SquadControls';
 import {
   BALL_TOOLTIP,
   BENCH_BUTTON_LABEL,
@@ -32,25 +39,31 @@ import {
 } from '../../copy';
 import { Button } from '../../controls/Button';
 import { BallCard } from '../../instrument/BallCard';
+import { CarrierPicker } from '../../instrument/CarrierPicker';
 import { Instrument } from '../../instrument/Instrument';
+import { PassControl } from '../../instrument/PassControl';
 import { TransportBar } from '../../instrument/TransportBar';
 import { ZoneMap } from '../../instrument/ZoneMap';
 import { SetupFlow } from '../../setup/SetupFlow';
 import { MatchupSheet } from '../../setup/MatchupSheet';
 import { setupCursor } from '../../setup/setup-model';
 import { Ball } from '../../pitch/Ball';
-import { ballKeyStep } from '../../pitch/Ball/ball-keys';
+import { pieceKeyStep } from '../../pitch/piece-keys';
 import { Pitch } from '../../pitch/Pitch';
 import { PitchFrame } from '../../pitch/PitchFrame';
 import { PlayerToken } from '../../pitch/PlayerToken';
-import { usePitchDrag } from '../../hooks/usePitchDrag';
+import { BALL_PIECE_ID } from '../../hooks/usePitchMotion';
+import { carrierOptionsOf } from '../carrier-options';
+import { passOptionsOf } from '../pass-options';
+import { tokenKeyCommand } from '../token-keys';
+import { useBoardDrag } from '../use-board-drag';
 import { useBoardMetrics } from '../use-board-metrics';
+import { useBoardPieces } from '../use-board-pieces';
 import styles from './board-phone.module.scss';
 
 const MODE_ITEM_PREFIX = 'Mode: ';
 const MENU_LABEL = 'Menu';
 const PHONE_HIT_PX = 44;
-const BALL_DRAG_ID = 'ball';
 const PHASE_INDEX: Record<Phase, 0 | 1 | 2> = { shape: 0, runs: 1, final: 2 };
 
 export interface BoardPhoneProps {
@@ -64,9 +77,10 @@ function roleLabel(doc: PitchDocument, player: Player) {
 
 export function BoardPhone({ store }: BoardPhoneProps) {
   const doc = useStore(store, (state) => state.doc);
+  const tactic = useStore(store, (state) => state.tactic);
   const ui = useStore(store, (state) => state.ui);
   const canUndo = useStore(store, selectCanUndo);
-  const positions = useStore(store, selectDisplayPositions);
+  const view = useBoardPieces(store);
   const metrics = useBoardMetrics();
   const [menuOpen, setMenuOpen] = useState(false);
   const [benchOpen, setBenchOpen] = useState(false);
@@ -83,26 +97,14 @@ export function BoardPhone({ store }: BoardPhoneProps) {
   const dark = ui.theme === 'dark';
   const cursor = setupCursor(doc, ui.setupStep);
   const carrier = doc.players.find((player) => player.id === doc.scenario?.carrierId);
-  const carrierPoint = carrier ? positions.get(carrier.id) : undefined;
-  const ballTarget =
-    ui.drag?.target.kind === 'ball'
-      ? ui.drag.point
-      : carrier && carrier.team === doc.attacker && carrierPoint
-        ? ballAtopPosition(carrierPoint)
-        : doc.ball;
-  const ballDrag = usePitchDrag({
-    onDragStart: () => {
-      const state = store.getState();
-      state.beginDrag({ kind: 'ball' }, state.doc.ball);
-    },
-    onDragMove: (_id, point) => store.getState().updateDrag(point),
-    onDragEnd: (_id, point) => {
-      const state = store.getState();
-      state.updateDrag(point);
-      state.endDrag();
-    },
-    onCancel: () => store.getState().cancelDrag(),
-  });
+  const acting = ui.action !== null;
+  const ballZone = zoneOf(doc.ball, doc.attacker);
+  const hasAttackerFormation = formationOf(FM26_DATA, doc.teams[doc.attacker].formationId) !== null;
+  const carrierOptions = useMemo(() => (fm ? carrierOptionsOf(doc, FM26_DATA) : []), [fm, doc]);
+  const passOptions = useMemo(() => (fm ? passOptionsOf(doc, FM26_DATA) : []), [fm, doc]);
+  const drag = useBoardDrag(store);
+  const draggedPlayerId = ui.drag?.target.kind === 'player' ? ui.drag.target.id : null;
+  const draggingFromPitch = !fm && doc.players.some((p) => p.id === draggedPlayerId && p.base);
 
   useEffect(() => {
     document.documentElement.dataset.theme = ui.theme;
@@ -124,7 +126,6 @@ export function BoardPhone({ store }: BoardPhoneProps) {
     action();
   };
 
-  const attacker = doc.attacker;
   const benchCount = benchPieces(doc, FM26_DATA).length;
   const menuItems: PhoneMenuEntry[] = [
     {
@@ -154,12 +155,47 @@ export function BoardPhone({ store }: BoardPhoneProps) {
   const pieceScale = { ppu: metrics.ppu, tokenPx: metrics.tokenPx, hitPx: PHONE_HIT_PX };
   const ballAtCentre = doc.ball.x === BALL_START.x && doc.ball.y === BALL_START.y;
   const onBallKey = (event: KeyboardEvent<SVGGElement>) => {
-    const next = ballKeyStep(doc.ball, event.key, event.shiftKey);
+    const next = pieceKeyStep(doc.ball, event.key, event.shiftKey);
     if (!next) return;
     event.preventDefault();
-    store.getState().dispatch({ type: 'dragBall', point: next });
+    store.getState().dispatch({ type: 'placeBall', point: next });
   };
   const pitchStyle = { width: `${metrics.pitchW}px` };
+  const piecesOnPitch = doc.players.filter(
+    (player) => player.base !== undefined || player.id === draggedPlayerId,
+  );
+  const onTokenKey = (player: Player) => (event: KeyboardEvent<SVGGElement>) => {
+    const command = tokenKeyCommand({
+      key: event.key,
+      shift: event.shiftKey,
+      base: player.base,
+      mode: ui.mode,
+    });
+    if (!command || command.kind === 'select') return;
+    event.preventDefault();
+    if (command.kind === 'move') {
+      store.getState().dispatch({ type: 'movePlayer', playerId: player.id, point: command.point });
+    } else {
+      store.getState().dispatch({ type: 'benchPlayer', playerId: player.id });
+    }
+  };
+  const squadTeams: SquadControlTeam[] = SIDES.map((team) => ({
+    team,
+    name: doc.teams[team].name,
+    squadSize: doc.teams[team].squadSize,
+    keeper: doc.teams[team].keeper,
+    blockedSizes: SQUAD_SIZES.filter((size) => !canSetSquadSize(tactic, ui.mode, team, size)),
+  }));
+  const placeFromBench = (playerId: string) => {
+    const player = doc.players.find((candidate) => candidate.id === playerId);
+    if (!player) return;
+    store.getState().dispatch({
+      type: 'movePlayer',
+      playerId,
+      point: benchPlacementPoint(doc, player.team),
+    });
+    setBenchOpen(false);
+  };
 
   const pitch = (
     <div className={styles.pitch} style={pitchStyle}>
@@ -168,9 +204,9 @@ export function BoardPhone({ store }: BoardPhoneProps) {
         mine={doc.teams.mine.name}
         opponent={doc.teams.opponent.name}
       >
-        <Pitch label={PITCH_LABEL} svgRef={ballDrag.svgRef}>
-          {placedPlayers(doc).map((player) => {
-            const point = positions.get(player.id);
+        <Pitch label={PITCH_LABEL} svgRef={drag.svgRef}>
+          {piecesOnPitch.map((player) => {
+            const point = view.pieces.get(player.id);
             if (!point) return null;
             const selected = player.id === selectedId;
             return (
@@ -186,17 +222,23 @@ export function BoardPhone({ store }: BoardPhoneProps) {
                 role={fm ? roleLabel(doc, player) : undefined}
                 showRole={fm && selected}
                 selected={selected}
-                onPointerDown={() => setSelectedId(player.id)}
+                dragging={draggedPlayerId === player.id}
+                onPointerDown={(event) => {
+                  setSelectedId(player.id);
+                  drag.startDrag(player.id)(event);
+                }}
+                onKeyDown={onTokenKey(player)}
               />
             );
           })}
           <Ball
-            x={ballTarget.x}
-            y={ballTarget.y}
+            x={view.ball.x}
+            y={view.ball.y}
             scale={pieceScale}
-            title={BALL_TOOLTIP}
+            title={fm ? undefined : BALL_TOOLTIP}
+            fixed={fm}
             dragging={ui.drag?.target.kind === 'ball'}
-            onPointerDown={ballDrag.startDrag(BALL_DRAG_ID)}
+            onPointerDown={drag.startDrag(BALL_PIECE_ID)}
             onKeyDown={onBallKey}
           />
         </Pitch>
@@ -237,6 +279,9 @@ export function BoardPhone({ store }: BoardPhoneProps) {
               </div>
             ) : null}
             {pitch}
+            {draggingFromPitch ? (
+              <BenchDropZone dropRef={drag.benchRef} over={drag.overBench} />
+            ) : null}
             {fm ? (
               <Instrument>
                 <TransportBar
@@ -264,10 +309,10 @@ export function BoardPhone({ store }: BoardPhoneProps) {
             ) : (
               <>
                 <BallCard
-                  zone={zoneOf(doc.ball, doc.attacker)}
+                  zone={ballZone}
                   atCentre={ballAtCentre}
                   onCentre={() =>
-                    store.getState().dispatch({ type: 'dragBall', point: BALL_START })
+                    store.getState().dispatch({ type: 'placeBall', point: BALL_START })
                   }
                 />
                 <div className={styles.actions}>
@@ -288,11 +333,33 @@ export function BoardPhone({ store }: BoardPhoneProps) {
               <Instrument>
                 <ZoneMap
                   phone
-                  value={doc.scenario?.zone ?? null}
+                  value={hasAttackerFormation ? ballZone : null}
+                  unfinished={selectUnfinishedZones(doc)}
                   carrier={carrier ? pieceLabel(doc, carrier, FM26_DATA) : undefined}
                   attackerName={doc.teams[doc.attacker].name}
-                  onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
+                  onPick={(zone) => {
+                    if (!acting) store.getState().dispatch({ type: 'tapZone', zone });
+                  }}
                 />
+                {hasAttackerFormation ? (
+                  <>
+                    <CarrierPicker
+                      zone={zoneName(ballZone)}
+                      options={carrierOptions}
+                      value={doc.scenario?.carrierId ?? null}
+                      onChoose={(playerId) => {
+                        if (!acting) store.getState().dispatch({ type: 'setCarrier', playerId });
+                      }}
+                    />
+                    <PassControl
+                      teammates={passOptions}
+                      busy={acting}
+                      onPass={(receiverId) =>
+                        store.getState().startAction({ type: 'pass', receiverId })
+                      }
+                    />
+                  </>
+                ) : null}
               </Instrument>
             ) : null}
           </>
@@ -303,14 +370,14 @@ export function BoardPhone({ store }: BoardPhoneProps) {
         <BenchSheet
           pieces={benchPieces(doc, FM26_DATA)}
           placed={placedPlayers(doc).length}
-          squadSize={doc.teams[attacker].squadSize}
-          keeper={doc.teams[attacker].keeper}
-          onSquadSize={(size) =>
-            store.getState().dispatch({ type: 'setSquadSize', team: attacker, size })
+          teams={squadTeams}
+          onSquadSize={(team, size) =>
+            store.getState().dispatch({ type: 'setSquadSize', team, size })
           }
-          onKeeper={(keeper) =>
-            store.getState().dispatch({ type: 'setKeeper', team: attacker, keeper })
+          onKeeper={(team, keeper) =>
+            store.getState().dispatch({ type: 'setKeeper', team, keeper })
           }
+          onPlace={placeFromBench}
           onClose={() => setBenchOpen(false)}
           returnFocus={benchSlot}
         />

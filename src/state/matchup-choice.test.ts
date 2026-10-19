@@ -9,7 +9,7 @@ const OPPONENT = '4_2_3_1_dm_wide';
 describe('applyMatchupChoice', () => {
   it('sets both formations, places both teams and returns the ball to the centre spot', () => {
     const doc = applyAction(createInitialDocument(), {
-      type: 'dragBall',
+      type: 'placeBall',
       point: { x: 10, y: 10 },
     });
     const next = applyAction(doc, { type: 'applyMatchupChoice', mine: MINE, opponent: OPPONENT });

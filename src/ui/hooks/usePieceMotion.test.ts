@@ -32,6 +32,7 @@ interface Props {
   targets: ReadonlyMap<string, Point>;
   kind?: MotionKind;
   draggingId?: string | null;
+  onSettled?: () => void;
 }
 
 function setup(initial: Props) {
@@ -131,5 +132,52 @@ describe('usePieceMotion', () => {
     expect(next.y).toBeGreaterThan(mid.y);
     stepTo(1000 + MOTION_DURATIONS_MS.piece);
     expect(result.current.get('p')).toEqual(C);
+  });
+
+  describe('onSettled', () => {
+    it('fires once when a move lands, not before', () => {
+      const onSettled = vi.fn<() => void>();
+      const { rerender } = setup({ targets: new Map([['p', A]]), kind: 'piece', onSettled });
+      onSettled.mockClear();
+      rerender({ targets: new Map([['p', B]]), kind: 'piece', onSettled });
+      stepTo(0);
+      stepTo(MOTION_DURATIONS_MS.piece - 1);
+      expect(onSettled).not.toHaveBeenCalled();
+      stepTo(MOTION_DURATIONS_MS.piece);
+      expect(onSettled).toHaveBeenCalledOnce();
+    });
+
+    it('fires straight away when the new targets match where pieces already are', () => {
+      const onSettled = vi.fn<() => void>();
+      const { rerender } = setup({ targets: new Map([['p', A]]), onSettled });
+      onSettled.mockClear();
+      rerender({ targets: new Map([['p', { ...A }]]), onSettled });
+      expect(onSettled).toHaveBeenCalledOnce();
+    });
+
+    it('does not fire for a move that is retargeted before it lands', () => {
+      const onSettled = vi.fn<() => void>();
+      const { rerender } = setup({ targets: new Map([['p', A]]), kind: 'piece', onSettled });
+      onSettled.mockClear();
+      rerender({ targets: new Map([['p', B]]), kind: 'piece', onSettled });
+      stepTo(0);
+      stepTo(MOTION_DURATIONS_MS.piece / 2);
+      rerender({ targets: new Map([['p', { x: 0, y: 100 }]]), kind: 'piece', onSettled });
+      expect(onSettled).not.toHaveBeenCalled();
+      stepTo(1000);
+      stepTo(1000 + MOTION_DURATIONS_MS.piece);
+      expect(onSettled).toHaveBeenCalledOnce();
+    });
+
+    it('fires after the reduced-motion duration under prefers-reduced-motion', () => {
+      mockReducedMotion(true);
+      const onSettled = vi.fn<() => void>();
+      const { rerender } = setup({ targets: new Map([['p', A]]), kind: 'phase', onSettled });
+      onSettled.mockClear();
+      rerender({ targets: new Map([['p', B]]), kind: 'phase', onSettled });
+      stepTo(0);
+      stepTo(MOTION_DURATIONS_MS.reduced);
+      expect(onSettled).toHaveBeenCalledOnce();
+    });
   });
 });

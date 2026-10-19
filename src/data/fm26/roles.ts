@@ -354,6 +354,15 @@ export const ROLES: readonly RoleDef[] = [
       'This role dictates how the player manages distribution when In Possession (IP), adapting their passing methodology to align with the overarching build-up strategy.',
   },
   {
+    id: 'wide_centre_back_ip',
+    code: 'i40',
+    name: 'Wide Centre-Back',
+    possession: 'in',
+    families: ['D(C)'],
+    description:
+      'Follows the Overlapping Centre-Back rules but never overlaps, staying in the wide half-space or flank when the ball is near its side.',
+  },
+  {
     id: 'centre_forward_oop',
     code: 'o01',
     name: 'Centre Forward',

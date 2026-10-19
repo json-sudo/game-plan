@@ -6,12 +6,14 @@ export {
   transitionAt,
 } from './anim/interpolate';
 export { MOTION_DURATIONS_MS, MOTION_EASING, motionDurationMs } from './anim/motion';
-export { nearestCarrier, nearestCarrierInLane, resolveCarrier } from './fm/carrier';
-export type { CarrierCandidate } from './fm/carrier';
+export { eligibleCarrierIds, isRoleAllowedInSlot } from './fm/carrier-eligibility';
+export type { CarrierPlayer, LateralSide } from './fm/carrier-eligibility';
 export { lineShift } from './fm/lineShift';
 export { PITCH_TARGET_MARGIN, ballSideOf, offsetFor, targetFor } from './fm/movement';
 export type { BallSide, MovementTables, TargetInput } from './fm/movement';
 export { PHASES, PHASE_PROGRESS, computePhases } from './fm/phases';
+export { PROVISIONAL_POSITION_ENGINE } from './fm/position-engine';
+export type { PositionEngine } from './fm/position-engine';
 export type {
   Phase,
   PhaseInput,
@@ -20,7 +22,7 @@ export type {
   PhaseStatus,
   PhasePositions,
 } from './fm/phases';
-export { DRIBBLE_STEP, dragBall, dribble, pass, setCarrier, tapZone } from './fm/scenario';
+export { DRIBBLE_STEP, dribble, pass, setCarrier, tapZone } from './fm/scenario';
 export type { BallState, DribbleDirection, ScenarioContext } from './fm/scenario';
 export {
   ZONE_GRID,

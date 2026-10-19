@@ -17,6 +17,7 @@ export interface BenchProps {
   sheet?: boolean;
   benchRef?: Ref<HTMLElement>;
   onChipPointerDown?: (id: string) => (event: PointerEvent<HTMLButtonElement>) => void;
+  onPlace?: (id: string) => void;
 }
 
 function compareBenchPieces(a: BenchPiece, b: BenchPiece): number {
@@ -33,6 +34,7 @@ export function Bench({
   sheet = false,
   benchRef,
   onChipPointerDown,
+  onPlace,
 }: BenchProps) {
   const ordered = [...pieces].sort(compareBenchPieces);
   const showEmpty = ordered.length === 0 && !dropping;
@@ -54,6 +56,7 @@ export function Bench({
                 keeper={piece.keeper}
                 name={piece.name}
                 onPointerDown={onChipPointerDown?.(piece.id)}
+                onPlace={onPlace ? () => onPlace(piece.id) : undefined}
               />
             </li>
           ))}

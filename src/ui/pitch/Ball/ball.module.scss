@@ -3,6 +3,11 @@
     cursor: grab;
     touch-action: none;
 
+    &[data-fixed] {
+        cursor: default;
+        pointer-events: none;
+    }
+
     &:focus-visible .ring {
         stroke: var(--focus-ring);
     }

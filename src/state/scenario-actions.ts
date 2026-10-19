@@ -1,10 +1,8 @@
 import type { DataSet, Point } from '../data/types';
 import type { ZoneId } from '../data/zones';
 import {
-  dragBall as engineDragBall,
   dribble as engineDribble,
   pass as enginePass,
-  resolveCarrier,
   setCarrier as engineSetCarrier,
   tapZone as engineTapZone,
   zoneOf,
@@ -12,7 +10,8 @@ import {
   type DribbleDirection,
 } from '../engine';
 import { attackersOf, scenarioContextOf } from './context';
-import { roundPoint, type PitchDocument } from './document';
+import { eligibleCarrierIdsOf } from './eligible-carriers';
+import { clampToPitch, roundPoint, type PitchDocument } from './document';
 
 function samePoint(a: Point, b: Point): boolean {
   return a.x === b.x && a.y === b.y;
@@ -32,27 +31,36 @@ function withBallState(doc: PitchDocument, state: BallState): PitchDocument {
 
 export function refreshScenario(doc: PitchDocument): PitchDocument {
   if (!doc.scenario) return doc;
-  const candidates = attackersOf(doc).map((player) => ({
-    id: player.id,
-    position: player.base!,
-    isKeeper: player.isKeeper,
-  }));
-  const carrierId = resolveCarrier(doc.ball, candidates, doc.scenario.carrierId);
+  const carrierId = doc.scenario.carrierId;
+  if (!attackersOf(doc).some((player) => player.id === carrierId))
+    return { ...doc, scenario: null };
   const zone = zoneOf(doc.ball, doc.attacker);
-  if (carrierId === doc.scenario.carrierId && zone === doc.scenario.zone) return doc;
-  return { ...doc, scenario: carrierId ? { zone, carrierId } : null };
+  return zone === doc.scenario.zone ? doc : { ...doc, scenario: { zone, carrierId } };
+}
+
+export function recheckCarrier(doc: PitchDocument, data: DataSet): PitchDocument {
+  const refreshed = refreshScenario(doc);
+  if (!refreshed.scenario) return refreshed;
+  const { zone, carrierId } = refreshed.scenario;
+  return eligibleCarrierIdsOf(refreshed, zone, data).includes(carrierId)
+    ? refreshed
+    : { ...refreshed, scenario: null };
 }
 
 export function tapZone(doc: PitchDocument, zone: ZoneId, data: DataSet): PitchDocument {
-  return withBallState(doc, engineTapZone(scenarioContextOf(doc, data), zone));
+  const eligible = eligibleCarrierIdsOf(doc, zone, data);
+  return withBallState(doc, engineTapZone(scenarioContextOf(doc, data), zone, eligible));
 }
 
-export function dragBall(doc: PitchDocument, point: Point, data: DataSet): PitchDocument {
-  return withBallState(doc, engineDragBall(scenarioContextOf(doc, data), point));
+export function placeBall(doc: PitchDocument, point: Point): PitchDocument {
+  const ball = clampToPitch(point);
+  if (samePoint(ball, doc.ball) && doc.scenario === null) return doc;
+  return { ...doc, ball, scenario: null };
 }
 
 export function setCarrier(doc: PitchDocument, playerId: string, data: DataSet): PitchDocument {
-  return withBallState(doc, engineSetCarrier(scenarioContextOf(doc, data), playerId));
+  const eligible = eligibleCarrierIdsOf(doc, zoneOf(doc.ball, doc.attacker), data);
+  return withBallState(doc, engineSetCarrier(scenarioContextOf(doc, data), playerId, eligible));
 }
 
 export function pass(

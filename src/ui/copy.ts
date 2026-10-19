@@ -75,13 +75,16 @@ export const ZONE_PRESETS = [
 export const BENCH_HEADING = 'Bench';
 export const benchCount = (placed: number, benched: number) =>
   `${placed} on pitch · ${benched} on bench`;
+export const BENCH_CHIP_HINT = 'Drag onto the pitch, or press Enter to place.';
 export const BENCH_DROP_LABEL = 'Drop here to bench';
 export const BENCH_EMPTY_TITLE = 'Bench is empty';
 export const BENCH_EMPTY_HINT = 'Drag a player off the pitch to bench them.';
 export const BENCH_MENU_LABEL = 'Bench';
 export const BENCH_CLOSE_LABEL = 'Close bench';
-export const SQUAD_SIZE_LABEL = 'Squad size';
-export const KEEPER_TOGGLE_LABEL = 'Keeper';
+export const squadSizeLabel = (team: string) => `${team} squad size`;
+export const keeperToggleLabel = (team: string) => `${team} keeper`;
+export const SQUAD_SIZE_BLOCKED_REASON =
+  'Bench some players first - a smaller squad cannot move players off the pitch.';
 
 export const ROLE_PHASE_LABELS = { IP: 'In possession', OOP: 'Out of possession' } as const;
 export const roleCount = (count: number) => `${count} ${count === 1 ? 'role' : 'roles'}`;
@@ -115,3 +118,17 @@ export const STORAGE_UNAVAILABLE_BODY =
   'Storage is unavailable, so tactics cannot be saved here. Share a link instead.';
 export const SAVED_TACTICS_UNREADABLE_TITLE = 'Saved tactics were skipped.';
 export const SAVED_TACTICS_UNREADABLE_BODY = 'They could not be read.';
+
+export const CARRIER_PICKER_HEADING = 'Who has the ball?';
+export const CARRIER_PICKER_PROMPT = 'Pick who has the ball to see the shape.';
+export const CARRIER_PICKER_EMPTY =
+  'No player in this formation can have the ball here. Pick another zone.';
+export const carrierPickerZoneLine = (zone: string) => `Eligible in: ${zone}`;
+export const carrierOptionLabel = (position: string, role: string) => `${position} - ${role}`;
+
+export const PASS_HEADING = 'Pass';
+export const PASS_LABEL = 'Pass';
+export const PASS_TO_LABEL = 'Pass to';
+export const PASS_PLACEHOLDER = 'Choose a teammate';
+export const PASS_CHOOSE_FIRST_REASON = 'Choose who to pass to first.';
+export const PASS_NO_CARRIER_REASON = 'Pick who has the ball first.';

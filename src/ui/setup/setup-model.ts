@@ -1,5 +1,10 @@
 import { FM26_DATA } from '../../data/fm26';
-import { placedPlayers, possessionOf, type PitchDocument, type Player } from '../../state/document';
+import {
+  isRoleValidFor,
+  placedPlayers,
+  type PitchDocument,
+  type Player,
+} from '../../state/document';
 import { VERSUS_LABEL } from '../copy';
 import type { StepState } from './SetupStepper';
 
@@ -53,10 +58,5 @@ export function stepMark(
 }
 
 export function roleOptions(doc: PitchDocument, player: Player) {
-  if (!player.family) return [];
-  const family = player.family;
-  const possession = possessionOf(doc, player.team);
-  return FM26_DATA.roles.filter(
-    (role) => role.possession === possession && role.families.includes(family),
-  );
+  return FM26_DATA.roles.filter((role) => isRoleValidFor(doc, FM26_DATA, player, role.id));
 }

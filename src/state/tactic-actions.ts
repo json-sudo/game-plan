@@ -1,15 +1,14 @@
 import { FM26_DATA } from '../data/fm26';
-import type { DataSet, Point, Side } from '../data/types';
-import { PITCH_TARGET_MARGIN, clampToPitch as clampPitchPoint } from '../engine';
+import type { DataSet, Side } from '../data/types';
 import { applyAction, type Action } from './actions';
 import {
   SIDES,
   formationOf,
   playersOf,
   replaceTeamPlayers,
-  roundPoint,
   type PitchDocument,
   type Player,
+  type SquadSize,
 } from './document';
 import { benchedPlayer, isRemovable, setSquadSize } from './layout-actions';
 import { syncRoster } from './tactic-sync';
@@ -25,22 +24,14 @@ const FM_ONLY_ACTIONS: ReadonlySet<Action['type']> = new Set([
   'clearScenario',
 ]);
 
-function moveOpenPitchBall(doc: PitchDocument, point: Point): PitchDocument {
-  const ball = roundPoint(clampPitchPoint(point, PITCH_TARGET_MARGIN));
-  return ball.x === doc.ball.x && ball.y === doc.ball.y ? doc : { ...doc, ball };
-}
-
 function applyToLayout(
   doc: PitchDocument,
   mode: Mode,
   action: Action,
   data: DataSet,
 ): PitchDocument {
-  if (mode !== 'openPitch') return applyAction(doc, action, data);
-  if (FM_ONLY_ACTIONS.has(action.type)) return doc;
-  return action.type === 'dragBall'
-    ? moveOpenPitchBall(doc, action.point)
-    : applyAction(doc, action, data);
+  if (mode === 'openPitch' && FM_ONLY_ACTIONS.has(action.type)) return doc;
+  return applyAction(doc, action, data);
 }
 
 function applyToTacticLayout(
@@ -66,6 +57,13 @@ export function applyTacticAction(
   const next = applyToTacticLayout(tactic, mode, action, data);
   if (next === current) return tactic;
   return syncRoster(tactic, mode, next) ?? tactic;
+}
+
+export function canSetSquadSize(tactic: Tactic, mode: Mode, team: Side, size: SquadSize): boolean {
+  return (
+    tactic[mode].teams[team].squadSize === size ||
+    applyTacticAction(tactic, mode, { type: 'setSquadSize', team, size }) !== tactic
+  );
 }
 
 function withoutRole(player: Player): Player {

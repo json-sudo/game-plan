@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { PlayerToken, type PlayerTokenProps } from '.';
 
 const FULL_NAME = 'Abcdefghijklmnopqrstuvwx';
@@ -108,5 +108,12 @@ describe('PlayerToken', () => {
   it('flags the ghost state', () => {
     renderToken({ ghost: true });
     expect(screen.getByRole('button')).toHaveAttribute('data-ghost', 'true');
+  });
+
+  it('passes key presses to its handler so a piece can be moved from the keyboard', () => {
+    const onKeyDown = vi.fn<() => void>();
+    renderToken({ onKeyDown });
+    fireEvent.keyDown(screen.getByRole('button'), { key: 'ArrowLeft' });
+    expect(onKeyDown).toHaveBeenCalledOnce();
   });
 });

@@ -1,4 +1,4 @@
-import type { PointerEvent } from 'react';
+import type { KeyboardEvent, PointerEvent } from 'react';
 import type { Side } from '../../../data/types';
 import { PIECE_NAME_ON_TOKEN_MAX_LENGTH } from '../../../state/document';
 import { KEEPER_LABEL, TOKEN_TEAM_LABELS, tokenSideLabel } from '../../copy';
@@ -22,6 +22,7 @@ export interface PlayerTokenProps {
   showRole?: boolean;
   title?: string;
   onPointerDown?: (event: PointerEvent<SVGGElement>) => void;
+  onKeyDown?: (event: KeyboardEvent<SVGGElement>) => void;
 }
 
 const DRAG_SCALE = 1.15;
@@ -55,6 +56,7 @@ export function PlayerToken({
   showRole = false,
   title,
   onPointerDown,
+  onKeyDown,
 }: PlayerTokenProps) {
   const units = pieceUnits(scale);
   const r = units.radius;
@@ -87,6 +89,7 @@ export function PlayerToken({
       data-ghost={ghost || undefined}
       tabIndex={0}
       onPointerDown={onPointerDown}
+      onKeyDown={onKeyDown}
       role="button"
       aria-label={accessibleName}
       aria-pressed={selected}

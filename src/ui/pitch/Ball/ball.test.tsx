@@ -16,6 +16,21 @@ describe('Ball', () => {
     expect(ball).toHaveAttribute('tabindex', '0');
   });
 
+  it('is a plain image, not a control, when fixed to the FM scenario', () => {
+    const onPointerDown = vi.fn<() => void>();
+    const { container } = render(
+      <svg>
+        <Ball x={12} y={34} scale={scale} fixed onPointerDown={onPointerDown} />
+      </svg>,
+    );
+    expect(screen.queryByRole('button', { name: 'Ball' })).toBeNull();
+    const ball = screen.getByRole('img', { name: 'Ball' });
+    expect(ball).not.toHaveAttribute('tabindex');
+    expect(ball.style.transform).toBe('translate(12px, 34px)');
+    fireEvent.pointerDown(container.querySelector('circle')!);
+    expect(onPointerDown).not.toHaveBeenCalled();
+  });
+
   it('starts a drag from its own hit area when given a pointer handler', () => {
     const onPointerDown = vi.fn<() => void>();
     const { container } = render(

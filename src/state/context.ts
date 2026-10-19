@@ -1,21 +1,13 @@
 import type { DataSet, Side } from '../data/types';
 import type { PhasePlayer, ScenarioContext } from '../engine';
-import {
-  isRoleValidFor,
-  placedPlayers,
-  possessionOf,
-  type PitchDocument,
-  type Player,
-} from './document';
+import { isRoleValidFor, placedPlayers, type PitchDocument, type Player } from './document';
 
 export function activeRoleOf(
   doc: PitchDocument,
   player: Player,
   data: DataSet,
 ): string | undefined {
-  const valid =
-    player.role && isRoleValidFor(data, player.role, player.family, possessionOf(doc, player.team));
-  return valid ? player.role : undefined;
+  return player.role && isRoleValidFor(doc, data, player, player.role) ? player.role : undefined;
 }
 
 export function phasePlayersOf(doc: PitchDocument, data: DataSet): PhasePlayer[] {

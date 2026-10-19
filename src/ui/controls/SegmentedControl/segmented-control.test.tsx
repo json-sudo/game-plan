@@ -129,4 +129,46 @@ describe('SegmentedControl', () => {
     await user.keyboard('a');
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  describe('with disabled options', () => {
+    const WITH_DISABLED = [
+      { value: '11', label: '11', disabled: true, reason: 'Bench players first.' },
+      { value: '20', label: '20' },
+      { value: '26', label: '26' },
+    ];
+
+    it('marks a disabled option, explains it and does not report clicks on it', async () => {
+      const onChange = vi.fn<() => void>();
+      render(
+        <SegmentedControl
+          label="Squad size"
+          options={WITH_DISABLED}
+          value="20"
+          onChange={onChange}
+        />,
+      );
+      const blocked = screen.getByRole('radio', { name: '11' });
+      expect(blocked).toHaveAttribute('aria-disabled', 'true');
+      expect(blocked).toHaveAccessibleDescription('Bench players first.');
+      await userEvent.click(blocked);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('skips disabled options with the arrow keys', async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn<() => void>();
+      render(
+        <SegmentedControl
+          label="Squad size"
+          options={WITH_DISABLED}
+          value="20"
+          onChange={onChange}
+        />,
+      );
+      await user.tab();
+      await user.keyboard('{ArrowLeft}');
+      expect(onChange).toHaveBeenLastCalledWith('26');
+      expect(screen.getByRole('radio', { name: '11' })).not.toHaveFocus();
+    });
+  });
 });

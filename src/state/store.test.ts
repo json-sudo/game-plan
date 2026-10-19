@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { FM26_DATA } from '../data/fm26';
+import { PITCH_TARGET_MARGIN } from '../engine';
 import { createExampleDocument } from './example';
-import { createInitialDocument, playersOf } from './document';
+import { createInitialDocument } from './document';
 import { HISTORY_LIMIT } from './history';
 import { createPitchStore, initialUi } from './store';
 
@@ -85,6 +86,18 @@ describe('undo and redo', () => {
     expect(store.getState().history).toEqual({ past: [], future: [] });
   });
 
+  it('clears an in-flight pitch action when redoing a document change', () => {
+    const store = blankStore();
+    store.getState().dispatch({ type: 'renameTeam', team: 'mine', name: 'Reds' });
+    store.getState().undo();
+    store.getState().patchUi({ action: { type: 'dribble', direction: 'forward' } });
+
+    store.getState().redo();
+
+    expect(store.getState().doc.teams.mine.name).toBe('Reds');
+    expect(store.getState().ui.action).toBeNull();
+  });
+
   it('a new action after undo clears the redo stack', () => {
     const store = blankStore();
     const { dispatch, undo } = store.getState();
@@ -97,10 +110,10 @@ describe('undo and redo', () => {
   it('undoing a scenario apply restores the previous ball and carrier', () => {
     const store = exampleStore();
     const before = store.getState().doc;
-    store.getState().dispatch({ type: 'tapZone', zone: 'L-D' });
+    store.getState().dispatch({ type: 'tapZone', zone: 'R-M' });
     const applied = store.getState().doc;
     expect(applied.ball).not.toEqual(before.ball);
-    expect(applied.scenario?.zone).toBe('L-D');
+    expect(applied.scenario?.zone).toBe('R-M');
     store.getState().undo();
     expect(store.getState().doc).toBe(before);
     expect(store.getState().doc.scenario).toEqual(before.scenario);
@@ -108,15 +121,12 @@ describe('undo and redo', () => {
     expect(store.getState().doc).toBe(applied);
   });
 
-  it('undoing a ball drag, a pass and a dribble each revert one step', () => {
+  it('undoing a ball placement, a pass and a dribble each revert one step', () => {
     const store = exampleStore();
     const start = store.getState().doc;
     const { dispatch, undo } = store.getState();
-    dispatch({ type: 'dragBall', point: { x: 20, y: 40 } });
-    const receiver = playersOf(store.getState().doc, 'mine').find(
-      (p) => p.id !== store.getState().doc.scenario!.carrierId && !p.isKeeper,
-    )!;
-    dispatch({ type: 'pass', receiverId: receiver.id });
+    dispatch({ type: 'tapZone', zone: 'R-M' });
+    dispatch({ type: 'pass', receiverId: exampleSlotId('mine', 'DR') });
     dispatch({ type: 'dribble', direction: 'forward' });
     expect(store.getState().history.past).toHaveLength(3);
     undo();
@@ -206,12 +216,25 @@ describe('drag', () => {
     expect(state.history.past).toHaveLength(1);
   });
 
-  it('commits a ball drag as a scenario change', () => {
-    const store = exampleStore();
+  it('commits an open pitch ball drag as a change to the ball alone', () => {
+    const start = createInitialDocument();
+    const store = createPitchStore({ doc: start });
     store.getState().beginDrag({ kind: 'ball' }, { x: 10, y: 90 });
     store.getState().endDrag();
-    expect(store.getState().doc.ball).toEqual({ x: 10, y: 90 });
-    expect(store.getState().doc.scenario?.zone).toBe('L-D');
+    const { doc, history } = store.getState();
+    expect(doc.ball).toEqual({ x: 10, y: 90 });
+    expect(doc.scenario).toBeNull();
+    expect(doc.players).toBe(start.players);
+    expect(history.past).toHaveLength(1);
+  });
+
+  it('does not start a ball drag in FM mode, where only a zone places the ball', () => {
+    const store = exampleStore();
+    const before = store.getState();
+    before.beginDrag({ kind: 'ball' }, { x: 10, y: 90 });
+    expect(store.getState().ui.drag).toBeNull();
+    store.getState().endDrag();
+    expect(store.getState().doc).toBe(before.doc);
   });
 
   it('cancelDrag discards the live position without a commit', () => {
@@ -229,5 +252,120 @@ describe('drag', () => {
     before.endDrag();
     expect(store.getState().doc).toBe(before.doc);
     expect(store.getState().ui.drag).toBeNull();
+  });
+});
+
+describe('ball actions', () => {
+  it('starts a pass or dribble only in FM mode with a carrier', () => {
+    const store = exampleStore();
+    store.getState().startAction({ type: 'pass', receiverId: exampleSlotId('mine', 'DR') });
+    expect(store.getState().ui.action).toEqual({
+      type: 'pass',
+      receiverId: exampleSlotId('mine', 'DR'),
+    });
+
+    const open = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'openPitch' } });
+    open.getState().startAction({ type: 'dribble', direction: 'forward' });
+    expect(open.getState().ui.action).toBeNull();
+
+    const noCarrier = createPitchStore({ doc: createInitialDocument(), ui: { mode: 'fm' } });
+    noCarrier.getState().startAction({ type: 'dribble', direction: 'forward' });
+    expect(noCarrier.getState().ui.action).toBeNull();
+  });
+
+  it('does not start an action the document would refuse', () => {
+    const store = exampleStore();
+    store.getState().startAction({ type: 'pass', receiverId: 'ghost' });
+    store.getState().startAction({ type: 'pass', receiverId: exampleSlotId('mine', 'AMCR') });
+    store.getState().startAction({ type: 'pass', receiverId: exampleSlotId('opponent', 'ST') });
+    expect(store.getState().ui.action).toBeNull();
+  });
+
+  it('does not start a dribble that cannot move the ball', () => {
+    const base = createExampleDocument();
+    const cornered = {
+      ...base,
+      ball: { x: PITCH_TARGET_MARGIN, y: PITCH_TARGET_MARGIN },
+      scenario: { zone: 'L-F' as const, carrierId: exampleSlotId('mine', 'AMCL') },
+    };
+    const store = createPitchStore({ doc: cornered, ui: { mode: 'fm' } });
+    store.getState().startAction({ type: 'dribble', direction: 'forward-left' });
+    expect(store.getState().ui.action).toBeNull();
+  });
+
+  it('leaves the document alone until the action is committed', () => {
+    const store = exampleStore();
+    const before = store.getState().doc;
+    store.getState().startAction({ type: 'pass', receiverId: exampleSlotId('mine', 'DR') });
+    expect(store.getState().doc).toBe(before);
+    expect(store.getState().history.past).toHaveLength(0);
+  });
+
+  it('ignores a second action while one is running', () => {
+    const store = exampleStore();
+    store.getState().startAction({ type: 'pass', receiverId: exampleSlotId('mine', 'DR') });
+    store.getState().startAction({ type: 'dribble', direction: 'forward' });
+    expect(store.getState().ui.action).toEqual({
+      type: 'pass',
+      receiverId: exampleSlotId('mine', 'DR'),
+    });
+  });
+
+  it('commits a pass as one undoable step and clears the action', () => {
+    const store = exampleStore();
+    const before = store.getState().tactic;
+    store.getState().startAction({ type: 'pass', receiverId: exampleSlotId('mine', 'DR') });
+    store.getState().commitAction();
+    const { doc, ui, history } = store.getState();
+    expect(ui.action).toBeNull();
+    expect(doc.scenario?.carrierId).toBe(exampleSlotId('mine', 'DR'));
+    expect(history.past).toEqual([{ tactic: before, mode: 'fm' }]);
+  });
+
+  it('commits a dribble through the same path', () => {
+    const store = exampleStore();
+    const before = store.getState().doc;
+    store.getState().startAction({ type: 'dribble', direction: 'forward' });
+    store.getState().commitAction();
+    const { doc, ui } = store.getState();
+    expect(ui.action).toBeNull();
+    expect(doc.ball.y).toBeLessThan(before.ball.y);
+    expect(doc.scenario?.carrierId).toBe(before.scenario?.carrierId);
+  });
+
+  it('does nothing on commit without a running action', () => {
+    const store = exampleStore();
+    const before = store.getState();
+    before.commitAction();
+    expect(store.getState().doc).toBe(before.doc);
+  });
+
+  it('drops a refused action without adding an undo step', () => {
+    const store = exampleStore();
+    store.getState().startAction({ type: 'pass', receiverId: 'ghost' });
+    store.getState().commitAction();
+    expect(store.getState().ui.action).toBeNull();
+    expect(store.getState().history.past).toHaveLength(0);
+  });
+
+  it('cancels a running action without touching the document', () => {
+    const store = exampleStore();
+    const before = store.getState().doc;
+    store.getState().startAction({ type: 'pass', receiverId: exampleSlotId('mine', 'DR') });
+    store.getState().cancelAction();
+    expect(store.getState().ui.action).toBeNull();
+    expect(store.getState().doc).toBe(before);
+  });
+
+  it('abandons a running action when the mode changes or the user undoes', () => {
+    const store = exampleStore();
+    store.getState().startAction({ type: 'pass', receiverId: exampleSlotId('mine', 'DR') });
+    store.getState().setMode('openPitch');
+    expect(store.getState().ui.action).toBeNull();
+    store.getState().setMode('fm');
+    store.getState().dispatch({ type: 'tapZone', zone: 'R-M' });
+    store.getState().startAction({ type: 'dribble', direction: 'forward' });
+    store.getState().undo();
+    expect(store.getState().ui.action).toBeNull();
   });
 });

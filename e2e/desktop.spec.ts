@@ -31,6 +31,12 @@ function watchConsole(page: Page) {
   return errors;
 }
 
+function exampleSlotId(team: string, slot: string): string {
+  const found = createExampleDocument().players.find((p) => p.team === team && p.slot === slot);
+  if (!found) throw new Error(`no example ${team} player at ${slot}`);
+  return found.id;
+}
+
 function after(actions: readonly Action[]): PitchDocument {
   return actions.reduce((doc, action) => applyAction(doc, action), createExampleDocument());
 }
@@ -59,9 +65,16 @@ function shapeOf(doc: PitchDocument, playerId: string): Point {
   return point;
 }
 
-function pieceThatShifts(zone: ZoneId): { name: string; shifted: Point; restored: Point } {
-  const shifted = after([{ type: 'tapZone', zone }]);
-  const restored = after([{ type: 'tapZone', zone }, { type: 'reset' }]);
+function pieceThatShifts(
+  zone: ZoneId,
+  carrierId: string,
+): { name: string; shifted: Point; restored: Point } {
+  const picked: Action[] = [
+    { type: 'tapZone', zone },
+    { type: 'setCarrier', playerId: carrierId },
+  ];
+  const shifted = after(picked);
+  const restored = after([...picked, { type: 'reset' }]);
   const player = shifted.players.find((item) => {
     if (!item.slot) return false;
     const from = selectPhasePositions(shifted).shape.get(item.id);
@@ -76,15 +89,13 @@ function pieceThatShifts(zone: ZoneId): { name: string; shifted: Point; restored
   };
 }
 
-function ballAt(zone: ZoneId): Point {
+function ballAt(zone: ZoneId, carrierId: string): Point {
   const doc = after([
-    { type: 'tapZone', zone: 'L-D' },
     { type: 'tapZone', zone },
+    { type: 'setCarrier', playerId: carrierId },
   ]);
-  const carrierId = doc.scenario?.carrierId;
-  const carrier = doc.players.find((player) => player.id === carrierId);
-  const point = carrierId ? selectPhasePositions(doc).shape.get(carrierId) : undefined;
-  if (!carrier || !point || carrier.team !== doc.attacker) return doc.ball;
+  const point = selectPhasePositions(doc).shape.get(carrierId);
+  if (!point) throw new Error(`no shape position for ${carrierId}`);
   return ballAtopPosition(point);
 }
 
@@ -101,25 +112,20 @@ function phasePoint(doc: PitchDocument, phase: 'shape' | 'final'): { name: strin
   return { name: tokenName(doc, player), at };
 }
 
-async function readTranslate(page: Page, role: 'button', name: string): Promise<Point> {
+async function readTranslate(page: Page, role: 'button' | 'img', name: string): Promise<Point> {
   const style = await page.getByRole(role, { name, exact: true }).getAttribute('style');
   const match = style?.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
   if (!match) throw new Error(`no translate on ${name}: ${style}`);
   return { x: Number(match[1]), y: Number(match[2]) };
 }
 
-async function expectSettledAt(page: Page, role: 'button', name: string, expected: Point) {
+async function expectSettledAt(page: Page, role: 'button' | 'img', name: string, expected: Point) {
   await expect
     .poll(async () => {
       const at = await readTranslate(page, role, name);
       return Math.hypot(at.x - expected.x, at.y - expected.y);
     })
     .toBeLessThan(0.05);
-}
-
-function expectPoint(actual: Point, expected: Point) {
-  expect(actual.x).toBeCloseTo(expected.x, 1);
-  expect(actual.y).toBeCloseTo(expected.y, 1);
 }
 
 test('first load at 1440 x 900 shows the example and the hint, with no console errors', async ({
@@ -146,15 +152,21 @@ test('first load at 1440 x 900 shows the example and the hint, with no console e
   expect(errors).toEqual([]);
 });
 
-test('zone pick, Play through the phases, and Next disabled at Final', async ({ page }) => {
+test('zone pick, explicit carrier, Play through the phases, and Next disabled at Final', async ({
+  page,
+}) => {
   const played = after([
     { type: 'tapZone', zone: 'L-D' },
+    { type: 'setCarrier', playerId: exampleSlotId('mine', 'DL') },
     { type: 'tapZone', zone: 'R-F' },
+    { type: 'setCarrier', playerId: exampleSlotId('mine', 'AMCR') },
   ]);
   const moving = phasePoint(played, 'shape');
   await page.goto('/');
   await page.getByRole('button', { name: ZONE_NAME['L-D'] }).click();
   await expect(page.getByText(ZONE_NAME['L-D'], { exact: true })).toBeVisible();
+  await page.getByRole('radio', { name: 'D(L) - Wing Back' }).click();
+  await expect(page.getByRole('radio', { name: 'D(L) - Wing Back' })).toBeChecked();
 
   await page.getByRole('button', { name: ZONE_NAME['R-F'] }).click();
   await expect(page.getByText(ZONE_NAME['R-F'], { exact: true })).toBeVisible();
@@ -162,9 +174,11 @@ test('zone pick, Play through the phases, and Next disabled at Final', async ({ 
     'aria-pressed',
     'true',
   );
-  await expectSettledAt(page, 'button', 'Ball', ballAt('R-F'));
+  await expect(page.getByRole('radio', { name: 'AM(R) - Winger' })).not.toBeChecked();
+  await page.getByRole('radio', { name: 'AM(R) - Winger' }).click();
+  await expectSettledAt(page, 'img', 'Ball', ballAt('R-F', exampleSlotId('mine', 'AMCR')));
 
-  expectPoint(await readTranslate(page, 'button', moving.name), moving.at);
+  await expectSettledAt(page, 'button', moving.name, moving.at);
   await expect(page.getByRole('button', { name: 'Shape', exact: true })).toHaveAttribute(
     'aria-current',
     'step',
@@ -182,37 +196,40 @@ test('zone pick, Play through the phases, and Next disabled at Final', async ({ 
     'aria-disabled',
     'true',
   );
-  expectPoint(await readTranslate(page, 'button', moving.name), phasePoint(played, 'final').at);
+  await expectSettledAt(page, 'button', moving.name, phasePoint(played, 'final').at);
 });
 
 test('Reset, Undo and Open pitch keep the FM layout, and a reload opens the empty Open pitch', async ({
   page,
 }) => {
-  const shift = pieceThatShifts('L-D');
+  const shift = pieceThatShifts('L-D', exampleSlotId('mine', 'DL'));
   await page.goto('/');
   await page.getByRole('button', { name: ZONE_NAME['L-D'] }).click();
+  await page.getByRole('radio', { name: 'D(L) - Wing Back' }).click();
   await expect(page.getByText(ZONE_NAME['L-D'], { exact: true })).toBeVisible();
-  expectPoint(await readTranslate(page, 'button', shift.name), shift.shifted);
+  await expectSettledAt(page, 'button', shift.name, shift.shifted);
 
   await page.getByRole('button', { name: 'Reset' }).click();
-  await expect(page.getByText('No zone yet')).toBeVisible();
-  expectPoint(await readTranslate(page, 'button', shift.name), shift.restored);
+  await expect(page.getByText('Centre - middle third', { exact: true })).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'D(L) - Wing Back' })).toHaveCount(0);
+  await expectSettledAt(page, 'button', shift.name, shift.restored);
 
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.getByText(ZONE_NAME['L-D'], { exact: true })).toBeVisible();
-  expectPoint(await readTranslate(page, 'button', shift.name), shift.shifted);
+  await expectSettledAt(page, 'button', shift.name, shift.shifted);
 
   await page.getByRole('radio', { name: 'Open pitch' }).click();
   await expect(page.getByRole('button', { name: 'Play' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Bench' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Ball zone' })).toHaveCount(0);
+  await expect(page.getByRole('group', { name: 'Who has the ball?' })).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Ball' })).toBeVisible();
 
   await expect(page.getByRole('button', { name: shift.name })).toHaveCount(0);
 
   await page.getByRole('radio', { name: 'FM mode', exact: true }).click();
   await expect(page.getByText(ZONE_NAME['L-D'], { exact: true })).toBeVisible();
-  expectPoint(await readTranslate(page, 'button', shift.name), shift.shifted);
+  await expectSettledAt(page, 'button', shift.name, shift.shifted);
 
   await page.reload();
   await expect(page.getByRole('radio', { name: 'Open pitch', exact: true })).toBeChecked();
@@ -242,6 +259,84 @@ test('a new-format share link opens in the mode it was made in with both layouts
   await page.getByRole('radio', { name: 'FM mode', exact: true }).click();
   await expect(page.getByText(ZONE_NAME['R-F'], { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+});
+
+test('a pass sends the ball to the teammate before the carrier changes', async ({ page }) => {
+  const shown = selectPhasePositions(createExampleDocument()).shape;
+  const passed = after([
+    { type: 'pass', receiverId: exampleSlotId('mine', 'DR'), positions: shown },
+  ]);
+  const receiver = shown.get(exampleSlotId('mine', 'DR'));
+  if (!receiver) throw new Error('no position for the receiver');
+  await page.goto('/');
+  await page.getByRole('combobox', { name: 'Pass to' }).selectOption(exampleSlotId('mine', 'DR'));
+  await page.getByRole('button', { name: 'Pass', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: 'Pass to' })).toBeDisabled();
+  await expect(page.getByRole('combobox', { name: 'Pass to' })).toBeEnabled();
+  await expectSettledAt(page, 'img', 'Ball', ballAtopPosition(receiver));
+  const everyone = selectPhasePositions(passed).shape;
+  for (const player of passed.players) {
+    await expectSettledAt(page, 'button', tokenName(passed, player), everyone.get(player.id)!);
+  }
+});
+
+test('a dribble moves the carrier and the ball together', async ({ page }) => {
+  const dribbled = after([{ type: 'dribble', direction: 'forward' }]);
+  const carrier = selectPhasePositions(dribbled).shape.get(exampleSlotId('mine', 'AMCR'));
+  if (!carrier) throw new Error('no position for the carrier');
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Dribble forward' }).click();
+  await expectSettledAt(page, 'img', 'Ball', ballAtopPosition(carrier));
+});
+
+test('players move between the bench and the pitch in Open pitch', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('radio', { name: 'Open pitch', exact: true }).click();
+  const squad = page.getByRole('radiogroup', { name: 'My team squad size' });
+  await squad.getByRole('radio', { name: '20' }).click();
+  const chip = page.getByRole('button', { name: 'GK, my team', exact: true });
+  await expect(chip).toBeVisible();
+  const pitch = await page.getByRole('img', { name: 'Pitch', exact: true }).boundingBox();
+  const from = await chip.boundingBox();
+  if (!pitch || !from) throw new Error('pitch or bench not laid out');
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(pitch.x + pitch.width / 2, pitch.y + pitch.height * 0.6, { steps: 8 });
+  await page.mouse.up();
+  const placed = page.getByRole('button', { name: 'GK, my team', exact: true });
+  await expect(placed).toBeVisible();
+  await expect(page.getByText('1 on pitch · 30 on bench')).toBeVisible();
+
+  const token = await placed.boundingBox();
+  const bench = await page.getByRole('heading', { name: 'Bench' }).boundingBox();
+  if (!token || !bench) throw new Error('token or bench not laid out');
+  await page.mouse.move(token.x + token.width / 2, token.y + token.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bench.x + 40, bench.y + 40, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.getByText('0 on pitch · 31 on bench')).toBeVisible();
+});
+
+test('a bench player can be placed with a click and moved with the keyboard', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('radio', { name: 'Open pitch', exact: true }).click();
+  await page
+    .getByRole('radiogroup', { name: 'My team squad size' })
+    .getByRole('radio', { name: '20' })
+    .click();
+  await page.getByRole('button', { name: 'GK, my team', exact: true }).first().click();
+  await expect(page.getByText('1 on pitch · 30 on bench')).toBeVisible();
+  const token = page
+    .getByRole('img', { name: 'Pitch', exact: true })
+    .getByRole('button', { name: 'GK, my team', exact: true });
+  const before = await readTranslate(page, 'button', 'GK, my team');
+  await token.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect
+    .poll(async () => (await readTranslate(page, 'button', 'GK, my team')).x)
+    .toBeGreaterThan(before.x);
+  await page.keyboard.press('Delete');
+  await expect(page.getByText('0 on pitch · 31 on bench')).toBeVisible();
 });
 
 test('the ball can be dragged to a new spot in open pitch', async ({ page }) => {

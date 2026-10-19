@@ -65,6 +65,15 @@ function expectPoint(actual: Point, expected: Point) {
   expect(actual.y).toBeCloseTo(expected.y, 1);
 }
 
+async function expectSettledAt(page: Page, name: string, expected: Point) {
+  await expect
+    .poll(async () => {
+      const at = await readTranslate(page, name);
+      return Math.hypot(at.x - expected.x, at.y - expected.y);
+    })
+    .toBeLessThan(0.05);
+}
+
 test('first load at 390 x 844 shows the FM example and the phone hint, with no console errors', async ({
   page,
 }) => {
@@ -110,7 +119,7 @@ test('Play moves the pitch through Shape, Runs and Final, and Next is disabled a
     'aria-disabled',
     'true',
   );
-  expectPoint(await readTranslate(page, moving.name), moving.final);
+  await expectSettledAt(page, moving.name, moving.final);
 });
 
 test('the bench button opens the bench sheet in Open pitch, and Escape closes it', async ({
@@ -131,6 +140,29 @@ test('the bench button opens the bench sheet in Open pitch, and Escape closes it
   await expect(benchButton).toBeFocused();
 });
 
+test('a bench player tapped in the sheet appears on the pitch, and the carrier is chosen in FM mode', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.getByRole('group', { name: 'Who has the ball?' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Pass to' })).toBeVisible();
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('menuitem', { name: 'Mode: FM mode', exact: true }).click();
+  await expect(page.getByRole('group', { name: 'Who has the ball?' })).toHaveCount(0);
+
+  await page.getByRole('button', { name: /^Bench \(\d+\)$/ }).click();
+  const sheet = page.getByRole('dialog', { name: BENCH_HEADING });
+  await sheet
+    .getByRole('radiogroup', { name: 'My team squad size' })
+    .getByRole('radio', { name: '20' })
+    .click();
+  await sheet.getByRole('button', { name: 's1, my team', exact: true }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(
+    page.getByRole('img', { name: PITCH_LABEL }).getByRole('button', { name: 's1, my team' }),
+  ).toBeVisible();
+});
+
 test('the page has no horizontal scroll', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
@@ -140,4 +172,52 @@ test('the page has no horizontal scroll', async ({ page }) => {
   }));
   expect(widths.client).toBe(390);
   expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+});
+
+test.describe('on a touch screen', () => {
+  test.use({ hasTouch: true, isMobile: true });
+
+  test('a pitch player touch-dragged onto the bench drop zone goes to the bench', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Menu' }).click();
+    await page.getByRole('menuitem', { name: 'Mode: FM mode', exact: true }).click();
+    const benchButton = page.getByRole('button', { name: /^Bench \(\d+\)$/ });
+    await benchButton.click();
+    await page
+      .getByRole('dialog', { name: BENCH_HEADING })
+      .getByRole('button', { name: 'GK, my team', exact: true })
+      .click();
+    const benchedBefore = Number((await benchButton.textContent())?.match(/\d+/)?.[0]);
+
+    const token = page
+      .getByRole('img', { name: PITCH_LABEL })
+      .getByRole('button', { name: 'GK, my team', exact: true });
+    const box = await token.boundingBox();
+    if (!box) throw new Error('GK token has no box');
+    const start = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+
+    const cdp = await page.context().newCDPSession(page);
+    const touch = (type: string, point?: { x: number; y: number }) =>
+      cdp.send('Input.dispatchTouchEvent', {
+        type,
+        touchPoints: point ? [{ x: point.x, y: point.y }] : [],
+      });
+
+    await touch('touchStart', start);
+    for (let step = 1; step <= 8; step += 1) {
+      await touch('touchMove', { x: start.x, y: start.y - step * 10 });
+    }
+    const dropZone = page.getByText('Drop here to bench', { exact: true });
+    await expect(dropZone).toBeVisible();
+    const zoneBox = await dropZone.boundingBox();
+    if (!zoneBox) throw new Error('drop zone has no box');
+    const target = { x: zoneBox.x + zoneBox.width / 2, y: zoneBox.y + zoneBox.height / 2 };
+    await touch('touchMove', target);
+    await touch('touchEnd');
+
+    await expect(benchButton).toHaveText(`Bench (${benchedBefore + 1})`);
+    await expect(token).toHaveCount(0);
+  });
 });

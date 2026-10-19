@@ -1,6 +1,6 @@
 import type { DataSet, Family, Point, Possession, Side, SlotId } from '../data/types';
 import type { ZoneId } from '../data/zones';
-import { PITCH_H, PITCH_W, clampToPitch as clampPitchPoint } from '../engine';
+import { PITCH_H, PITCH_W, clampToPitch as clampPitchPoint, isRoleAllowedInSlot } from '../engine';
 
 export const TEAM_NAME_MAX_LENGTH = 24;
 export const PIECE_NAME_MAX_LENGTH = 24;
@@ -129,15 +129,17 @@ export function defaultRoleFor(
 }
 
 export function isRoleValidFor(
+  doc: PitchDocument,
   data: DataSet,
+  player: Player,
   roleId: string,
-  family: Family | null,
-  possession: Possession,
 ): boolean {
   const role = data.roles.find((candidate) => candidate.id === roleId);
-  return Boolean(
-    role && family && role.possession === possession && role.families.includes(family),
-  );
+  const { family } = player;
+  if (!role || !family || !role.families.includes(family)) return false;
+  if (role.possession !== possessionOf(doc, player.team)) return false;
+  const slots = formationOf(data, doc.teams[player.team].formationId)?.slots ?? [];
+  return isRoleAllowedInSlot(roleId, player.slot, slots);
 }
 
 export function formationOf(data: DataSet, formationId: string | null) {

@@ -88,7 +88,10 @@ describe('store selectors', () => {
   });
 
   it('shows positions for the current phase and the live drag position', () => {
-    const store = createPitchStore({ doc: createExampleDocument(), ui: { phase: 'final' } });
+    const store = createPitchStore({
+      doc: createExampleDocument(),
+      ui: { mode: 'fm', phase: 'final' },
+    });
     const state = store.getState();
     expect(selectDisplayPositions(state)).toBe(selectPhasePositions(state.doc).final);
     store.getState().beginDrag({ kind: 'player', id: MINE_ST }, { x: 5, y: 6 });
@@ -97,8 +100,30 @@ describe('store selectors', () => {
     expect(dragged.get(MINE_GK)).toEqual(selectPhasePositions(state.doc).final.get(MINE_GK));
   });
 
+  it('shows base positions in Open pitch while the FM layout holds a scenario', () => {
+    const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
+    expect(store.getState().doc.scenario).not.toBeNull();
+    store.getState().copyFmPositions();
+    store.getState().setMode('openPitch');
+    const before = selectDisplayPositions(store.getState());
+    const doc = store.getState().doc;
+    const placed = doc.players.filter((p) => p.base);
+    expect(placed.length).toBeGreaterThan(0);
+    for (const player of placed) expect(before.get(player.id)).toEqual(player.base);
+    expect(selectDisplayPositions(store.getState())).toBe(before);
+    store.getState().beginDrag({ kind: 'ball' }, doc.ball);
+    store.getState().updateDrag({ x: 30, y: 30 });
+    store.getState().endDrag();
+    expect(Object.fromEntries(selectDisplayPositions(store.getState()))).toEqual(
+      Object.fromEntries(before),
+    );
+  });
+
   it('returns the same drag positions until the drag or phase changes', () => {
-    const store = createPitchStore({ doc: createExampleDocument(), ui: { phase: 'final' } });
+    const store = createPitchStore({
+      doc: createExampleDocument(),
+      ui: { mode: 'fm', phase: 'final' },
+    });
     store.getState().beginDrag({ kind: 'player', id: MINE_ST }, { x: 5, y: 6 });
     const dragged = selectDisplayPositions(store.getState());
     expect(selectDisplayPositions(store.getState())).toBe(dragged);

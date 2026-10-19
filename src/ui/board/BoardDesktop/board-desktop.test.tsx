@@ -247,7 +247,7 @@ describe('desktop board', () => {
     const carrierToken = screen.getByRole('button', {
       name: `${labelWithSide(carrier)}, ${carrierRole}, my team`,
     });
-    expect(translation(screen.getByRole('button', { name: 'Ball' }))).toEqual(
+    expect(translation(screen.getByRole('img', { name: 'Ball' }))).toEqual(
       ballAtopPosition(translation(carrierToken)),
     );
   });

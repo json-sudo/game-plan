@@ -25,6 +25,7 @@ function exampleSlotId(team: string, slot: string): string {
   return found.id;
 }
 
+const MINE_DL = exampleSlotId('mine', 'DL');
 const MINE_DM = exampleSlotId('mine', 'DM');
 const MINE_ST = exampleSlotId('mine', 'ST');
 const OPPONENT_DML = exampleSlotId('opponent', 'DML');
@@ -97,12 +98,13 @@ function arranged(): Tactic {
     'openPitch',
     { type: 'applyFormation', team: 'mine', formationId: '4_4_2' },
     { type: 'movePlayer', playerId: MINE_ST, point: { x: 12.34, y: 56.78 } },
-    { type: 'dragBall', point: { x: 70.5, y: 33.25 } },
+    { type: 'placeBall', point: { x: 70.5, y: 33.25 } },
   );
   return run(
     base,
     'fm',
     { type: 'tapZone', zone: 'L-D' },
+    { type: 'setCarrier', playerId: MINE_DL },
     { type: 'setPieceName', playerId: MINE_ST, name: 'Zoë 🙂' },
   );
 }

@@ -1,7 +1,8 @@
 import { createStore, type StoreApi } from 'zustand/vanilla';
-import type { Phase } from '../engine';
+import type { DribbleDirection, Phase } from '../engine';
 import type { Point } from '../data/types';
-import type { Action } from './actions';
+import { applyAction, type Action } from './actions';
+import { selectDisplayPositions } from './selectors';
 import type { PitchDocument } from './document';
 import { commit, emptyHistory, redo, undo, type History } from './history';
 import { copyFmPositions, applyTacticAction } from './tactic-actions';
@@ -25,6 +26,9 @@ export interface DragState {
   point: Point;
 }
 
+export type BallAction =
+  { type: 'pass'; receiverId: string } | { type: 'dribble'; direction: DribbleDirection };
+
 export interface UiState {
   mode: Mode;
   phase: Phase;
@@ -34,6 +38,7 @@ export interface UiState {
   setupStep: 1 | 2 | 3 | null;
   theme: Theme;
   drag: DragState | null;
+  action: BallAction | null;
 }
 
 export interface LoadTacticOptions {
@@ -57,6 +62,9 @@ export interface PitchStore {
   updateDrag: (point: Point) => void;
   endDrag: () => void;
   cancelDrag: () => void;
+  startAction: (action: BallAction) => void;
+  commitAction: () => void;
+  cancelAction: () => void;
 }
 
 export interface PitchStoreOptions {
@@ -75,12 +83,19 @@ export function initialUi(mode: Mode): UiState {
     setupStep: null,
     theme: 'light',
     drag: null,
+    action: null,
   };
+}
+
+function actionToDispatch(action: BallAction, positions: ReadonlyMap<string, Point>): Action {
+  return action.type === 'pass'
+    ? { type: 'pass', receiverId: action.receiverId, positions }
+    : { type: 'dribble', direction: action.direction };
 }
 
 function dragAction(drag: DragState): Action {
   return drag.target.kind === 'ball'
-    ? { type: 'dragBall', point: drag.point }
+    ? { type: 'placeBall', point: drag.point }
     : { type: 'movePlayer', playerId: drag.target.id, point: drag.point };
 }
 
@@ -98,7 +113,7 @@ export function createPitchStore(options: PitchStoreOptions = {}): StoreApi<Pitc
       ({
         tactic: entry.tactic,
         doc: entry.tactic[entry.mode],
-        ui: { ...ui, mode: entry.mode },
+        ui: { ...ui, mode: entry.mode, action: null },
       }) satisfies Partial<PitchStore>;
     const replaceTactic = (next: Tactic) => {
       const { tactic: current, history, ui } = get();
@@ -134,6 +149,7 @@ export function createPitchStore(options: PitchStoreOptions = {}): StoreApi<Pitc
             playing: false,
             selectedPlayerId: null,
             drag: null,
+            action: null,
           },
         });
         return true;
@@ -153,9 +169,12 @@ export function createPitchStore(options: PitchStoreOptions = {}): StoreApi<Pitc
       setMode: (mode) => {
         const { ui, tactic: current } = get();
         if (ui.mode === mode) return;
-        set({ ui: { ...ui, mode }, doc: current[mode] });
+        set({ ui: { ...ui, mode, action: null }, doc: current[mode] });
       },
-      beginDrag: (target, point) => set({ ui: { ...get().ui, drag: { target, point } } }),
+      beginDrag: (target, point) => {
+        if (target.kind === 'ball' && get().ui.mode === 'fm') return;
+        set({ ui: { ...get().ui, drag: { target, point } } });
+      },
       updateDrag: (point) => {
         const { drag } = get().ui;
         if (drag) set({ ui: { ...get().ui, drag: { ...drag, point } } });
@@ -167,6 +186,23 @@ export function createPitchStore(options: PitchStoreOptions = {}): StoreApi<Pitc
         dispatch(dragAction(drag));
       },
       cancelDrag: () => set({ ui: { ...get().ui, drag: null } }),
+      startAction: (action) => {
+        const { doc: current, ui: currentUi } = get();
+        if (currentUi.mode !== 'fm' || currentUi.action || !current.scenario) return;
+        const refused =
+          applyAction(current, actionToDispatch(action, selectDisplayPositions(get()))) === current;
+        if (!refused) set({ ui: { ...currentUi, action } });
+      },
+      commitAction: () => {
+        const state = get();
+        const { action } = state.ui;
+        if (!action) return;
+        set({ ui: { ...state.ui, action: null } });
+        dispatch(actionToDispatch(action, selectDisplayPositions(state)));
+      },
+      cancelAction: () => {
+        if (get().ui.action) set({ ui: { ...get().ui, action: null } });
+      },
     };
   });
 }
