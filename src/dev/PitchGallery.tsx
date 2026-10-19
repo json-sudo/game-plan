@@ -21,9 +21,9 @@ import styles from './gallery.module.scss';
 import { ZoneShapeShowcase } from './ZoneShapeShowcase';
 
 const BENCH_PIECES: BenchPiece[] = [
-  { id: 'mine-3', label: '3', team: 'mine' },
-  { id: 'mine-1', label: '1', team: 'mine', keeper: true },
-  { id: 'opp-9', label: '9', team: 'opponent', name: 'A name of twenty-four chars' },
+  { id: 'mine-3', label: 'D(C)', team: 'mine', order: 2 },
+  { id: 'mine-1', label: 'GK', team: 'mine', keeper: true, order: 0 },
+  { id: 'opp-9', label: 'ST', team: 'opponent', order: 10, name: 'A name of twenty-four chars' },
 ];
 
 const ROLES = [

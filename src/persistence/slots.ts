@@ -1,8 +1,9 @@
 import { FM26_DATA } from '../data/fm26';
-import { documentIssues, placedPlayers, type PitchDocument } from '../state';
+import { placedPlayers, tacticIssues, type TacticSnapshot } from '../state';
 import {
   CURRENT_TACTICS_VERSION,
   MAX_SLOTS,
+  MAX_TACTICS_STORAGE_CHARS,
   SLOT_NAME_MAX_LENGTH,
   TACTICS_STORAGE_KEY,
   savedSlotSchema,
@@ -36,10 +37,11 @@ function readRaw(storage: Storage): string | null | undefined {
 function parseSlot(slot: unknown): SavedSlot | null {
   const parsed = savedSlotSchema.safeParse(slot);
   if (!parsed.success) return null;
-  return documentIssues(parsed.data.tactic, FM26_DATA) === null ? parsed.data : null;
+  return tacticIssues(parsed.data.tactic, FM26_DATA) === null ? parsed.data : null;
 }
 
 function readWrapper(raw: string): { version: number; slots: unknown[] } | null {
+  if (raw.length > MAX_TACTICS_STORAGE_CHARS) return null;
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -79,8 +81,8 @@ export function pickAutoLoadSlot(wrapper: TacticsWrapper): SavedSlot | null {
   );
 }
 
-export function canSaveTactic(tactic: PitchDocument): boolean {
-  return placedPlayers(tactic).length >= MIN_PLACED_TO_SAVE;
+export function canSaveTactic({ tactic, mode }: TacticSnapshot): boolean {
+  return placedPlayers(tactic[mode]).length >= MIN_PLACED_TO_SAVE;
 }
 
 function createSlotId(): string {
@@ -103,11 +105,12 @@ export function saveSlot(
   wrapper: TacticsWrapper | null,
   targetSlotId: string | null,
   name: string,
-  tactic: PitchDocument,
+  snapshot: TacticSnapshot,
   storage: Storage = localStorage,
   now: number = Date.now(),
 ): SaveResult {
-  if (documentIssues(tactic, FM26_DATA) !== null) {
+  const { tactic } = snapshot;
+  if (tacticIssues(tactic, FM26_DATA) !== null || !canSaveTactic(snapshot)) {
     return { status: 'error', message: "This tactic can't be saved." };
   }
   const slots = wrapper ? wrapper.slots : [];
@@ -123,6 +126,9 @@ export function saveSlot(
     ? slots.map((slot) => (slot === existing ? saved : slot))
     : [...slots, saved];
   const nextWrapper: TacticsWrapper = { version: CURRENT_TACTICS_VERSION, slots: nextSlots };
+  if (JSON.stringify(nextWrapper).length > MAX_TACTICS_STORAGE_CHARS) {
+    return { status: 'error', message: 'This tactic is too large to save.' };
+  }
   if (!writeWrapper(storage, nextWrapper)) {
     return { status: 'error', message: "Couldn't save. Storage is full or unavailable." };
   }

@@ -110,9 +110,8 @@ export function playerSide(player: Pick<Player, 'family' | 'slot'>): 'left' | 'r
   return undefined;
 }
 
-// The label the pitch shows: the family (AM(L)), not the site id (AMCL).
-export function playerLabel(player: Pick<Player, 'id' | 'family' | 'slot'>): string {
-  return player.family ?? player.slot ?? player.id;
+export function keeperOf(doc: PitchDocument, team: Side): Player | undefined {
+  return playersOf(doc, team).find((player) => player.isKeeper);
 }
 
 export function placedPlayers(doc: PitchDocument): Player[] {

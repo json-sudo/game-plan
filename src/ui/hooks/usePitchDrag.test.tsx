@@ -73,7 +73,7 @@ function Harness({ scale = 2 }: { scale?: number }) {
         <PlayerToken x={10} y={10} label="9" onPointerDown={drag.startDrag('p1')} />
       </Pitch>
       <Bench
-        pieces={[{ id: 'b1', label: 'Sub 14', team: 'mine' }]}
+        pieces={[{ id: 'b1', label: 'CB', team: 'mine', order: 2 }]}
         placed={1}
         dropping={drag.overBench}
         benchRef={(node) => {
@@ -130,7 +130,7 @@ describe('usePitchDrag', () => {
 
   it('reports a bench chip dropped on the pitch with the chip id', () => {
     render(<Harness />);
-    fireEvent.pointerDown(screen.getByRole('button', { name: /^Sub 14/ }), {
+    fireEvent.pointerDown(screen.getByRole('button', { name: /^CB/ }), {
       clientX: 600,
       clientY: 10,
     });

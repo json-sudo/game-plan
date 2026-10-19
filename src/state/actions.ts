@@ -14,7 +14,6 @@ import {
 import { benchPlayer, movePlayer, renameTeam, setPieceName } from './piece-actions';
 import { fillDefaultRoles, setAttacker, setRole } from './role-actions';
 import { clearScenario, dragBall, dribble, pass, setCarrier, tapZone } from './scenario-actions';
-import { documentIssues } from './validate';
 
 export type Action =
   | { type: 'applyFormation'; team: Side; formationId: string }
@@ -35,8 +34,7 @@ export type Action =
   | { type: 'pass'; receiverId: string; positions?: ReadonlyMap<string, Point> }
   | { type: 'dribble'; direction: DribbleDirection }
   | { type: 'clearScenario' }
-  | { type: 'reset' }
-  | { type: 'loadDocument'; doc: PitchDocument };
+  | { type: 'reset' };
 
 export function applyAction(
   doc: PitchDocument,
@@ -82,7 +80,5 @@ export function applyAction(
       return clearScenario(doc);
     case 'reset':
       return resetPitch(doc, data);
-    case 'loadDocument':
-      return documentIssues(action.doc, data) === null ? action.doc : doc;
   }
 }

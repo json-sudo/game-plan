@@ -9,9 +9,10 @@ export interface BenchPiece {
   team: Side;
   keeper?: boolean;
   name?: string;
+  order: number;
 }
 
-export type BenchChipProps = Omit<BenchPiece, 'id'> & {
+export type BenchChipProps = Omit<BenchPiece, 'id' | 'order'> & {
   onPointerDown?: (event: PointerEvent<HTMLButtonElement>) => void;
 };
 

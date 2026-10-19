@@ -19,14 +19,9 @@ export interface BenchProps {
   onChipPointerDown?: (id: string) => (event: PointerEvent<HTMLButtonElement>) => void;
 }
 
-function pieceNumber(piece: BenchPiece): number {
-  const digits = piece.label.match(/\d+/);
-  return digits ? Number(digits[0]) : Number.POSITIVE_INFINITY;
-}
-
 function compareBenchPieces(a: BenchPiece, b: BenchPiece): number {
   if (Boolean(a.keeper) !== Boolean(b.keeper)) return a.keeper ? -1 : 1;
-  if (pieceNumber(a) !== pieceNumber(b)) return pieceNumber(a) < pieceNumber(b) ? -1 : 1;
+  if (a.order !== b.order) return a.order - b.order;
   if (a.team !== b.team) return a.team === 'mine' ? -1 : 1;
   return 0;
 }

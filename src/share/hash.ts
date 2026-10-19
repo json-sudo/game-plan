@@ -1,6 +1,8 @@
 import { decodeShareHash, SHARE_PARAM, type DecodeResult } from './codec';
 
-export function readShareFromLocation(location: Location = window.location): DecodeResult | null {
+export function readShareFromLocation(
+  location: Pick<Location, 'hash'> = window.location,
+): DecodeResult | null {
   if (!location.hash.startsWith(`#${SHARE_PARAM}=`)) return null;
   return decodeShareHash(location.hash);
 }

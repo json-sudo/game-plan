@@ -13,6 +13,7 @@ import {
   type Player,
   type SquadSize,
 } from './document';
+import { GOALKEEPER_LABEL, pieceLabel } from './bench-pieces';
 import { reconcileRoles } from './role-actions';
 import { refreshScenario } from './scenario-actions';
 
@@ -26,20 +27,33 @@ function nextFreeId(team: Side, taken: ReadonlySet<string>): string {
   return benchPieceId(team, index);
 }
 
-function benched(player: Player): Player {
-  const { base: _base, role: _role, ...rest } = player;
-  return { ...rest, family: null };
+export function benchedPlayer(player: Player): Player {
+  return {
+    id: player.id,
+    team: player.team,
+    family: null,
+    slot: null,
+    isKeeper: false,
+    ...(player.customName ? { customName: player.customName } : {}),
+  };
 }
 
-function spareRoster(team: Side, previous: Player[], reserved: Player[], count: number): Player[] {
-  const reused = previous.filter(isSpare).slice(0, count).map(benched);
-  const taken = new Set([...reserved, ...reused].map((player) => player.id));
-  const created = Array.from({ length: count - reused.length }, (): Player => {
-    const id = nextFreeId(team, taken);
-    taken.add(id);
-    return { id, team, family: null, slot: null, isKeeper: false };
-  });
-  return [...reused, ...created];
+function slotHolders(formation: FormationDef, previous: Player[]): Array<Player | undefined> {
+  const free = new Set(previous);
+  const take = (match: (player: Player) => boolean) => {
+    const found = [...free].find(match);
+    if (found) free.delete(found);
+    return found;
+  };
+  const bySlot = formation.slots.map((slot) => take((player) => player.slot === slot.id));
+  const withKeeper = bySlot.map(
+    (holder, index) =>
+      holder ??
+      (formation.slots[index].family === 'GK' ? take((player) => player.isKeeper) : undefined),
+  );
+  return withKeeper.map(
+    (holder) => holder ?? take((player) => !player.isKeeper) ?? take(() => true),
+  );
 }
 
 function slotPlayers(
@@ -48,18 +62,21 @@ function slotPlayers(
   layout: TeamLayout,
   previous: Player[],
 ): Player[] {
-  const bySlot = new Map(previous.flatMap((p) => (p.slot ? [[p.slot, p] as const] : [])));
-  return formation.slots.map((slot) => {
-    const prior = bySlot.get(slot.id);
+  const holders = slotHolders(formation, previous);
+  const taken = new Set(previous.map((player) => player.id));
+  return formation.slots.map((slot, index) => {
+    const holder = holders[index];
+    const id = holder?.id ?? nextFreeId(team, taken);
+    taken.add(id);
     return {
-      id: `${team}-${slot.id}`,
+      id,
       team,
       family: slot.family,
       slot: slot.id,
       isKeeper: slot.family === 'GK',
       base: roundPoint(layout.get(slot.id)!),
-      ...(prior?.customName ? { customName: prior.customName } : {}),
-      ...(prior?.role ? { role: prior.role } : {}),
+      ...(holder?.customName ? { customName: holder.customName } : {}),
+      ...(holder?.slot === slot.id && holder.role ? { role: holder.role } : {}),
     };
   });
 }
@@ -73,12 +90,8 @@ function placeTeam(
 ): PitchDocument {
   const previous = playersOf(doc, team);
   const placed = slotPlayers(team, formation, layout, previous);
-  const spares = spareRoster(
-    team,
-    previous,
-    placed,
-    Math.max(0, doc.teams[team].squadSize - placed.length),
-  );
+  const placedIds = new Set(placed.map((player) => player.id));
+  const spares = previous.filter((player) => !placedIds.has(player.id)).map(benchedPlayer);
   return {
     ...doc,
     teams: {
@@ -143,9 +156,9 @@ export function applyMatchupChoice(
   return { ...placed, ball: BALL_START, scenario: null };
 }
 
-function blankTeam(doc: PitchDocument, team: Side): PitchDocument {
+export function blankTeam(doc: PitchDocument, team: Side): PitchDocument {
   const meta = doc.teams[team];
-  const pieces = spareRoster(team, [], [], meta.squadSize);
+  const pieces = playersOf(doc, team).map(benchedPlayer);
   return {
     ...doc,
     teams: { ...doc.teams, [team]: { ...meta, formationId: null, keeper: false, applied: null } },
@@ -164,10 +177,19 @@ export function resetPitch(doc: PitchDocument, data: DataSet): PitchDocument {
   }, cleared);
 }
 
-export function setSquadSize(doc: PitchDocument, team: Side, size: SquadSize): PitchDocument {
+export function isRemovable(player: Player): boolean {
+  return isSpare(player) && player.base === undefined;
+}
+
+export function setSquadSize(
+  doc: PitchDocument,
+  team: Side,
+  size: SquadSize,
+  kept: ReadonlySet<string> = new Set(),
+): PitchDocument {
   const players = playersOf(doc, team);
   const surplus = players.length - size;
-  if (surplus > 0) return shrinkSquad(doc, team, players, surplus, size);
+  if (surplus > 0) return shrinkSquad(doc, team, players, surplus, size, kept);
   const taken = new Set(players.map((player) => player.id));
   const added = Array.from({ length: -surplus }, (): Player => {
     const id = nextFreeId(team, taken);
@@ -183,8 +205,9 @@ function shrinkSquad(
   players: Player[],
   surplus: number,
   size: SquadSize,
+  kept: ReadonlySet<string>,
 ): PitchDocument {
-  const removable = players.filter((player) => isSpare(player) && player.base === undefined);
+  const removable = players.filter((player) => isRemovable(player) && !kept.has(player.id));
   if (removable.length < surplus) return doc;
   const dropped = new Set(removable.slice(-surplus));
   return withSquadSize(
@@ -215,7 +238,7 @@ export function setKeeper(
   data: DataSet,
 ): PitchDocument {
   const players = playersOf(doc, team);
-  const next = keeper ? promoteKeeper(players) : demoteKeepers(players);
+  const next = keeper ? promoteKeeper(doc, players, data) : demoteKeepers(players);
   const hasKeeper = next.some((player) => player.isKeeper);
   if (next === players && doc.teams[team].keeper === hasKeeper) return doc;
   const withMeta: PitchDocument = {
@@ -226,13 +249,14 @@ export function setKeeper(
   return reconcileRoles(withMeta, data);
 }
 
-function promoteKeeper(players: Player[]): Player[] {
+function promoteKeeper(doc: PitchDocument, players: Player[], data: DataSet): Player[] {
   if (players.some((player) => player.isKeeper)) return players;
-  const spares = players.filter(isSpare);
-  const choice = spares.find((player) => player.base === undefined) ?? spares[spares.length - 1];
+  const choice = players.find(
+    (player) => isSpare(player) && pieceLabel(doc, player, data) === GOALKEEPER_LABEL,
+  );
   if (!choice) return players;
   return players.map((player) =>
-    player === choice ? { ...player, family: 'GK', isKeeper: true } : player,
+    player === choice ? { ...player, family: GOALKEEPER_LABEL, isKeeper: true } : player,
   );
 }
 

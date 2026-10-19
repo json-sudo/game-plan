@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { FM26_DATA } from '../data/fm26';
 import { createExampleDocument } from './example';
-import { createInitialDocument, playersOf, type PitchDocument } from './document';
+import { createInitialDocument, playersOf } from './document';
 import { HISTORY_LIMIT } from './history';
 import { createPitchStore, initialUi } from './store';
+
+function exampleSlotId(team: string, slot: string): string {
+  const found = createExampleDocument().players.find((p) => p.team === team && p.slot === slot);
+  if (!found) throw new Error(`no example ${team} player at ${slot}`);
+  return found.id;
+}
+
+const MINE_ST = exampleSlotId('mine', 'ST');
 
 function blankStore() {
   return createPitchStore({ doc: createInitialDocument() });
@@ -31,11 +39,11 @@ describe('initial state', () => {
 describe('dispatch', () => {
   it('commits one history entry per user action', () => {
     const store = blankStore();
-    const before = store.getState().doc;
+    const before = store.getState().tactic;
     store.getState().dispatch({ type: 'renameTeam', team: 'mine', name: 'Reds' });
     const state = store.getState();
     expect(state.doc.teams.mine.name).toBe('Reds');
-    expect(state.history.past).toEqual([before]);
+    expect(state.history.past).toEqual([{ tactic: before, mode: 'openPitch' }]);
   });
 
   it('does not add history for an action that changes nothing', () => {
@@ -132,15 +140,15 @@ describe('undo and redo', () => {
     dispatch({ type: 'clearScenario' });
     expect(store.getState().history.past).toHaveLength(0);
     dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_3_3_dm_wide' });
-    const applied = store.getState().doc.players.find((player) => player.id === 'mine-ST')!.base;
-    dispatch({ type: 'movePlayer', playerId: 'mine-ST', point: { x: 1, y: 1 } });
+    const applied = store.getState().doc.players.find((player) => player.id === MINE_ST)!.base;
+    dispatch({ type: 'movePlayer', playerId: MINE_ST, point: { x: 1, y: 1 } });
     dispatch({ type: 'reset' });
-    expect(store.getState().doc.players.find((player) => player.id === 'mine-ST')!.base).toEqual(
+    expect(store.getState().doc.players.find((player) => player.id === MINE_ST)!.base).toEqual(
       applied,
     );
     expect(store.getState().doc.teams.mine.applied).toBe('formation');
     undo();
-    expect(store.getState().doc.players.find((player) => player.id === 'mine-ST')!.base).toEqual({
+    expect(store.getState().doc.players.find((player) => player.id === MINE_ST)!.base).toEqual({
       x: 1,
       y: 1,
     });
@@ -148,91 +156,28 @@ describe('undo and redo', () => {
 
   it('undoing a role change restores the old role', () => {
     const store = exampleStore();
-    const before = store.getState().doc.players.find((p) => p.id === 'mine-ST')!.role;
+    const before = store.getState().doc.players.find((p) => p.id === MINE_ST)!.role;
     const other = FM26_DATA.roles.find(
       (r) => r.possession === 'in' && r.families.includes('ST') && r.id !== before,
     )!;
-    store.getState().dispatch({ type: 'setRole', playerId: 'mine-ST', roleId: other.id });
-    expect(store.getState().doc.players.find((p) => p.id === 'mine-ST')!.role).toBe(other.id);
+    store.getState().dispatch({ type: 'setRole', playerId: MINE_ST, roleId: other.id });
+    expect(store.getState().doc.players.find((p) => p.id === MINE_ST)!.role).toBe(other.id);
     store.getState().undo();
-    expect(store.getState().doc.players.find((p) => p.id === 'mine-ST')!.role).toBe(before);
-  });
-
-  it('loading a document is undoable', () => {
-    const store = blankStore();
-    const loaded: PitchDocument = createExampleDocument();
-    store.getState().dispatch({ type: 'loadDocument', doc: loaded });
-    expect(store.getState().doc).toBe(loaded);
-    store.getState().undo();
-    expect(store.getState().doc).toEqual(createInitialDocument());
+    expect(store.getState().doc.players.find((p) => p.id === MINE_ST)!.role).toBe(before);
   });
 });
 
 describe('ui state', () => {
   it('patchUi changes only the ui and never touches history', () => {
     const store = exampleStore();
-    store.getState().patchUi({ phase: 'runs', selectedPlayerId: 'mine-ST', arrows: 'selected' });
+    store.getState().patchUi({ phase: 'runs', selectedPlayerId: MINE_ST, arrows: 'selected' });
     const state = store.getState();
     expect(state.ui).toMatchObject({
       phase: 'runs',
-      selectedPlayerId: 'mine-ST',
+      selectedPlayerId: MINE_ST,
       arrows: 'selected',
     });
     expect(state.history.past).toHaveLength(0);
-  });
-
-  it('entering FM mode fills default roles, leaving it keeps them', () => {
-    const store = blankStore();
-    store
-      .getState()
-      .dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_3_3_dm_wide' });
-    expect(store.getState().doc.players.some((p) => p.role !== undefined)).toBe(false);
-    store.getState().setMode('fm');
-    expect(store.getState().ui.mode).toBe('fm');
-    expect(
-      playersOf(store.getState().doc, 'mine')
-        .filter((p) => p.base)
-        .every((p) => p.role !== undefined),
-    ).toBe(true);
-    store.getState().setMode('openPitch');
-    expect(store.getState().ui.mode).toBe('openPitch');
-    expect(playersOf(store.getState().doc, 'mine').some((p) => p.role !== undefined)).toBe(true);
-  });
-
-  it('fills default roles on the document and on history entries', () => {
-    const store = blankStore();
-    store
-      .getState()
-      .dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_3_3_dm_wide' });
-    store.getState().setMode('fm');
-    const placed = (doc: PitchDocument) =>
-      playersOf(doc, 'mine')
-        .filter((player) => player.base)
-        .every((player) => player.role !== undefined);
-    const state = store.getState();
-    expect(placed(state.doc)).toBe(true);
-    expect(state.history.past).toHaveLength(1);
-    expect(placed(state.history.past[0]!)).toBe(true);
-  });
-
-  it('fills roles on entering fm without its own undo step', () => {
-    const store = blankStore();
-    const { dispatch } = store.getState();
-    dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_3_3_dm_wide' });
-    dispatch({ type: 'renameTeam', team: 'mine', name: 'Reds' });
-    store.getState().setMode('fm');
-    expect(store.getState().history.past).toHaveLength(2);
-    store.getState().undo();
-    const state = store.getState();
-    expect(state.ui.mode).toBe('fm');
-    expect(state.doc.teams.mine.name).toBe('My team');
-    expect(
-      playersOf(state.doc, 'mine')
-        .filter((p) => p.base)
-        .every((p) => p.role !== undefined),
-    ).toBe(true);
-    store.getState().redo();
-    expect(store.getState().doc.teams.mine.name).toBe('Reds');
   });
 
   it('setMode to the current mode does nothing', () => {
@@ -248,7 +193,7 @@ describe('drag', () => {
     const store = exampleStore();
     const start = store.getState().doc;
     const { beginDrag, updateDrag, endDrag } = store.getState();
-    beginDrag({ kind: 'player', id: 'mine-ST' }, { x: 30, y: 20 });
+    beginDrag({ kind: 'player', id: MINE_ST }, { x: 30, y: 20 });
     updateDrag({ x: 31, y: 21 });
     updateDrag({ x: 32, y: 22 });
     expect(store.getState().ui.drag?.point).toEqual({ x: 32, y: 22 });
@@ -257,7 +202,7 @@ describe('drag', () => {
     endDrag();
     const state = store.getState();
     expect(state.ui.drag).toBeNull();
-    expect(state.doc.players.find((p) => p.id === 'mine-ST')!.base).toEqual({ x: 32, y: 22 });
+    expect(state.doc.players.find((p) => p.id === MINE_ST)!.base).toEqual({ x: 32, y: 22 });
     expect(state.history.past).toHaveLength(1);
   });
 
@@ -271,7 +216,7 @@ describe('drag', () => {
 
   it('cancelDrag discards the live position without a commit', () => {
     const store = exampleStore();
-    store.getState().beginDrag({ kind: 'player', id: 'mine-ST' }, { x: 1, y: 1 });
+    store.getState().beginDrag({ kind: 'player', id: MINE_ST }, { x: 1, y: 1 });
     store.getState().cancelDrag();
     expect(store.getState().ui.drag).toBeNull();
     expect(store.getState().history.past).toHaveLength(0);

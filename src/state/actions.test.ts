@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FM26_DATA } from '../data/fm26';
-import type { Point } from '../data/types';
+import type { Point, Side } from '../data/types';
 import { PITCH_W, layoutFormation, layoutMatchup, tapZone as engineTapZone } from '../engine';
 import { applyAction, type Action } from './actions';
 import {
@@ -34,6 +34,15 @@ function player(doc: PitchDocument, id: string): Player {
   return found;
 }
 
+function atSlot(doc: PitchDocument, team: Side, slot: string): Player {
+  const found = playersOf(doc, team).find((candidate) => candidate.slot === slot);
+  if (!found) throw new Error(`no ${team} player at ${slot}`);
+  return found;
+}
+
+const MINE_ST = atSlot(matchup(), 'mine', 'ST').id;
+const OPPONENT_ST = atSlot(matchup(), 'opponent', 'ST').id;
+
 function round(point: Point): Point {
   return { x: Math.round(point.x * 100) / 100, y: Math.round(point.y * 100) / 100 };
 }
@@ -50,11 +59,11 @@ describe('applyFormation', () => {
     const mine = playersOf(doc, 'mine');
     expect(mine).toHaveLength(11);
     for (const slot of formation.slots) {
-      const placed = player(doc, `mine-${slot.id}`);
+      const placed = atSlot(doc, 'mine', slot.id);
       expect(placed).toMatchObject({ slot: slot.id, family: slot.family, team: 'mine' });
       expect(placed.base).toEqual(round(layout.get(slot.id)!));
     }
-    expect(player(doc, 'mine-GK').isKeeper).toBe(true);
+    expect(atSlot(doc, 'mine', 'GK').isKeeper).toBe(true);
     expect(doc.teams.mine).toMatchObject({ formationId: MINE, keeper: true, applied: 'formation' });
     expect(playersOf(doc, 'opponent')).toEqual(playersOf(createInitialDocument(), 'opponent'));
     expect(documentIssues(doc, FM26_DATA)).toBeNull();
@@ -68,8 +77,8 @@ describe('applyFormation', () => {
     });
     const formation = FM26_DATA.formations.find((f) => f.id === OPPONENT)!;
     const layout = layoutFormation(formation, 'opponent');
-    expect(player(doc, 'opponent-GK').base).toEqual(round(layout.get('GK')!));
-    expect(player(doc, 'opponent-GK').base!.y).toBeLessThan(50);
+    expect(atSlot(doc, 'opponent', 'GK').base).toEqual(round(layout.get('GK')!));
+    expect(atSlot(doc, 'opponent', 'GK').base!.y).toBeLessThan(50);
   });
 
   it('ignores an unknown formation id and returns the same document', () => {
@@ -83,10 +92,10 @@ describe('applyFormation', () => {
     const named = run(
       createInitialDocument(),
       { type: 'applyFormation', team: 'mine', formationId: MINE },
-      { type: 'setPieceName', playerId: 'mine-ST', name: 'Haaland' },
+      { type: 'setPieceName', playerId: MINE_ST, name: 'Haaland' },
       { type: 'applyFormation', team: 'mine', formationId: OPPONENT },
     );
-    expect(player(named, 'mine-ST').customName).toBe('Haaland');
+    expect(player(named, MINE_ST).customName).toBe('Haaland');
   });
 
   it('returns spare pieces to the bench up to the squad size', () => {
@@ -108,9 +117,9 @@ describe('applyFormation', () => {
       { type: 'applyFormation', team: 'mine', formationId: MINE },
       { type: 'fillDefaultRoles' },
     );
-    const before = player(doc, 'mine-ST').role;
+    const before = player(doc, MINE_ST).role;
     const again = applyAction(doc, { type: 'applyFormation', team: 'mine', formationId: OPPONENT });
-    expect(player(again, 'mine-ST').role).toBe(before);
+    expect(player(again, MINE_ST).role).toBe(before);
     expect(documentIssues(again, FM26_DATA)).toBeNull();
   });
 });
@@ -125,7 +134,7 @@ describe('applyMatchup', () => {
     const layouts = layoutMatchup('mine', formations);
     for (const team of ['mine', 'opponent'] as const) {
       for (const [slotId, point] of layouts[team]) {
-        expect(player(doc, `${team}-${slotId}`).base).toEqual(round(point));
+        expect(atSlot(doc, team, slotId).base).toEqual(round(point));
       }
     }
     expect(doc.teams.mine.applied).toBe('matchup');
@@ -153,7 +162,7 @@ describe('applyMatchup', () => {
       opponent: FM26_DATA.formations.find((f) => f.id === OPPONENT)!,
     };
     const layouts = layoutMatchup('opponent', formations);
-    expect(player(doc, 'opponent-ST').base).toEqual(round(layouts.opponent.get('ST')!));
+    expect(atSlot(doc, 'opponent', 'ST').base).toEqual(round(layouts.opponent.get('ST')!));
   });
 });
 
@@ -170,8 +179,8 @@ describe('setAttacker', () => {
     expect(flipped.attacker).toBe('opponent');
     expect(player(flipped, flipped.scenario!.carrierId).team).toBe('opponent');
     const roleOf = (id: string) => FM26_DATA.roles.find((r) => r.id === player(flipped, id).role)!;
-    expect(roleOf('mine-ST').possession).toBe('out');
-    expect(roleOf('opponent-ST').possession).toBe('in');
+    expect(roleOf(MINE_ST).possession).toBe('out');
+    expect(roleOf(OPPONENT_ST).possession).toBe('in');
     expect(documentIssues(flipped, FM26_DATA)).toBeNull();
   });
 });
@@ -253,20 +262,18 @@ describe('roles and names', () => {
     )!;
     const gkRole = FM26_DATA.roles.find((r) => r.possession === 'in' && r.families.includes('GK'))!;
     expect(
-      player(run(doc, { type: 'setRole', playerId: 'mine-ST', roleId: inRole.id }), 'mine-ST').role,
+      player(run(doc, { type: 'setRole', playerId: MINE_ST, roleId: inRole.id }), MINE_ST).role,
     ).toBe(inRole.id);
-    expect(applyAction(doc, { type: 'setRole', playerId: 'mine-ST', roleId: outRole.id })).toBe(
-      doc,
-    );
-    expect(applyAction(doc, { type: 'setRole', playerId: 'mine-ST', roleId: gkRole.id })).toBe(doc);
-    expect(applyAction(doc, { type: 'setRole', playerId: 'mine-ST', roleId: 'nope' })).toBe(doc);
+    expect(applyAction(doc, { type: 'setRole', playerId: MINE_ST, roleId: outRole.id })).toBe(doc);
+    expect(applyAction(doc, { type: 'setRole', playerId: MINE_ST, roleId: gkRole.id })).toBe(doc);
+    expect(applyAction(doc, { type: 'setRole', playerId: MINE_ST, roleId: 'nope' })).toBe(doc);
     expect(applyAction(doc, { type: 'setRole', playerId: 'ghost', roleId: inRole.id })).toBe(doc);
   });
 
   it('clears a role with null', () => {
     const doc = run(matchup(), { type: 'fillDefaultRoles' });
-    const cleared = applyAction(doc, { type: 'setRole', playerId: 'mine-ST', roleId: null });
-    expect(player(cleared, 'mine-ST').role).toBeUndefined();
+    const cleared = applyAction(doc, { type: 'setRole', playerId: MINE_ST, roleId: null });
+    expect(player(cleared, MINE_ST).role).toBeUndefined();
   });
 
   it('fills default roles only where missing', () => {
@@ -279,16 +286,16 @@ describe('roles and names', () => {
 
   it('sets, trims, caps and clears a custom piece name', () => {
     const doc = matchup();
-    const named = applyAction(doc, { type: 'setPieceName', playerId: 'mine-ST', name: '  Ada  ' });
-    expect(player(named, 'mine-ST').customName).toBe('Ada');
+    const named = applyAction(doc, { type: 'setPieceName', playerId: MINE_ST, name: '  Ada  ' });
+    expect(player(named, MINE_ST).customName).toBe('Ada');
     const capped = applyAction(doc, {
       type: 'setPieceName',
-      playerId: 'mine-ST',
+      playerId: MINE_ST,
       name: 'y'.repeat(30),
     });
-    expect(player(capped, 'mine-ST').customName).toHaveLength(24);
-    const cleared = applyAction(named, { type: 'setPieceName', playerId: 'mine-ST', name: '  ' });
-    expect(player(cleared, 'mine-ST')).not.toHaveProperty('customName');
+    expect(player(capped, MINE_ST).customName).toHaveLength(24);
+    const cleared = applyAction(named, { type: 'setPieceName', playerId: MINE_ST, name: '  ' });
+    expect(player(cleared, MINE_ST)).not.toHaveProperty('customName');
     expect(applyAction(doc, { type: 'setPieceName', playerId: 'ghost', name: 'x' })).toBe(doc);
   });
 });
@@ -298,22 +305,22 @@ describe('moving pieces', () => {
     const doc = matchup();
     const moved = applyAction(doc, {
       type: 'movePlayer',
-      playerId: 'mine-ST',
+      playerId: MINE_ST,
       point: { x: 20.12345, y: 30.98765 },
     });
-    expect(player(moved, 'mine-ST').base).toEqual({ x: 20.12, y: 30.99 });
+    expect(player(moved, MINE_ST).base).toEqual({ x: 20.12, y: 30.99 });
     const outside = applyAction(doc, {
       type: 'movePlayer',
-      playerId: 'mine-ST',
+      playerId: MINE_ST,
       point: { x: -50, y: 500 },
     });
-    expect(player(outside, 'mine-ST').base).toEqual({ x: 0, y: 100 });
+    expect(player(outside, MINE_ST).base).toEqual({ x: 0, y: 100 });
     const right = applyAction(doc, {
       type: 'movePlayer',
-      playerId: 'mine-ST',
+      playerId: MINE_ST,
       point: { x: 500, y: 50 },
     });
-    expect(player(right, 'mine-ST').base!.x).toBe(PITCH_W);
+    expect(player(right, MINE_ST).base!.x).toBe(PITCH_W);
   });
 
   it('places a benched piece and benches a placed one', () => {
@@ -396,7 +403,7 @@ describe('scenario actions', () => {
     )!;
     const changed = applyAction(doc, { type: 'setCarrier', playerId: other.id });
     expect(changed.scenario!.carrierId).toBe(other.id);
-    expect(applyAction(doc, { type: 'setCarrier', playerId: 'opponent-ST' })).toBe(doc);
+    expect(applyAction(doc, { type: 'setCarrier', playerId: OPPONENT_ST })).toBe(doc);
   });
 
   it('pass moves the ball onto the receiver', () => {
@@ -442,7 +449,7 @@ describe('reset', () => {
     const base = matchup();
     const dirty = run(
       base,
-      { type: 'movePlayer', playerId: 'mine-ST', point: { x: 5, y: 5 } },
+      { type: 'movePlayer', playerId: MINE_ST, point: { x: 5, y: 5 } },
       { type: 'tapZone', zone: 'L-F' },
     );
     const reset = applyAction(dirty, { type: 'reset' });
@@ -459,7 +466,7 @@ describe('reset', () => {
     });
     const dirty = applyAction(base, {
       type: 'movePlayer',
-      playerId: 'mine-ST',
+      playerId: MINE_ST,
       point: { x: 5, y: 5 },
     });
     expect(applyAction(dirty, { type: 'reset' }).players).toEqual(base.players);
@@ -477,21 +484,6 @@ describe('reset', () => {
   });
 });
 
-describe('loadDocument', () => {
-  it('replaces the document with a valid one', () => {
-    const incoming = matchup();
-    expect(applyAction(createInitialDocument(), { type: 'loadDocument', doc: incoming })).toBe(
-      incoming,
-    );
-  });
-
-  it('refuses an invalid document', () => {
-    const doc = createInitialDocument();
-    const broken: PitchDocument = { ...matchup(), scenario: { zone: 'C-F', carrierId: 'ghost' } };
-    expect(applyAction(doc, { type: 'loadDocument', doc: broken })).toBe(doc);
-  });
-});
-
 describe('purity', () => {
   it('never mutates the input document', () => {
     const doc = matchup();
@@ -499,7 +491,7 @@ describe('purity', () => {
     run(
       doc,
       { type: 'tapZone', zone: 'R-F' },
-      { type: 'movePlayer', playerId: 'mine-ST', point: { x: 1, y: 1 } },
+      { type: 'movePlayer', playerId: MINE_ST, point: { x: 1, y: 1 } },
       { type: 'setAttacker', attacker: 'opponent' },
       { type: 'fillDefaultRoles' },
       { type: 'reset' },
