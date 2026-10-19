@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FM26_DATA } from '../data/fm26';
 import { applyAction } from './actions';
 import { benchPieces, DEFAULT_BENCH_FORMATIONS, pieceLabel } from './bench-pieces';
-import { createInitialDocument, playersOf, type PitchDocument } from './document';
+import { createInitialDocument, keeperOf, playersOf, type PitchDocument } from './document';
 import { createExampleDocument, EXAMPLE_FORMATIONS } from './example';
 import { createInitialTactic } from './tactic';
 
@@ -109,12 +109,18 @@ describe('pieceLabel', () => {
     expect(labelOf(place(doc, extra.id), extra.id)).toBe('s2');
   });
 
-  it('does not make a placed GK piece a keeper', () => {
+  it('leaves a placed GK piece a non-keeper until the keeper is switched on', () => {
     const empty = createInitialDocument();
     const first = playersOf(empty, 'mine')[0];
     const placed = place(empty, first.id);
     expect(labelOf(placed, first.id)).toBe('GK');
     expect(placed.players.find((player) => player.id === first.id)!.isKeeper).toBe(false);
+    const withKeeper = applyAction(
+      placed,
+      { type: 'setKeeper', team: 'mine', keeper: true },
+      FM26_DATA,
+    );
+    expect(keeperOf(withKeeper, 'mine')?.id).toBe(first.id);
   });
 
   it('shows the formation family for pieces placed by a formation', () => {
@@ -123,4 +129,68 @@ describe('pieceLabel', () => {
       doc.players.map((player) => player.family),
     );
   });
+});
+
+describe('switching the keeper on', () => {
+  const keeperOn = (doc: PitchDocument) =>
+    applyAction(doc, { type: 'setKeeper', team: 'mine', keeper: true }, FM26_DATA);
+  const placeFirst = (doc: PitchDocument, count: number) =>
+    playersOf(doc, 'mine')
+      .slice(0, count)
+      .reduce(
+        (current, player, index) =>
+          applyAction(
+            current,
+            { type: 'movePlayer', playerId: player.id, point: { x: 10 + index * 5, y: 50 } },
+            FM26_DATA,
+          ),
+        doc,
+      );
+  const goalkeeperLabelled = (doc: PitchDocument) =>
+    playersOf(doc, 'mine')
+      .filter((player) => pieceLabel(doc, player, FM26_DATA) === 'GK')
+      .map((player) => player.id);
+  const expectSingleKeeper = (doc: PitchDocument, keeperId: string) => {
+    expect(keeperOf(doc, 'mine')?.id).toBe(keeperId);
+    expect(playersOf(doc, 'mine').filter((player) => player.isKeeper)).toHaveLength(1);
+    expect(goalkeeperLabelled(doc)).toEqual([keeperId]);
+  };
+
+  it('promotes the GK-labelled piece while it waits on the bench', () => {
+    const doc = placeFirst(createInitialDocument(), 0);
+    const [labelled] = goalkeeperLabelled(doc);
+    const next = keeperOn(doc);
+    expectSingleKeeper(next, labelled);
+    expect(next.players.find((player) => player.id === labelled)!.base).toBeUndefined();
+  });
+
+  it('promotes the GK-labelled piece once it is placed', () => {
+    const doc = placeFirst(createInitialDocument(), 1);
+    const [labelled] = goalkeeperLabelled(doc);
+    const next = keeperOn(doc);
+    expectSingleKeeper(next, labelled);
+    expect(next.players.find((player) => player.id === labelled)!.base).toBeDefined();
+  });
+
+  it.each([20, 26] as const)(
+    'promotes the GK-labelled piece in a squad of %i whether it is placed or benched',
+    (size) => {
+      const squad = applyAction(
+        createInitialDocument(),
+        { type: 'setSquadSize', team: 'mine', size },
+        FM26_DATA,
+      );
+      [0, 11].forEach((count) => {
+        const doc = placeFirst(squad, count);
+        const [labelled] = goalkeeperLabelled(doc);
+        const next = keeperOn(doc);
+        expectSingleKeeper(next, labelled);
+        expect(
+          playersOf(next, 'mine')
+            .slice(11)
+            .map((player) => pieceLabel(next, player, FM26_DATA)),
+        ).toEqual(Array.from({ length: size - 11 }, (_, i) => `s${i + 1}`));
+      });
+    },
+  );
 });

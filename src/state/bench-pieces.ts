@@ -1,8 +1,11 @@
-import type { DataSet, FormationDef, Side } from '../data/types';
-import { EXAMPLE_FORMATIONS } from './example';
+import type { DataSet, Family, FormationDef, Side } from '../data/types';
 import { formationOf, playersOf, SIDES, type PitchDocument, type Player } from './document';
 
-export const DEFAULT_BENCH_FORMATIONS: Record<Side, string> = EXAMPLE_FORMATIONS;
+export const DEFAULT_BENCH_FORMATIONS: Record<Side, string> = {
+  mine: '4_3_3_dm_wide',
+  opponent: '4_2_3_1_dm_wide',
+};
+export const GOALKEEPER_LABEL: Family = 'GK';
 export const SPARE_LABEL_PREFIX = 's';
 
 export interface BenchEntry {

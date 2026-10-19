@@ -13,6 +13,7 @@ import {
   type Player,
   type SquadSize,
 } from './document';
+import { GOALKEEPER_LABEL, pieceLabel } from './bench-pieces';
 import { reconcileRoles } from './role-actions';
 import { refreshScenario } from './scenario-actions';
 
@@ -237,7 +238,7 @@ export function setKeeper(
   data: DataSet,
 ): PitchDocument {
   const players = playersOf(doc, team);
-  const next = keeper ? promoteKeeper(players) : demoteKeepers(players);
+  const next = keeper ? promoteKeeper(doc, players, data) : demoteKeepers(players);
   const hasKeeper = next.some((player) => player.isKeeper);
   if (next === players && doc.teams[team].keeper === hasKeeper) return doc;
   const withMeta: PitchDocument = {
@@ -248,13 +249,14 @@ export function setKeeper(
   return reconcileRoles(withMeta, data);
 }
 
-function promoteKeeper(players: Player[]): Player[] {
+function promoteKeeper(doc: PitchDocument, players: Player[], data: DataSet): Player[] {
   if (players.some((player) => player.isKeeper)) return players;
-  const spares = players.filter(isSpare);
-  const choice = spares.find((player) => player.base === undefined) ?? spares[spares.length - 1];
+  const choice = players.find(
+    (player) => isSpare(player) && pieceLabel(doc, player, data) === GOALKEEPER_LABEL,
+  );
   if (!choice) return players;
   return players.map((player) =>
-    player === choice ? { ...player, family: 'GK', isKeeper: true } : player,
+    player === choice ? { ...player, family: GOALKEEPER_LABEL, isKeeper: true } : player,
   );
 }
 

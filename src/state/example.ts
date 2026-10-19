@@ -2,12 +2,10 @@ import { FM26_DATA } from '../data/fm26';
 import type { DataSet, Side } from '../data/types';
 import type { ZoneId } from '../data/zones';
 import { applyAction, type Action } from './actions';
+import { DEFAULT_BENCH_FORMATIONS } from './bench-pieces';
 import { createInitialDocument, type PitchDocument } from './document';
 
-export const EXAMPLE_FORMATIONS: Record<Side, string> = {
-  mine: '4_3_3_dm_wide',
-  opponent: '4_2_3_1_dm_wide',
-};
+export const EXAMPLE_FORMATIONS: Record<Side, string> = DEFAULT_BENCH_FORMATIONS;
 export const EXAMPLE_ZONE: ZoneId = 'R-F';
 
 const EXAMPLE_ACTIONS: readonly Action[] = [
