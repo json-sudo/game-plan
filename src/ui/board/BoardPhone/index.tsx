@@ -2,13 +2,12 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useStore, type StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
 import { ballAtopPosition, MOTION_DURATIONS_MS, PHASES, zoneOf, type Phase } from '../../../engine';
-import { benchPieces } from '../../../state/bench-pieces';
+import { benchPieces, pieceLabel } from '../../../state/bench-pieces';
 import { activeRoleOf } from '../../../state/context';
 import {
   BALL_START,
   playerSide,
   placedPlayers,
-  playerLabel,
   type PitchDocument,
   type Player,
 } from '../../../state/document';
@@ -182,7 +181,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
                 scale={pieceScale}
                 team={player.team}
                 keeper={player.isKeeper}
-                label={playerLabel(player)}
+                label={pieceLabel(doc, player, FM26_DATA)}
                 side={playerSide(player)}
                 role={fm ? roleLabel(doc, player) : undefined}
                 showRole={fm && selected}
@@ -290,7 +289,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
                 <ZoneMap
                   phone
                   value={doc.scenario?.zone ?? null}
-                  carrier={carrier ? playerLabel(carrier) : undefined}
+                  carrier={carrier ? pieceLabel(doc, carrier, FM26_DATA) : undefined}
                   attackerName={doc.teams[doc.attacker].name}
                   onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
                 />

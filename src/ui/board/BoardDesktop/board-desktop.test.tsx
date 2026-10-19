@@ -7,10 +7,10 @@ import { ballAtopPosition } from '../../../engine';
 import {
   createInitialDocument,
   placedPlayers,
-  playerLabel,
   playerSide,
   type Player,
 } from '../../../state/document';
+import { pieceLabel } from '../../../state/bench-pieces';
 import { createExampleDocument, EXAMPLE_FORMATIONS } from '../../../state/example';
 import { selectPhasePositions } from '../../../state/selectors';
 import { createPitchStore, type PitchStore } from '../../../state/store';
@@ -39,6 +39,10 @@ function exampleSlotId(team: string, slot: string): string {
 const MINE_AMCL = exampleSlotId('mine', 'AMCL');
 const MINE_ST = exampleSlotId('mine', 'ST');
 const OPPONENT_AMC = exampleSlotId('opponent', 'AMC');
+
+function playerLabel(player: Player): string {
+  return pieceLabel(createExampleDocument(), player, FM26_DATA);
+}
 
 function labelWithSide(player: Player): string {
   const side = playerSide(player);

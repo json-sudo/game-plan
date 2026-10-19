@@ -18,13 +18,12 @@ import {
   zoneOf,
   type Phase,
 } from '../../../engine';
-import { benchPieces } from '../../../state/bench-pieces';
+import { benchPieces, pieceLabel } from '../../../state/bench-pieces';
 import { activeRoleOf, phasePlayersOf } from '../../../state/context';
 import {
   BALL_START,
   playerSide,
   placedPlayers,
-  playerLabel,
   possessionOf,
   type PitchDocument,
   type Player,
@@ -416,12 +415,14 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
                     scale={pieceScale}
                     team={player.team}
                     keeper={player.isKeeper}
-                    label={playerLabel(player)}
+                    label={pieceLabel(doc, player, FM26_DATA)}
                     side={playerSide(player)}
                     role={role}
                     showRole={Boolean(role) && (metrics.labels === 'full' || selected)}
                     selected={selected}
-                    title={role ? TOKEN_TOOLTIP(playerLabel(player), role) : undefined}
+                    title={
+                      role ? TOKEN_TOOLTIP(pieceLabel(doc, player, FM26_DATA), role) : undefined
+                    }
                     dragging={dragging}
                     onPointerDown={(event) => {
                       openToken.current = event.currentTarget;
@@ -455,7 +456,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
             <Instrument>
               <ZoneMap
                 value={doc.scenario?.zone ?? null}
-                carrier={carrier ? playerLabel(carrier) : undefined}
+                carrier={carrier ? pieceLabel(doc, carrier, FM26_DATA) : undefined}
                 attackerName={doc.teams[doc.attacker].name}
                 onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
               />
@@ -501,7 +502,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
           style={{ left: pickerPlace.left, top: pickerPlace.top }}
         >
           <RolePicker
-            slotLabel={playerLabel(picked)}
+            slotLabel={pieceLabel(doc, picked, FM26_DATA)}
             side={playerSide(picked)}
             phase={possessionOf(doc, picked.team) === 'in' ? 'IP' : 'OOP'}
             team={picked.team}

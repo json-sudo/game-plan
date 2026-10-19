@@ -1,6 +1,6 @@
 import type { DataSet, FormationDef, Side } from '../data/types';
 import { EXAMPLE_FORMATIONS } from './example';
-import { formationOf, playerLabel, playersOf, SIDES, type PitchDocument } from './document';
+import { formationOf, playersOf, SIDES, type PitchDocument, type Player } from './document';
 
 export const DEFAULT_BENCH_FORMATIONS: Record<Side, string> = EXAMPLE_FORMATIONS;
 export const SPARE_LABEL_PREFIX = 's';
@@ -28,23 +28,28 @@ function rosterLabel(formation: FormationDef | null, index: number): string {
     : `${SPARE_LABEL_PREFIX}${index - slots.length + 1}`;
 }
 
+export function pieceLabel(doc: PitchDocument, player: Player, data: DataSet): string {
+  const index = playersOf(doc, player.team).findIndex((member) => member.id === player.id);
+  return (
+    player.family ?? player.slot ?? rosterLabel(labellingFormation(doc, player.team, data), index)
+  );
+}
+
 export function benchPieces(doc: PitchDocument, data: DataSet): BenchEntry[] {
-  return SIDES.flatMap((team) => {
-    const formation = labellingFormation(doc, team, data);
-    return playersOf(doc, team).flatMap((player, index) =>
+  return SIDES.flatMap((team) =>
+    playersOf(doc, team).flatMap((player, index) =>
       player.base
         ? []
         : [
             {
               id: player.id,
-              label:
-                player.family || player.slot ? playerLabel(player) : rosterLabel(formation, index),
+              label: pieceLabel(doc, player, data),
               team,
               keeper: player.isKeeper,
               name: player.customName,
               order: index,
             },
           ],
-    );
-  });
+    ),
+  );
 }

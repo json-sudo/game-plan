@@ -11,7 +11,8 @@ import { encodeShareHash } from '../src/share';
 import { applyTacticAction } from '../src/state/tactic-actions';
 import { createExampleTactic } from '../src/state/tactic';
 import { selectPhasePositions } from '../src/state/selectors';
-import { playerLabel, playerSide } from '../src/state/document';
+import { pieceLabel } from '../src/state/bench-pieces';
+import { playerSide } from '../src/state/document';
 import { TOKEN_TEAM_LABELS, tokenSideLabel } from '../src/ui/copy';
 
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -42,7 +43,12 @@ function sideLabel(player: Player): string | undefined {
 function tokenName(doc: PitchDocument, player: Player): string {
   const roleId = activeRoleOf(doc, player, FM26_DATA);
   const role = FM26_DATA.roles.find((item) => item.id === roleId)?.name;
-  return [playerLabel(player), sideLabel(player), role, TOKEN_TEAM_LABELS[player.team]]
+  return [
+    pieceLabel(doc, player, FM26_DATA),
+    sideLabel(player),
+    role,
+    TOKEN_TEAM_LABELS[player.team],
+  ]
     .filter(Boolean)
     .join(', ');
 }

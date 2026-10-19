@@ -1,5 +1,7 @@
 import { useStore, type StoreApi } from 'zustand';
-import { placedPlayers, playerLabel, type PitchDocument } from '../../../state/document';
+import { FM26_DATA } from '../../../data/fm26';
+import { pieceLabel } from '../../../state/bench-pieces';
+import { placedPlayers, type PitchDocument } from '../../../state/document';
 import type { PitchStore } from '../../../state/store';
 import {
   SETUP_ROLES,
@@ -47,10 +49,10 @@ function rolesStep(
           if (!player.slot || options.length === 0) return null;
           return (
             <label key={player.id} className={styles['role-choice']}>
-              <span>{playerLabel(player)}</span>
+              <span>{pieceLabel(doc, player, FM26_DATA)}</span>
               <select
                 aria-label={setupRoleChoiceLabel(
-                  playerLabel(player),
+                  pieceLabel(doc, player, FM26_DATA),
                   TOKEN_TEAM_LABELS[player.team],
                 )}
                 value={player.role ?? ''}
