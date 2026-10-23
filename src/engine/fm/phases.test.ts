@@ -152,7 +152,7 @@ describe('computePhases', () => {
     const shift = FM26_DATA.lineShift['C-F'].dy;
     const others = players.filter((p) => p.team === 'opponent' && p.id !== 'opponent:DCL');
     for (const keeper of others.filter((p) => p.isKeeper)) {
-      expect(targets.get(keeper.id)).toEqual(keeper.base);
+      expect(targets.get(keeper.id)).toEqual(result.positions.shape.get(keeper.id));
     }
     for (const player of others.filter((p) => !p.isKeeper)) {
       const shape = result.positions.shape.get(player.id)!;

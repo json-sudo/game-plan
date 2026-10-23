@@ -16,6 +16,7 @@ export interface SpacingToken {
 
 export interface SpacingOptions {
   margin?: number;
+  minDistance?: (a: string, b: string) => number;
 }
 
 function mobilityOf(token: SpacingToken): number {
@@ -32,7 +33,7 @@ export function enforceSpacing(
   tokens: readonly SpacingToken[],
   options: SpacingOptions = {},
 ): Map<string, Point> {
-  const { margin = DEFAULT_MARGIN } = options;
+  const { margin = DEFAULT_MARGIN, minDistance = () => MIN_TOKEN_SPACING } = options;
   const points = tokens.map((token) => ({ ...token.point }));
   const mobility = tokens.map(mobilityOf);
   const place = (index: number, x: number, y: number) => {
@@ -51,9 +52,10 @@ export function enforceSpacing(
         const dx = points[i].x - points[j].x;
         const dy = points[i].y - points[j].y;
         const distance = Math.hypot(dx, dy);
-        if (distance >= MIN_TOKEN_SPACING || total === 0) continue;
+        const need = minDistance(tokens[i].id, tokens[j].id);
+        if (distance >= need || total === 0) continue;
         const [ux, uy] = distance > 0 ? [dx / distance, dy / distance] : [0, 1];
-        const push = MIN_TOKEN_SPACING + CLEARANCE - distance;
+        const push = need + CLEARANCE - distance;
         place(
           i,
           points[i].x + ux * push * (mobility[i] / total),

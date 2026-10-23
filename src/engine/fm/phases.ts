@@ -70,14 +70,14 @@ export function computePhases(input: PhaseInput): PhaseResult {
   const { attacker, players, ball, carrierId, tables, grid = ZONE_GRID } = input;
   const zone = zoneOf(ball, attacker, grid);
   const fixedIds = new Set(players.filter((player) => player.isKeeper).map((player) => player.id));
-  const shape = computeZoneShape({
+  const { positions: shape } = computeZoneShape({
     attacker,
     players,
     ball,
     carrierId,
     zone,
     grid,
-    shapeLineShift: tables.shapeLineShift,
+    movement: tables.movement,
   });
   const goals = new Map<string, Point>();
   for (const player of players) {

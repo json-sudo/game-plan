@@ -47,4 +47,5 @@ export {
 } from './layout/formations';
 export type { TeamLayout } from './layout/formations';
 export { MIN_TOKEN_SPACING, enforceSpacing, minSpacingOf } from './layout/spacing';
-export { computeZoneShape, zoneShapeShift } from './fm/shape';
+export { SHAPE_MARGIN, computeZoneShape } from './fm/shape';
+export type { ShapeInput, ZoneShape } from './fm/shape';
