@@ -22,7 +22,7 @@ import {
 } from '../../../state/document';
 import { benchPlacementPoint } from '../../../state/placement';
 import { canSetSquadSize } from '../../../state/tactic-actions';
-import { selectCanUndo } from '../../../state/selectors';
+import { selectCanUndo, selectFmVisualization } from '../../../state/selectors';
 import type { PitchStore } from '../../../state/store';
 import { UndoControl } from '../../chrome/UndoControl';
 import {
@@ -49,6 +49,7 @@ import { useBelowBreakpoint } from '../../../shared/hooks/useBelowBreakpoint';
 import { BALL_PIECE_ID } from '../../hooks/usePitchMotion';
 import { BallCard } from '../../instrument/BallCard';
 import { Instrument } from '../../instrument/Instrument';
+import { SequenceControls } from '../../instrument/SequenceControls';
 import { ZoneMap } from '../../instrument/ZoneMap';
 import { Ball } from '../../pitch/Ball';
 import { pieceKeyStep } from '../../pitch/piece-keys';
@@ -58,7 +59,7 @@ import { PlayerToken } from '../../pitch/PlayerToken';
 import { tokenKeyCommand } from '../token-keys';
 import { useBoardDrag } from '../use-board-drag';
 import { useBoardMetrics } from '../use-board-metrics';
-import { fmPitchNotice, opponentOnPitch } from '../fm-pieces';
+import { fmPitchNotice, opponentOnPitch, visualizationControls } from '../fm-pieces';
 import { useBoardPieces } from '../use-board-pieces';
 import styles from './board-desktop.module.scss';
 
@@ -83,6 +84,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
   const tactic = useStore(store, (state) => state.tactic);
   const ui = useStore(store, (state) => state.ui);
   const canUndo = useStore(store, selectCanUndo);
+  const viz = useStore(store, selectFmVisualization);
   const view = useBoardPieces(store);
   const metrics = useBoardMetrics();
   const compactBar = useBelowBreakpoint(TOP_BAR_COMPACT_MAX_WIDTH);
@@ -281,6 +283,11 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
                 value={hasAttackerFormation ? ballZone : null}
                 attackerName={doc.teams[doc.attacker].name}
                 onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
+              />
+              <SequenceControls
+                {...visualizationControls(doc, viz)}
+                onRestart={() => store.getState().restartVisualization()}
+                onAnother={() => store.getState().showAnotherVisualization()}
               />
             </Instrument>
           ) : (

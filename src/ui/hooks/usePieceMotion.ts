@@ -14,7 +14,7 @@ interface PieceMotionOptions {
   onSettled?: () => void;
 }
 
-function prefersReducedMotion(): boolean {
+export function prefersReducedMotion(): boolean {
   return typeof matchMedia === 'function' && matchMedia(REDUCED_MOTION_QUERY).matches;
 }
 

@@ -21,7 +21,7 @@ export const MODE_OPTIONS = (Object.keys(MODE_LABELS) as PitchMode[]).map((value
 
 export const VERSUS_LABEL = 'v';
 export const SETUP_COLUMN_LABEL = 'Setup and arrows';
-export const SIDE_COLUMN_LABEL = 'Zone map and transport';
+export const SIDE_COLUMN_LABEL = 'Zone map and visualization controls';
 export const ARROWS_LABEL = 'Arrows';
 export const ARROWS_ALL_LABEL = 'All players';
 export const ARROWS_SELECTED_LABEL = 'Selected only';
@@ -59,7 +59,6 @@ export const BALL_LABEL = 'Ball';
 export const TOKEN_TEAM_LABELS = { mine: 'my team', opponent: 'opponent' } as const;
 export const tokenSideLabel = (side: 'left' | 'right') => `${side} side`;
 
-export const NEXT_AT_FINAL_HINT = 'Already at Final position. Press Play to start again.';
 export const ATTACKING_TAG = 'Attacking ↑';
 export const DEFENDING_TAG = 'Defending';
 export const OPEN_PITCH_HINT = 'Places both teams attack against defence, with space between them.';
@@ -111,15 +110,12 @@ export const ROLE_CURRENT_MARK = 'Current';
 export const ROLE_PICKER_CLOSE_LABEL = 'Close role picker';
 export const ROLE_HOLDS_POSITION = 'Holds position';
 
-export const TRANSPORT_PHASE_LABELS = ['Shape', 'Runs', 'Final'] as const;
-export const BACK_AT_SHAPE_HINT = 'Already at Shape.';
-export const TRANSPORT_BACK_LABEL = 'Back';
-export const TRANSPORT_NEXT_LABEL = 'Next';
-export const TRANSPORT_PLAY_LABEL = 'Play';
-export const TRANSPORT_PAUSE_LABEL = 'Pause';
-export const TRANSPORT_PLAYING_STATUS = 'Playing';
-export const transportStatus = (phase: number) =>
-  `${phase + 1} of ${TRANSPORT_PHASE_LABELS.length}`;
+export const VISUALIZATION_RESTART_LABEL = 'Restart';
+export const VISUALIZATION_ANOTHER_LABEL = 'Show another visualization';
+export const VISUALIZATION_SETUP_FIRST_REASON = 'Finish setting up your tactic first.';
+export const VISUALIZATION_ZONE_FIRST_REASON = 'Pick a zone first.';
+export const VISUALIZATION_SINGLE_REASON = 'This zone has one visualization.';
+export const startsWithLine = (starter: string) => `Starts with ${starter}`;
 
 export const DRIBBLE_LABELS = {
   up: 'Dribble forward',

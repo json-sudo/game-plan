@@ -46,6 +46,19 @@ describe('zone picks and Show another', () => {
   });
 });
 
+describe('Restart', () => {
+  it('adds no history entries and leaves the document alone', () => {
+    const store = fmStore();
+    store.getState().dispatch({ type: 'tapZone', zone: 'C-M' });
+    const { history, doc } = store.getState();
+    const before = store.getState().ui.restartCount;
+    store.getState().restartVisualization();
+    expect(store.getState().history).toBe(history);
+    expect(store.getState().doc).toBe(doc);
+    expect(store.getState().ui.restartCount).toBe(before + 1);
+  });
+});
+
 describe('recompute on setup changes', () => {
   it('keeps the index and zone on a role change that keeps the count', () => {
     const store = fmStore();

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TopBar } from './chrome/TopBar';
-import { MODE_LABELS, MODE_OPTIONS, NEXT_AT_FINAL_HINT, OPEN_PITCH_HINT } from './copy';
+import { MODE_LABELS, MODE_OPTIONS, OPEN_PITCH_HINT } from './copy';
 
 beforeEach(() => {
   window.matchMedia = vi
@@ -23,7 +23,6 @@ describe('interface copy', () => {
   });
 
   it('includes approved copy-review strings in the copy deck', () => {
-    expect(NEXT_AT_FINAL_HINT).toBe('Already at Final position. Press Play to start again.');
     expect(OPEN_PITCH_HINT).toBe(
       'Places both teams attack against defence, with space between them.',
     );

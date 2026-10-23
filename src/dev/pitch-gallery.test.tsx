@@ -12,7 +12,7 @@ describe('PitchGallery', () => {
       'Zone map',
       'Bench and chips',
       'Roles',
-      'Transport',
+      'Visualization controls',
       'ZoneShape showcase',
     ]) {
       expect(screen.getByRole('heading', { level: 2, name })).toBeTruthy();

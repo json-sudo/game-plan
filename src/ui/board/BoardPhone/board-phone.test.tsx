@@ -10,7 +10,6 @@ import {
   PITCH_LABEL,
   RESET_DISABLED_REASON,
   THEME_DARK_LABEL,
-  TRANSPORT_PLAY_LABEL,
   UNDO_DISABLED_REASON,
   ZONE_MAP_HEADING,
 } from '../../copy';
@@ -194,7 +193,7 @@ describe('BoardPhone board', () => {
   it('shows no playback, carrier choice, pass control or first-run hint in FM mode', () => {
     const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
     render(<BoardPhone store={store} />);
-    expect(screen.queryByRole('button', { name: TRANSPORT_PLAY_LABEL })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Play' })).not.toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Who has the ball?' })).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: 'Pass to' })).not.toBeInTheDocument();
     expect(

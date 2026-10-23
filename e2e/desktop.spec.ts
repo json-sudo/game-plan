@@ -159,3 +159,31 @@ test('the first zone pick walks tokens on from the goal lines', async ({ page })
   expect(last).toBeLessThan(first - 5);
   expect(sampled.some((y) => Math.abs(y - first) > 0.01 && Math.abs(y - last) > 0.01)).toBe(true);
 });
+
+test('a picked zone starts a visualization by itself and the ball moves without a click', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  await page
+    .getByRole('radiogroup', { name: 'My team' })
+    .getByRole('radio', { name: '4-3-3 DM Wide' })
+    .click();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: /^(Done|Save)$/ }).click();
+  await page.getByRole('button', { name: 'Right flank - final third' }).click();
+
+  const another = page.getByRole('button', { name: 'Show another visualization' });
+  const winger = page.getByText('Starts with AM(R) · Winger');
+  await expect(page.getByText(/^Starts with /)).toBeVisible();
+  for (let step = 0; step < 4 && !(await winger.isVisible()); step += 1) await another.click();
+  await expect(winger).toBeVisible();
+  const ball = page.getByRole('img', { name: 'Ball', exact: true });
+  await expect(ball).toBeVisible();
+  const seen = new Set<string>();
+  for (let sample = 0; sample < 60; sample += 1) {
+    seen.add((await ball.getAttribute('style')) ?? '');
+    await page.waitForTimeout(100);
+  }
+  expect(seen.size).toBeGreaterThan(2);
+});

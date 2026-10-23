@@ -5,6 +5,7 @@ import type { PitchDocument } from '../../state/document';
 import { selectDisplayPositions, selectFmVisualization } from '../../state/selectors';
 import type { PitchStore } from '../../state/store';
 import { BALL_PIECE_ID, usePitchMotion } from '../hooks/usePitchMotion';
+import { useVisualizationPlayback } from '../hooks/useVisualizationPlayback';
 import { fmWantedPieces, goalLinePieces } from './fm-pieces';
 
 export interface BoardPiecesView {
@@ -26,6 +27,7 @@ export function useBoardPieces(store: StoreApi<PitchStore>): BoardPiecesView {
   const fm = useStore(store, (state) => state.ui.mode === 'fm');
   const drag = useStore(store, (state) => state.ui.drag);
   const viz = useStore(store, selectFmVisualization);
+  const restartCount = useStore(store, (state) => state.ui.restartCount);
   const positions = useStore(store, selectDisplayPositions);
   const [presented, setPresented] = useState<Presented | null>(null);
 
@@ -38,26 +40,34 @@ export function useBoardPieces(store: StoreApi<PitchStore>): BoardPiecesView {
     else if (wanted === null) setPresented(null);
   }, [present, wanted, doc]);
 
+  const playing = viz && present ? viz : null;
+  const playback = useVisualizationPlayback(playing, restartCount);
+  const playingPieces = useMemo(
+    () => (playing ? fmWantedPieces(doc, playing, playback.piecesFrame) : null),
+    [doc, playing, playback.piecesFrame],
+  );
+
   const enterFrom = useMemo(
     () => (present ? goalLinePieces(wanted, doc) : undefined),
     [present, wanted, doc],
   );
   const pieces = useMemo(() => {
     if (wanted === null) return positions;
-    if (present) return wanted;
+    if (playingPieces) return playingPieces;
     return leaving ? goalLinePieces(leaving.wanted, leaving.doc) : NO_PIECES;
-  }, [wanted, present, positions, leaving]);
+  }, [wanted, playingPieces, positions, leaving]);
 
   const ballDrag = drag?.target.kind === 'ball' ? drag.point : null;
   const draggingId = drag ? (drag.target.kind === 'ball' ? BALL_PIECE_ID : drag.target.id) : null;
-  const ball = viz && present ? viz.frames[0].ball : doc.ball;
+  const ball = playing ? playing.frames[playback.ballFrame].ball : doc.ball;
   const motion = usePitchMotion({
     pieces,
     ball: ballDrag ?? ball,
     draggingId,
-    cause: [doc.scenario, viz, leaving],
+    cause: [doc.scenario, viz, leaving, playback.piecesFrame],
+    retarget: restartCount,
     enterFrom,
-    onSettled: leaving ? () => setPresented(null) : undefined,
+    onSettled: leaving ? () => setPresented(null) : playback.onSettled,
   });
   return {
     pieces: motion.pieces,

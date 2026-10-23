@@ -16,7 +16,7 @@ import {
 } from '../../../state/document';
 import { canSetSquadSize } from '../../../state/tactic-actions';
 import { benchPlacementPoint } from '../../../state/placement';
-import { selectCanUndo } from '../../../state/selectors';
+import { selectCanUndo, selectFmVisualization } from '../../../state/selectors';
 import type { PitchStore } from '../../../state/store';
 import { PhoneMenu, type PhoneMenuEntry } from '../../chrome/PhoneMenu';
 import { UndoControl } from '../../chrome/UndoControl';
@@ -39,6 +39,7 @@ import {
 import { Button } from '../../controls/Button';
 import { BallCard } from '../../instrument/BallCard';
 import { Instrument } from '../../instrument/Instrument';
+import { SequenceControls } from '../../instrument/SequenceControls';
 import { ZoneMap } from '../../instrument/ZoneMap';
 import { SetupFlow } from '../../setup/SetupFlow';
 import { MatchupSheet } from '../../setup/MatchupSheet';
@@ -52,7 +53,7 @@ import { BALL_PIECE_ID } from '../../hooks/usePitchMotion';
 import { tokenKeyCommand } from '../token-keys';
 import { useBoardDrag } from '../use-board-drag';
 import { useBoardMetrics } from '../use-board-metrics';
-import { fmPitchNotice, opponentOnPitch } from '../fm-pieces';
+import { fmPitchNotice, opponentOnPitch, visualizationControls } from '../fm-pieces';
 import { useBoardPieces } from '../use-board-pieces';
 import styles from './board-phone.module.scss';
 
@@ -74,6 +75,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
   const tactic = useStore(store, (state) => state.tactic);
   const ui = useStore(store, (state) => state.ui);
   const canUndo = useStore(store, selectCanUndo);
+  const viz = useStore(store, selectFmVisualization);
   const view = useBoardPieces(store);
   const metrics = useBoardMetrics();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -285,6 +287,12 @@ export function BoardPhone({ store }: BoardPhoneProps) {
             )}
             {fm ? (
               <Instrument>
+                <SequenceControls
+                  {...visualizationControls(doc, viz)}
+                  phone
+                  onRestart={() => store.getState().restartVisualization()}
+                  onAnother={() => store.getState().showAnotherVisualization()}
+                />
                 <ZoneMap
                   phone
                   value={hasAttackerFormation ? ballZone : null}
