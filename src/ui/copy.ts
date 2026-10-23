@@ -37,6 +37,13 @@ export const SETUP_ATTACKS_HINT =
   'The attacking team plays up the pitch. Changing it turns the pitch.';
 export const SETUP_ROLES_RECOMPUTE_NOTE =
   'Changing a role recomputes the visualization and restarts it.';
+export const SETUP_CARD_TITLE = 'Set up your tactic';
+export const SETUP_CARD_HINT =
+  'Two steps: formations, then roles. Who attacks appears when you pick an opponent.';
+export const SETUP_CARD_START = 'Start setup';
+export const SETUP_SHEET_LABEL = 'Guided setup';
+export const SETUP_SHEET_CLOSE = 'Close setup';
+export const SETUP_SHEET_CANCEL = 'Cancel';
 export const SETUP_OPPONENT_LABEL = 'Opponent (optional)';
 export const NO_OPPONENT_LABEL = 'No opponent';
 export const NO_OPPONENT_SUMMARY = 'no opponent';

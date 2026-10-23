@@ -139,15 +139,56 @@ describe('SetupStepper', () => {
     expect(screen.queryByText('should not show')).not.toBeInTheDocument();
   });
 
-  it('uses full-size buttons on a phone and small ones on desktop', () => {
+  it('uses small buttons on desktop and full-size ones in a sheet', () => {
     const steps: SetupStep[] = [
       { title: 'One', state: 'done' },
       { title: 'Two', state: 'active' },
     ];
     const { rerender } = render(<SetupStepper steps={steps} />);
     expect(screen.getByRole('button', { name: 'Done' })).toHaveAttribute('data-size', 'sm');
-    rerender(<SetupStepper steps={steps} phone />);
+    rerender(<SetupStepper steps={steps} sheet />);
     expect(screen.getByRole('button', { name: 'Done' })).not.toHaveAttribute('data-size');
-    expect(screen.getByRole('region')).toHaveAttribute('data-phone', 'true');
+  });
+});
+
+describe('SetupStepper sheet', () => {
+  const steps: SetupStep[] = [
+    { title: 'Formations', state: 'done', summary: '4-3-3 DM Wide · no opponent' },
+    { title: 'Roles', state: 'active', content: <p>Pick roles</p> },
+  ];
+
+  it('shows the active step count and title, a progress bar and the step content', () => {
+    render(<SetupStepper steps={steps} sheet />);
+    expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Roles' })).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '2');
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuemax', '2');
+    expect(screen.getByText('Pick roles')).toBeInTheDocument();
+  });
+
+  it('collapses done steps to summary rows with Edit', async () => {
+    const onEdit = vi.fn<() => void>();
+    render(<SetupStepper steps={steps} sheet onEdit={onEdit} />);
+    expect(screen.getByText('4-3-3 DM Wide · no opponent')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Formations' }));
+    expect(onEdit).toHaveBeenCalledWith(0);
+  });
+
+  it('closes with Close setup, and Cancel replaces Back on the first step', async () => {
+    const onClose = vi.fn<() => void>();
+    const { rerender } = render(
+      <SetupStepper
+        steps={[{ title: 'Formations', state: 'active' }, { title: 'Roles' }]}
+        sheet
+        onClose={onClose}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Close setup' }));
+    expect(onClose).toHaveBeenCalledTimes(2);
+    rerender(<SetupStepper steps={steps} sheet onClose={onClose} />);
+    expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
   });
 });

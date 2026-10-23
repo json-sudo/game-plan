@@ -14,18 +14,46 @@ function watchConsole(page: Page) {
   return errors;
 }
 
-test('first load at 390 x 844 opens guided setup at step 1 with no console errors', async ({
-  page,
-}) => {
+test('first load at 390 x 844 shows the setup card with no console errors', async ({ page }) => {
   const errors = watchConsole(page);
   await page.goto('/');
   await page.waitForLoadState('networkidle');
 
   expect(page.viewportSize()).toEqual({ width: 390, height: 844 });
-  const setup = page.getByRole('region', { name: 'Guided setup' });
-  await expect(setup).toBeVisible();
-  await expect(setup.getByText('Step 1 of 2')).toBeVisible();
+  await expect(page.getByText('Set up your tactic')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start setup' })).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('the setup card leads to sheets, roles are read-only and the controls sit above the zone map', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: 'Start setup' }).click();
+
+  const sheet = page.getByRole('dialog', { name: 'Guided setup' });
+  await expect(sheet.getByText('Step 1 of 2')).toBeVisible();
+  await sheet
+    .getByRole('radiogroup', { name: 'My team' })
+    .getByRole('radio', { name: '4-3-3 DM Wide' })
+    .click();
+  await sheet.getByRole('button', { name: 'Next' }).click();
+  await expect(sheet.getByText('Step 2 of 2')).toBeVisible();
+  await expect(sheet.getByText('Change roles on a desktop.')).toBeVisible();
+  await expect(sheet.getByRole('button', { name: /AM\(L\)/ })).toHaveCount(0);
+  await sheet.getByRole('button', { name: /^(Done|Save)$/ }).click();
+  await expect(sheet).toHaveCount(0);
+
+  const zoneMap = page.getByRole('heading', { name: 'Ball zone' });
+  await expect(zoneMap).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Restart' })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Right flank - final third' }).click();
+  const restartBox = await page.getByRole('button', { name: 'Restart' }).boundingBox();
+  const zoneBox = await zoneMap.boundingBox();
+  if (!restartBox || !zoneBox) throw new Error('controls or zone map have no box');
+  expect(restartBox.y).toBeLessThan(zoneBox.y);
 });
 
 test('the bench button opens the bench sheet in Open pitch, and Escape closes it', async ({

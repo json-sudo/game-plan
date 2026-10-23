@@ -32,6 +32,7 @@ import styles from './setup-flow.module.scss';
 export interface SetupFlowProps {
   store: StoreApi<PitchStore>;
   phone?: boolean;
+  onClose?: () => void;
 }
 
 function rolesSummary(doc: PitchDocument) {
@@ -134,7 +135,7 @@ function advance(store: StoreApi<PitchStore>, index: number) {
   state.patchUi({ setupStep: next });
 }
 
-export function SetupFlow({ store, phone = false }: SetupFlowProps) {
+export function SetupFlow({ store, phone = false, onClose }: SetupFlowProps) {
   const doc = useStore(store, (state) => state.doc);
   const setupStep = useStore(store, (state) => state.ui.setupStep);
   const cursor = setupCursor(doc, setupStep);
@@ -142,7 +143,8 @@ export function SetupFlow({ store, phone = false }: SetupFlowProps) {
     <div className={styles.flow}>
       <SetupStepper
         steps={buildSteps(store, doc, cursor, phone)}
-        phone={phone}
+        sheet={phone}
+        onClose={onClose}
         onBack={(index) => {
           const previous = setupStepNumbers(doc)[index - 1];
           if (previous !== undefined) store.getState().patchUi({ setupStep: previous });

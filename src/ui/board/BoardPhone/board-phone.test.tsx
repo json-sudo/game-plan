@@ -2,6 +2,7 @@ import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { zoneName } from '../../../engine';
+import { applyAction } from '../../../state/actions';
 import { createInitialDocument } from '../../../state/document';
 import { createPitchStore } from '../../../state/store';
 import { createExampleDocument, EXAMPLE_FORMATIONS } from '../../../state/example';
@@ -201,6 +202,53 @@ describe('BoardPhone board', () => {
     expect(
       screen.queryByRole('complementary', { name: 'How to use the example' }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('BoardPhone setup', () => {
+  it('shows the setup card under the empty pitch, with no zone map or controls', () => {
+    const store = createPitchStore({ doc: createInitialDocument(), ui: { mode: 'fm' } });
+    render(<BoardPhone store={store} />);
+    expect(screen.getByRole('heading', { name: 'Set up your tactic' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Guided setup' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: ZONE_MAP_HEADING })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Restart' })).not.toBeInTheDocument();
+  });
+
+  it('opens step sheets from Start setup and closes them with Cancel', async () => {
+    const user = userEvent.setup();
+    const store = createPitchStore({ doc: createInitialDocument(), ui: { mode: 'fm' } });
+    render(<BoardPhone store={store} />);
+    await user.click(screen.getByRole('button', { name: 'Start setup' }));
+    const sheet = screen.getByRole('dialog', { name: 'Guided setup' });
+    expect(within(sheet).getByText('Step 1 of 2')).toBeInTheDocument();
+    await user.click(within(sheet).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog', { name: 'Guided setup' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Set up your tactic' })).toBeInTheDocument();
+  });
+
+  it('puts only the zone map under the pitch after setup, and the controls above it after a zone', async () => {
+    const user = userEvent.setup();
+    const doc = applyAction(
+      applyAction(createInitialDocument(), {
+        type: 'applyFormation',
+        team: 'mine',
+        formationId: EXAMPLE_FORMATIONS.mine,
+      }),
+      { type: 'fillDefaultRoles' },
+    );
+    const store = createPitchStore({ doc, ui: { mode: 'fm' } });
+    render(<BoardPhone store={store} />);
+    expect(screen.getByRole('heading', { name: ZONE_MAP_HEADING })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Restart' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: zoneName('C-F') }));
+    const restart = screen.getByRole('button', { name: 'Restart' });
+    const zoneMap = screen.getByRole('heading', { name: ZONE_MAP_HEADING });
+    const pitch = screen.getByRole('img', { name: PITCH_LABEL });
+    expect(pitch.compareDocumentPosition(restart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      restart.compareDocumentPosition(zoneMap) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });
 

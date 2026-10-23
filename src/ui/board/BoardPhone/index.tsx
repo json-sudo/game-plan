@@ -44,7 +44,8 @@ import { BallCard } from '../../instrument/BallCard';
 import { Instrument } from '../../instrument/Instrument';
 import { SequenceControls } from '../../instrument/SequenceControls';
 import { ZoneMap } from '../../instrument/ZoneMap';
-import { SetupFlow } from '../../setup/SetupFlow';
+import { SetupCard } from '../../setup/SetupCard';
+import { SetupSheet } from '../../setup/SetupSheet';
 import { MatchupSheet } from '../../setup/MatchupSheet';
 import { setupCursor } from '../../setup/setup-model';
 import { Ball } from '../../pitch/Ball';
@@ -85,6 +86,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [benchOpen, setBenchOpen] = useState(false);
   const [matchupOpen, setMatchupOpen] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const menuSlot = useRef<HTMLDivElement>(null);
   const benchSlot = useRef<HTMLDivElement>(null);
@@ -103,6 +105,10 @@ export function BoardPhone({ store }: BoardPhoneProps) {
   useEffect(() => {
     document.documentElement.dataset.theme = ui.theme;
   }, [ui.theme]);
+
+  useEffect(() => {
+    if (cursor === null) setSetupOpen(false);
+  }, [cursor]);
 
   const choose = (action: () => void) => () => {
     setMenuOpen(false);
@@ -275,9 +281,10 @@ export function BoardPhone({ store }: BoardPhoneProps) {
       </header>
       <div className={styles.body}>
         {fm && cursor !== null ? (
-          <div className={styles.setup}>
-            <SetupFlow store={store} phone />
-          </div>
+          <>
+            {pitch}
+            <SetupCard onStart={() => setSetupOpen(true)} />
+          </>
         ) : (
           <>
             {pitch}
@@ -309,12 +316,14 @@ export function BoardPhone({ store }: BoardPhoneProps) {
             )}
             {fm ? (
               <Instrument>
-                <SequenceControls
-                  {...visualizationControls(doc, viz)}
-                  phone
-                  onRestart={() => store.getState().restartVisualization()}
-                  onAnother={() => store.getState().showAnotherVisualization()}
-                />
+                {viz ? (
+                  <SequenceControls
+                    {...visualizationControls(doc, viz)}
+                    phone
+                    onRestart={() => store.getState().restartVisualization()}
+                    onAnother={() => store.getState().showAnotherVisualization()}
+                  />
+                ) : null}
                 <ZoneMap
                   phone
                   value={hasAttackerFormation ? ballZone : null}
@@ -329,6 +338,9 @@ export function BoardPhone({ store }: BoardPhoneProps) {
       </div>
       {menuOpen ? <PhoneMenu items={menuItems} onClose={() => setMenuOpen(false)} /> : null}
       {shareExport.dialogs}
+      {fm && cursor !== null && setupOpen ? (
+        <SetupSheet store={store} onClose={() => setSetupOpen(false)} />
+      ) : null}
       {benchOpen ? (
         <BenchSheet
           pieces={benchPieces(doc, FM26_DATA)}

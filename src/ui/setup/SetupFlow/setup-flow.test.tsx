@@ -55,9 +55,11 @@ describe('SetupFlow on phones', () => {
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
-  it('disables Back on step 1', () => {
+  it('offers Cancel instead of Back on step 1, and counts steps without an opponent', () => {
     renderFlow(1);
-    expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
+    expect(screen.getByText('Step 1 of 2')).toBeInTheDocument();
   });
 
   it('enables Back on step 2', () => {
@@ -68,9 +70,8 @@ describe('SetupFlow on phones', () => {
   it('renders a done step as its one-line summary only', () => {
     const doc = createExampleDocument();
     renderFlow(2, doc);
-    const formations = screen.getAllByRole('listitem')[0];
-    expect(within(formations).getByText(formationSummary(doc)!)).toBeInTheDocument();
-    expect(within(formations).queryByRole('radiogroup')).not.toBeInTheDocument();
+    expect(screen.getByText(formationSummary(doc)!)).toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup', { name: 'My team' })).not.toBeInTheDocument();
   });
 
   it('dispatches applyFormation when a formation is chosen', async () => {
@@ -234,13 +235,13 @@ describe('SetupFlow step list', () => {
     });
 
   it('has Formations and Roles only without an opponent, and three steps with one', () => {
-    renderFlow(1, mineOnly());
+    renderFlow(1, mineOnly(), false);
     const titles = screen.getAllByRole('listitem').map((item) => item.textContent);
     expect(titles).toHaveLength(2);
     expect(titles[0]).toContain(SETUP_STEP_FORMATIONS);
     expect(titles[1]).toContain(SETUP_ROLES);
     cleanup();
-    renderFlow(1, createExampleDocument());
+    renderFlow(1, createExampleDocument(), false);
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
   });
 
@@ -265,7 +266,7 @@ describe('SetupFlow step list', () => {
   it('reopens the Roles step from its Edit button', async () => {
     const user = userEvent.setup();
     const done = applyAction(mineOnly(), { type: 'fillDefaultRoles' });
-    const store = renderFlow(1, done);
+    const store = renderFlow(1, done, false);
     await user.click(screen.getByRole('button', { name: 'Save' }));
     expect(store.getState().ui.setupStep).toBeNull();
     await user.click(screen.getByRole('button', { name: `Edit ${SETUP_ROLES}` }));
