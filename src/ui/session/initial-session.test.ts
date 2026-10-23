@@ -118,7 +118,7 @@ describe('later visit', () => {
 describe('share link', () => {
   function linkTo(mode: 'openPitch' | 'fm') {
     const tactic = copyFmPositions(createExampleTactic());
-    const encoded = encodeShareHash({ tactic, mode }, 'runs');
+    const encoded = encodeShareHash({ tactic, mode });
     if (encoded.status !== 'ok') throw new Error('expected a link');
     return { tactic, hash: encoded.hash };
   }
@@ -127,7 +127,7 @@ describe('share link', () => {
     for (const mode of ['openPitch', 'fm'] as const) {
       const { tactic, hash } = linkTo(mode);
       const session = resolveInitialSession({ storage: visited(), location: { hash } });
-      expect(session).toMatchObject({ visit: 'shared', mode, phase: 'runs', tactic });
+      expect(session).toMatchObject({ visit: 'shared', mode, tactic });
     }
   });
 
@@ -178,7 +178,7 @@ describe('session notices', () => {
   });
 
   it('marks a valid link for clearing so a reload does not reapply it', () => {
-    const encoded = encodeShareHash({ tactic: createExampleTactic(), mode: 'fm' }, 'shape');
+    const encoded = encodeShareHash({ tactic: createExampleTactic(), mode: 'fm' });
     if (encoded.status !== 'ok') throw new Error('expected a link');
     const session = resolveInitialSession({ storage: visited(), location: encoded });
     expect(sessionNotices(session)).toEqual([]);

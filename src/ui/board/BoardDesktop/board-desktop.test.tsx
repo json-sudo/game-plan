@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
-import { ballAtopPosition } from '../../../engine';
 import {
   createInitialDocument,
   placedPlayers,
@@ -12,10 +11,8 @@ import {
 } from '../../../state/document';
 import { pieceLabel } from '../../../state/bench-pieces';
 import { createExampleDocument, EXAMPLE_FORMATIONS } from '../../../state/example';
-import { selectPhasePositions } from '../../../state/selectors';
 import { createPitchStore, type PitchStore } from '../../../state/store';
 import {
-  ARROWS_LABEL,
   RESET_DISABLED_REASON,
   SETUP_ROLES,
   SETUP_STEP_FORMATIONS,
@@ -192,31 +189,6 @@ function plateText(element: HTMLElement) {
   return (element.textContent ?? '').replaceAll(' ', '');
 }
 
-function translation(element: Element) {
-  const match = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(
-    (element as HTMLElement).style.transform,
-  );
-  if (!match) throw new Error(`no translation on ${element.getAttribute('aria-label')}`);
-  return { x: Number(match[1]), y: Number(match[2]) };
-}
-
-function rings(container: HTMLElement) {
-  return [...container.querySelectorAll('circle[data-part="arrow-ring"]')];
-}
-
-function movers(store: StoreApi<PitchStore>) {
-  const doc = store.getState().doc;
-  const phases = selectPhasePositions(doc);
-  const carrierId = doc.scenario?.carrierId;
-  return placedPlayers(doc).flatMap((player) => {
-    if (player.id === carrierId) return [];
-    const from = phases.shape.get(player.id);
-    const to = phases.final.get(player.id);
-    if (!from || !to || (from.x === to.x && from.y === to.y)) return [];
-    return [{ id: player.id, to }];
-  });
-}
-
 describe('desktop board', () => {
   it('renders the example with both formations and the 4-3-3 and 4-2-3-1 labels on the tokens', () => {
     const doc = createExampleDocument();
@@ -241,57 +213,28 @@ describe('desktop board', () => {
     expect(plateText(oppToken)).toContain(oppRole.replaceAll(' ', ''));
     expect(screen.getAllByRole('button', { name: /my team$/ })).toHaveLength(11);
     expect(screen.getAllByRole('button', { name: /opponent$/ })).toHaveLength(11);
-
-    const carrier = doc.players.find((player) => player.id === doc.scenario!.carrierId)!;
-    const carrierRole = FM26_DATA.roles.find((role) => role.id === carrier.role)!.name;
-    const carrierToken = screen.getByRole('button', {
-      name: `${labelWithSide(carrier)}, ${carrierRole}, my team`,
-    });
-    expect(translation(screen.getByRole('img', { name: 'Ball' }))).toEqual(
-      ballAtopPosition(translation(carrierToken)),
-    );
   });
 
-  it('shows the transport bar only in FM mode and the bench only in Open pitch', () => {
+  it('shows the zone map only in FM mode and the bench only in Open pitch', () => {
     const store = exampleStore();
     render(<BoardDesktop store={store} />);
-    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Ball zone' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Bench' })).not.toBeInTheDocument();
     act(() => store.getState().setMode('openPitch'));
-    expect(screen.queryByRole('button', { name: 'Play' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Ball zone' })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Bench' })).toBeInTheDocument();
-    act(() => store.getState().setMode('fm'));
-    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Bench' })).not.toBeInTheDocument();
   });
 
-  it('matches the arrow count to the arrows setting, with rings at targets and none on the carrier', () => {
-    const store = exampleStore();
-    const { container } = render(<BoardDesktop store={store} />);
-    const moving = movers(store);
-    const carrierId = store.getState().doc.scenario!.carrierId;
-    const carrierAt = selectPhasePositions(store.getState().doc).final.get(carrierId)!;
-    expect(moving.length).toBeGreaterThan(1);
-    expect(store.getState().ui.arrows).toBe('selected');
-    expect(rings(container)).toHaveLength(0);
-
-    const selected = moving[0]!;
-    act(() => store.getState().patchUi({ selectedPlayerId: selected.id }));
-    const selectedRings = rings(container);
-    expect(selectedRings).toHaveLength(1);
-    expect(selectedRings[0]).toHaveAttribute('cx', String(selected.to.x));
-    expect(selectedRings[0]).toHaveAttribute('cy', String(selected.to.y));
-
-    act(() => store.getState().patchUi({ arrows: 'all' }));
-    const allRings = rings(container);
-    expect(allRings).toHaveLength(moving.length);
+  it('shows no playback, arrows, carrier choice, pass control or first-run hint in FM mode', () => {
+    const { container } = render(<BoardDesktop store={exampleStore()} />);
+    expect(screen.queryByRole('button', { name: 'Play' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup', { name: 'Arrows' })).not.toBeInTheDocument();
+    expect(container.querySelector('circle[data-part="arrow-ring"]')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Who has the ball?' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Pass to' })).not.toBeInTheDocument();
     expect(
-      allRings.some(
-        (ring) =>
-          Number(ring.getAttribute('cx')) === carrierAt.x &&
-          Number(ring.getAttribute('cy')) === carrierAt.y,
-      ),
-    ).toBe(false);
+      screen.queryByRole('complementary', { name: 'How to use the example' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders the zone map and three columns at desktop width without the phone layout', () => {
@@ -307,7 +250,6 @@ describe('desktop board', () => {
     expect(columns[1]).toContainElement(pitch);
     expect(screen.getByRole('banner')).toBe(setup.parentElement!.parentElement!.firstElementChild);
     expect(screen.getByRole('heading', { name: 'Ball zone' })).toBeInTheDocument();
-    expect(screen.getByRole('radiogroup', { name: ARROWS_LABEL })).toBeInTheDocument();
     expect(document.querySelector('[data-phone="true"]')).toBeNull();
   });
 });
@@ -336,12 +278,11 @@ describe('top bar actions', () => {
     );
   });
 
-  it('clears the zone and carrier, and one undo brings them back', async () => {
+  it('clears the zone, and one undo brings it back', async () => {
     const user = userEvent.setup();
     const store = exampleStore();
     const scenario = store.getState().doc.scenario;
     expect(scenario?.zone).toBeTruthy();
-    expect(scenario?.carrierId).toBeTruthy();
     render(<BoardDesktop store={store} />);
     await user.click(screen.getByRole('button', { name: 'Clear' }));
     expect(store.getState().doc.scenario).toBeNull();
@@ -370,7 +311,7 @@ function guidedSteps() {
   return within(screen.getByRole('region', { name: 'Guided setup' })).getAllByRole('listitem');
 }
 
-describe('setup and hint', () => {
+describe('setup', () => {
   it('marks each setup step active, done or reopened from setupStep', () => {
     const fresh = createPitchStore({ doc: createInitialDocument(), ui: { mode: 'fm' } });
     const { rerender } = render(<BoardDesktop store={fresh} />);
@@ -454,36 +395,6 @@ describe('setup and hint', () => {
     });
     const token = screen.getByRole('button', { name: `ST, ${nextRole.name}, my team` });
     expect(plateText(token)).toContain(nextRole.name.replaceAll(' ', ''));
-  });
-
-  it('shows the three hint steps, hides on dismiss, and leaves the document unchanged', async () => {
-    const user = userEvent.setup();
-    const store = exampleStore();
-    const doc = store.getState().doc;
-    const history = store.getState().history;
-    const { unmount } = render(<BoardDesktop store={store} />);
-    const hint = screen.getByRole('complementary', { name: 'How to use the example' });
-    expect(
-      within(hint)
-        .getAllByRole('listitem')
-        .map((step) => step.textContent),
-    ).toEqual([
-      'Tap a zone on the map.',
-      'Press Play.',
-      'Step through with Next, or tap a player to change its role.',
-    ]);
-    await user.click(screen.getByRole('button', { name: 'Got it' }));
-    expect(
-      screen.queryByRole('complementary', { name: 'How to use the example' }),
-    ).not.toBeInTheDocument();
-    expect(store.getState().doc).toBe(doc);
-    expect(store.getState().history).toBe(history);
-
-    unmount();
-    render(<BoardDesktop store={store} />);
-    expect(
-      screen.getByRole('complementary', { name: 'How to use the example' }),
-    ).toBeInTheDocument();
   });
 });
 

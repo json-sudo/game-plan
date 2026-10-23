@@ -13,7 +13,6 @@ function exampleSlotId(team: string, slot: string): string {
   return found.id;
 }
 
-const MINE_DL = exampleSlotId('mine', 'DL');
 const MINE_ST = exampleSlotId('mine', 'ST');
 
 function exampleStore() {
@@ -90,8 +89,6 @@ describe('independent layouts', () => {
     const before = store.getState().tactic;
     const { dispatch } = store.getState();
     dispatch({ type: 'tapZone', zone: 'L-D' });
-    dispatch({ type: 'setCarrier', playerId: MINE_ST });
-    dispatch({ type: 'dribble', direction: 'forward' });
     dispatch({ type: 'fillDefaultRoles' });
     dispatch({ type: 'setRole', playerId: MINE_ST, roleId: null });
     expect(store.getState().tactic).toBe(before);
@@ -312,7 +309,6 @@ describe('copyFmPositions', () => {
   function copiedStore() {
     const store = exampleStore();
     store.getState().dispatch({ type: 'tapZone', zone: 'L-D' });
-    store.getState().dispatch({ type: 'setCarrier', playerId: MINE_DL });
     store.getState().setMode('openPitch');
     store.getState().dispatch({ type: 'placeBall', point: { x: 55, y: 12 } });
     store.getState().dispatch({ type: 'setSquadSize', team: 'mine', size: 20 });
@@ -415,12 +411,10 @@ describe('loadTactic', () => {
 
   it('resets the transient ui when a tactic is loaded', () => {
     const store = exampleStore();
-    store.getState().patchUi({ selectedPlayerId: MINE_ST, phase: 'final', playing: true });
-    store.getState().loadTactic(createExampleTactic(), { mode: 'fm', phase: 'runs' });
+    store.getState().patchUi({ selectedPlayerId: MINE_ST });
+    store.getState().loadTactic(createExampleTactic(), { mode: 'fm' });
     expect(store.getState().ui).toMatchObject({
       selectedPlayerId: null,
-      playing: false,
-      phase: 'runs',
       drag: null,
     });
   });

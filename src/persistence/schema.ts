@@ -39,7 +39,7 @@ export const documentSchema = z.object({
   teams: z.object({ mine: teamSchema, opponent: teamSchema }),
   players: z.array(playerSchema).max(54),
   ball: pointSchema,
-  scenario: z.object({ zone: zoneIdSchema, carrierId: z.string().min(1).max(64) }).nullable(),
+  scenario: z.object({ zone: zoneIdSchema }).nullable(),
 }) satisfies z.ZodType<PitchDocument>;
 
 export const tacticSchema = z.object({

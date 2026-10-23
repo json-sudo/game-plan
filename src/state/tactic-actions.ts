@@ -16,9 +16,6 @@ import { otherMode, type Mode, type Tactic } from './tactic';
 
 const FM_ONLY_ACTIONS: ReadonlySet<Action['type']> = new Set([
   'tapZone',
-  'setCarrier',
-  'pass',
-  'dribble',
   'setRole',
   'fillDefaultRoles',
   'clearScenario',

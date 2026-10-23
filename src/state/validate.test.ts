@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { FM26_DATA } from '../data/fm26';
-import { applyAction } from './actions';
 import { createExampleDocument } from './example';
 import { createInitialDocument, type PitchDocument, type Player } from './document';
 import { MAX_PIECES_PER_TEAM, documentIssues } from './validate';
@@ -12,7 +11,6 @@ function exampleSlotId(team: string, slot: string): string {
 }
 
 const MINE_ST = exampleSlotId('mine', 'ST');
-const OPPONENT_ST = exampleSlotId('opponent', 'ST');
 
 const valid = createExampleDocument();
 
@@ -82,24 +80,11 @@ describe('documentIssues', () => {
     expect(issue(withPlayer({ role: 'nope' }))).toMatch(/role that does not fit/);
   });
 
-  it('rejects a scenario with a bad carrier or zone', () => {
-    expect(issue({ ...valid, scenario: { zone: 'C-F', carrierId: 'ghost' } })).toMatch(/carrier/);
-    expect(issue({ ...valid, scenario: { zone: 'C-F', carrierId: OPPONENT_ST } })).toMatch(
-      /carrier/,
-    );
+  it('rejects a scenario with a bad zone', () => {
     const real = valid.scenario!;
     expect(issue({ ...valid, scenario: { ...real, zone: 'L-D' } })).toMatch(/does not match/);
     expect(issue({ ...valid, scenario: { ...real, zone: 'nope' as typeof real.zone } })).toMatch(
       /zone is unknown/,
     );
-  });
-
-  it('rejects a benched carrier', () => {
-    const benched = applyAction(valid, {
-      type: 'benchPlayer',
-      playerId: valid.scenario!.carrierId,
-    });
-    const stale = { ...benched, scenario: valid.scenario };
-    expect(issue(stale)).toMatch(/carrier/);
   });
 });

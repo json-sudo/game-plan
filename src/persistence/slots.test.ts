@@ -31,7 +31,6 @@ function exampleSlotId(team: string, slot: string): string {
   return found.id;
 }
 
-const MINE_DL = exampleSlotId('mine', 'DL');
 const MINE_ST = exampleSlotId('mine', 'ST');
 
 function memoryStorage(initial: Record<string, string> = {}): Storage {
@@ -138,7 +137,7 @@ describe('loadTactics', () => {
   it('skips entries whose tactic breaks a data rule', () => {
     const broken: Tactic = {
       ...exampleTactic,
-      fm: { ...exampleTactic.fm, scenario: { zone: 'C-F', carrierId: 'ghost' } },
+      fm: { ...exampleTactic.fm, scenario: { zone: 'C-F' } },
     };
     const result = loadTactics(storedWith(wrapperOf(slot('a', 1), slot('b', 2, broken))));
     expect(result).toMatchObject({ status: 'ok', skipped: 1, wrapper: { slots: [{ id: 'a' }] } });
@@ -225,7 +224,7 @@ describe('saveSlot', () => {
   it('refuses a pitch that breaks a data rule', () => {
     const broken: Tactic = {
       ...exampleTactic,
-      fm: { ...exampleTactic.fm, scenario: { zone: 'C-F', carrierId: 'ghost' } },
+      fm: { ...exampleTactic.fm, scenario: { zone: 'C-F' } },
     };
     expect(
       saveSlot(null, null, 'X', { tactic: broken, mode: 'fm' }, memoryStorage()),
@@ -305,8 +304,7 @@ describe('both layouts in a save', () => {
       playerId: MINE_ST,
       point: { x: 11, y: 22 },
     });
-    const zoned = applyTacticAction(moved, 'fm', { type: 'tapZone', zone: 'L-D' });
-    return applyTacticAction(zoned, 'fm', { type: 'setCarrier', playerId: MINE_DL });
+    return applyTacticAction(moved, 'fm', { type: 'tapZone', zone: 'L-D' });
   }
 
   it('saves and reloads both layouts independently, with the mode it was saved in', () => {

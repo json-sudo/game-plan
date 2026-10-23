@@ -3,7 +3,7 @@ import type { Third, ZoneId } from '../../data/zones';
 import { PITCH_W, clampToPitch } from '../geometry/pitch';
 import { MIN_TOKEN_SPACING, enforceSpacing, type SpacingToken } from '../layout/spacing';
 import { ballSideOf, offsetDelta, offsetFor } from './movement';
-import type { PhasePlayer } from './phases';
+import type { FmPlayer } from './player';
 import {
   ZONE_GRID,
   fromAttackerFrame,
@@ -31,7 +31,7 @@ const DEFEND_KEEPER_FOLLOW = 0.2;
 
 export interface ShapeInput {
   attacker: Side;
-  players: readonly PhasePlayer[];
+  players: readonly FmPlayer[];
   ball: Point;
   carrierId: string | null;
   zone: ZoneId;

@@ -2,7 +2,7 @@ import type { FormationDef, FormationSlot, MovementTable, Point, Side } from '..
 import type { ZoneId } from '../../data/zones';
 import { layoutFormation } from '../layout/formations';
 import { eligibleCarrierIds, type CarrierPlayer, type LateralSide } from './carrier-eligibility';
-import type { PhasePlayer } from './phases';
+import type { FmPlayer } from './player';
 import { chooseReceiver } from './receiver';
 import { computeZoneShape } from './shape';
 import { laneOf, thirdOf, zoneCentre, zoneOf } from './zones';
@@ -115,7 +115,7 @@ export function visualizationStarters(
     .map((player) => player.id);
 }
 
-function phasePlayersOf(members: readonly Member[]): PhasePlayer[] {
+function fmPlayersOf(members: readonly Member[]): FmPlayer[] {
   return members.map((member) => ({
     id: member.id,
     team: member.team,
@@ -133,7 +133,7 @@ function frameFor(
 ): VisualizationFrame {
   const { positions, ball } = computeZoneShape({
     attacker: input.attacker,
-    players: phasePlayersOf(members),
+    players: fmPlayersOf(members),
     ball: zoneCentre(zone, input.attacker),
     carrierId,
     zone,

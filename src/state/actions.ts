@@ -1,7 +1,6 @@
 import { FM26_DATA } from '../data/fm26';
 import type { DataSet, Point, Side } from '../data/types';
 import type { ZoneId } from '../data/zones';
-import type { DribbleDirection } from '../engine';
 import type { PitchDocument, SquadSize } from './document';
 import {
   applyFormation,
@@ -13,7 +12,7 @@ import {
 } from './layout-actions';
 import { benchPlayer, movePlayer, renameTeam, setPieceName } from './piece-actions';
 import { fillDefaultRoles, setAttacker, setRole } from './role-actions';
-import { clearScenario, dribble, pass, placeBall, setCarrier, tapZone } from './scenario-actions';
+import { clearScenario, placeBall, tapZone } from './scenario-actions';
 
 export type Action =
   | { type: 'applyFormation'; team: Side; formationId: string }
@@ -30,9 +29,6 @@ export type Action =
   | { type: 'benchPlayer'; playerId: string }
   | { type: 'tapZone'; zone: ZoneId }
   | { type: 'placeBall'; point: Point }
-  | { type: 'setCarrier'; playerId: string }
-  | { type: 'pass'; receiverId: string; positions?: ReadonlyMap<string, Point> }
-  | { type: 'dribble'; direction: DribbleDirection }
   | { type: 'clearScenario' }
   | { type: 'reset' };
 
@@ -67,15 +63,9 @@ export function applyAction(
     case 'benchPlayer':
       return benchPlayer(doc, action.playerId);
     case 'tapZone':
-      return tapZone(doc, action.zone, data);
+      return tapZone(doc, action.zone);
     case 'placeBall':
       return placeBall(doc, action.point);
-    case 'setCarrier':
-      return setCarrier(doc, action.playerId, data);
-    case 'pass':
-      return pass(doc, action.receiverId, action.positions, data);
-    case 'dribble':
-      return dribble(doc, action.direction, data);
     case 'clearScenario':
       return clearScenario(doc);
     case 'reset':

@@ -11,7 +11,7 @@ export type { CarrierPlayer, LateralSide } from './fm/carrier-eligibility';
 export { lineShift } from './fm/lineShift';
 export { PITCH_TARGET_MARGIN, ballSideOf, offsetFor, targetFor } from './fm/movement';
 export type { BallSide, MovementTables, TargetInput } from './fm/movement';
-export { PHASES, PHASE_PROGRESS, computePhases } from './fm/phases';
+export type { FmPlayer } from './fm/player';
 export { buildVisualization, visualizationStarters, visualizationsFor } from './fm/visualization';
 export type {
   Pass,
@@ -20,18 +20,6 @@ export type {
   VisualizationInput,
 } from './fm/visualization';
 export { chooseReceiver } from './fm/receiver';
-export { PROVISIONAL_POSITION_ENGINE } from './fm/position-engine';
-export type { PositionEngine } from './fm/position-engine';
-export type {
-  Phase,
-  PhaseInput,
-  PhasePlayer,
-  PhaseResult,
-  PhaseStatus,
-  PhasePositions,
-} from './fm/phases';
-export { DRIBBLE_STEP, dribble, pass, setCarrier, tapZone } from './fm/scenario';
-export type { BallState, DribbleDirection, ScenarioContext } from './fm/scenario';
 export {
   ZONE_GRID,
   fromAttackerFrame,

@@ -50,10 +50,6 @@ function teamIssue(doc: PitchDocument, data: DataSet): string | null {
 function scenarioIssue(doc: PitchDocument): string | null {
   if (!insidePitch(doc.ball)) return 'ball is outside the pitch';
   if (!doc.scenario) return null;
-  const carrier = doc.players.find((player) => player.id === doc.scenario!.carrierId);
-  if (!carrier || carrier.base === undefined || carrier.team !== doc.attacker) {
-    return 'scenario carrier is not a placed attacker';
-  }
   if (!ZONE_IDS.includes(doc.scenario.zone)) return 'scenario zone is unknown';
   if (zoneOf(doc.ball, doc.attacker) !== doc.scenario.zone)
     return 'scenario zone does not match the ball';

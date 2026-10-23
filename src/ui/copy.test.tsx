@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TopBar } from './chrome/TopBar';
-import { FirstRunHint } from './feedback/FirstRunHint';
 import { MODE_LABELS, MODE_OPTIONS, NEXT_AT_FINAL_HINT, OPEN_PITCH_HINT } from './copy';
 
 beforeEach(() => {
@@ -28,13 +27,5 @@ describe('interface copy', () => {
     expect(OPEN_PITCH_HINT).toBe(
       'Places both teams attack against defence, with space between them.',
     );
-  });
-
-  it('surfaces approved onboarding copy in FirstRunHint', () => {
-    render(<FirstRunHint />);
-    expect(screen.getByText('Tap a zone on the map.')).toBeInTheDocument();
-    expect(
-      screen.getByText('Step through with Next, or tap a player to change its role.'),
-    ).toBeInTheDocument();
   });
 });

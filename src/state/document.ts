@@ -34,7 +34,6 @@ export interface Player {
 
 export interface Scenario {
   zone: ZoneId;
-  carrierId: string;
 }
 
 export interface PitchDocument {

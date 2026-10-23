@@ -1,7 +1,6 @@
 import { deflateSync, inflateSync, strFromU8, strToU8 } from 'fflate';
 import { FM26_DATA } from '../data/fm26';
 import { FAMILIES, type DataSet, type Point, type Side } from '../data/types';
-import { PHASES, type Phase } from '../engine';
 import {
   MODES,
   SIDES,
@@ -23,7 +22,7 @@ import {
 } from './schema';
 
 export const SHARE_PARAM = 's';
-export const SHARE_VERSION = 'v4';
+export const SHARE_VERSION = 'v5';
 export const SHARE_PREFIX = `${SHARE_PARAM}=${SHARE_VERSION}.`;
 export const MAX_SHARE_HASH_LENGTH = 8000;
 export const MAX_SHARE_PAYLOAD_BYTES = 65536;
@@ -32,7 +31,7 @@ export type ShareErrorCode =
   'not-a-link' | 'old-version' | 'unknown-version' | 'unknown-data' | 'malformed' | 'invalid';
 
 export type DecodeResult =
-  | { status: 'ok'; tactic: Tactic; phase: Phase; mode: Mode }
+  | { status: 'ok'; tactic: Tactic; mode: Mode }
   | { status: 'error'; code: ShareErrorCode; message: string };
 
 const MESSAGES: Record<ShareErrorCode, string> = {
@@ -88,20 +87,15 @@ function encodeLayout(doc: PitchDocument, data: DataSet): ShareLayoutTuple {
     pair((meta) => APPLIED_CODES.indexOf(meta.applied) as 0 | 1 | 2),
     doc.players.map((player) => encodePlayer(player, data)),
     [fixed(doc.ball.x), fixed(doc.ball.y)],
-    doc.scenario ? [doc.scenario.zone, doc.scenario.carrierId] : 0,
+    doc.scenario ? doc.scenario.zone : 0,
   ];
 }
 
-function encodePayload(
-  { tactic, mode }: TacticSnapshot,
-  phase: Phase,
-  data: DataSet,
-): SharePayload {
+function encodePayload({ tactic, mode }: TacticSnapshot, data: DataSet): SharePayload {
   const { openPitch } = tactic;
   return [
     data.version,
     MODES.indexOf(mode) as 0 | 1,
-    PHASES.indexOf(phase) as 0 | 1 | 2,
     [openPitch.teams.mine.name, openPitch.teams.opponent.name],
     [openPitch.teams.mine.squadSize, openPitch.teams.opponent.squadSize],
     encodeLayout(tactic.openPitch, data),
@@ -112,12 +106,8 @@ function encodePayload(
 export type EncodeResult =
   { status: 'ok'; hash: string } | { status: 'error'; code: 'too-large'; message: string };
 
-export function encodeShareHash(
-  snapshot: TacticSnapshot,
-  phase: Phase,
-  data: DataSet = FM26_DATA,
-): EncodeResult {
-  const json = JSON.stringify(encodePayload(snapshot, phase, data));
+export function encodeShareHash(snapshot: TacticSnapshot, data: DataSet = FM26_DATA): EncodeResult {
+  const json = JSON.stringify(encodePayload(snapshot, data));
   const hash = `#${SHARE_PREFIX}${toBase64Url(deflateSync(strToU8(json), { level: 9 }))}`;
   if (hash.length - 1 > MAX_SHARE_HASH_LENGTH) {
     return { status: 'error', code: 'too-large', message: TOO_LARGE_MESSAGE };
@@ -158,9 +148,9 @@ function decodeLayout(
   const players = layout[4].map((tuple) => decodePlayer(tuple, data));
   if (players.some((player) => player === null)) return null;
   const teamAt = (index: 0 | 1): TeamMeta => ({
-    name: payload[3][index],
+    name: payload[2][index],
     formationId: layout[1][index] === 0 ? null : layout[1][index],
-    squadSize: payload[4][index],
+    squadSize: payload[3][index],
     keeper: layout[2][index] === 1,
     applied: APPLIED_CODES[layout[3][index]],
   });
@@ -170,13 +160,13 @@ function decodeLayout(
     teams: { mine: teamAt(0), opponent: teamAt(1) },
     players: players as Player[],
     ball: { x: layout[5][0] / FIXED_POINT, y: layout[5][1] / FIXED_POINT },
-    scenario: scenario === 0 ? null : { zone: scenario[0], carrierId: scenario[1] },
+    scenario: scenario === 0 ? null : { zone: scenario },
   };
 }
 
 function buildTactic(payload: SharePayload, data: DataSet): Tactic | null {
-  const openPitch = decodeLayout(payload, payload[5], data);
-  const fm = decodeLayout(payload, payload[6], data);
+  const openPitch = decodeLayout(payload, payload[4], data);
+  const fm = decodeLayout(payload, payload[5], data);
   return openPitch && fm ? { openPitch, fm } : null;
 }
 
@@ -192,7 +182,7 @@ function inflatePayload(text: string): unknown {
   }
 }
 
-const OLD_VERSION_TAGS: readonly string[] = ['v1', 'v2', 'v3'];
+const OLD_VERSION_TAGS: readonly string[] = ['v1', 'v2', 'v3', 'v4'];
 
 function versionFailure(tag: string): DecodeResult {
   return failure(OLD_VERSION_TAGS.includes(tag) ? 'old-version' : 'unknown-version');
@@ -210,10 +200,5 @@ export function decodeShareHash(hash: string, data: DataSet = FM26_DATA): Decode
 
   const tactic = buildTactic(parsed.data, data);
   if (!tactic || tacticIssues(tactic, data) !== null) return failure('invalid');
-  return {
-    status: 'ok',
-    tactic,
-    mode: MODES[parsed.data[1]],
-    phase: PHASES[parsed.data[2]],
-  };
+  return { status: 'ok', tactic, mode: MODES[parsed.data[1]] };
 }

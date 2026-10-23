@@ -8,7 +8,7 @@ describe('PitchGallery', () => {
     for (const name of [
       'Pitch surface',
       'Pieces',
-      'Arrows and dribble',
+      'Arrows',
       'Zone map',
       'Bench and chips',
       'Roles',

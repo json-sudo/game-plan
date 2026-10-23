@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FM26_DATA } from '../data/fm26';
 import type { Point, Side } from '../data/types';
 import type { ZoneId } from '../data/zones';
-import { PITCH_W, layoutFormation, layoutMatchup, zoneCentre } from '../engine';
+import { PITCH_W, layoutFormation, layoutMatchup, zoneCentre, zoneOf } from '../engine';
 import { applyAction, type Action } from './actions';
 import {
   createInitialDocument,
@@ -36,13 +36,8 @@ function matchup(): PitchDocument {
   );
 }
 
-function withCarrier(zone: ZoneId, playerId: string): PitchDocument {
-  return run(
-    matchup(),
-    { type: 'fillDefaultRoles' },
-    { type: 'tapZone', zone },
-    { type: 'setCarrier', playerId },
-  );
+function withZone(zone: ZoneId): PitchDocument {
+  return run(matchup(), { type: 'fillDefaultRoles' }, { type: 'tapZone', zone });
 }
 
 function player(doc: PitchDocument, id: string): Player {
@@ -189,12 +184,12 @@ describe('setAttacker', () => {
     expect(applyAction(doc, { type: 'setAttacker', attacker: 'mine' })).toBe(doc);
   });
 
-  it('swaps the possession of roles and drops the carrier of the old attacker', () => {
-    const start = withCarrier('C-F', exampleSlotId('mine', 'ST'));
+  it('swaps the possession of roles and re-reads the zone from the ball', () => {
+    const start = withZone('C-F');
     expect(start.scenario).not.toBeNull();
     const flipped = applyAction(start, { type: 'setAttacker', attacker: 'opponent' });
     expect(flipped.attacker).toBe('opponent');
-    expect(flipped.scenario).toBeNull();
+    expect(flipped.scenario).toEqual({ zone: zoneOf(flipped.ball, 'opponent') });
     const roleOf = (id: string) => FM26_DATA.roles.find((r) => r.id === player(flipped, id).role)!;
     expect(roleOf(MINE_ST).possession).toBe('out');
     expect(roleOf(OPPONENT_ST).possession).toBe('in');
@@ -392,27 +387,18 @@ describe('moving pieces', () => {
     ).toBe(blank);
   });
 
-  it('benching the carrier clears the scenario instead of handing the ball to someone', () => {
-    const doc = withCarrier('C-F', exampleSlotId('mine', 'ST'));
-    const benched = applyAction(doc, {
-      type: 'benchPlayer',
-      playerId: exampleSlotId('mine', 'ST'),
-    });
-    expect(benched.scenario).toBeNull();
-    expect(benched.ball).toEqual(doc.ball);
-  });
-
-  it('benching another player keeps the carrier', () => {
-    const doc = withCarrier('C-F', exampleSlotId('mine', 'ST'));
+  it('benching a player keeps the zone and the ball', () => {
+    const doc = withZone('C-F');
     const benched = applyAction(doc, {
       type: 'benchPlayer',
       playerId: exampleSlotId('mine', 'DM'),
     });
     expect(benched.scenario).toEqual(doc.scenario);
+    expect(benched.ball).toEqual(doc.ball);
   });
 
-  it('moving a player never reassigns the carrier', () => {
-    const doc = withCarrier('C-F', exampleSlotId('mine', 'ST'));
+  it('moving a player keeps the zone', () => {
+    const doc = withZone('C-F');
     const moved = applyAction(doc, {
       type: 'movePlayer',
       playerId: exampleSlotId('mine', 'AMCL'),
@@ -423,67 +409,24 @@ describe('moving pieces', () => {
 });
 
 describe('scenario actions', () => {
-  it('tapZone puts the ball at the zone centre and chooses no carrier', () => {
+  it('tapZone puts the ball at the zone centre and records the zone', () => {
     const doc = run(matchup(), { type: 'fillDefaultRoles' });
     const result = applyAction(doc, { type: 'tapZone', zone: 'R-F' });
     expect(result.ball).toEqual(round(zoneCentre('R-F', 'mine')));
-    expect(result.scenario).toBeNull();
+    expect(result.scenario).toEqual({ zone: 'R-F' });
     expect(result.players).toBe(doc.players);
     expect(documentIssues(result, FM26_DATA)).toBeNull();
   });
 
-  it('tapZone keeps the chosen carrier while that role is eligible in the new zone', () => {
-    const doc = withCarrier('R-F', exampleSlotId('mine', 'AMCR'));
-    const sameLane = applyAction(doc, { type: 'tapZone', zone: 'R-M' });
-    expect(sameLane.scenario).toEqual({ zone: 'R-M', carrierId: exampleSlotId('mine', 'AMCR') });
-    const elsewhere = applyAction(doc, { type: 'tapZone', zone: 'C-D' });
-    expect(elsewhere.scenario).toBeNull();
-    expect(documentIssues(sameLane, FM26_DATA)).toBeNull();
+  it('tapZone on the chosen zone changes nothing', () => {
+    const doc = withZone('R-F');
+    expect(applyAction(doc, { type: 'tapZone', zone: 'R-F' })).toBe(doc);
   });
 
   it('tapZone on an empty pitch only moves the ball', () => {
     const doc = applyAction(createInitialDocument(), { type: 'tapZone', zone: 'L-D' });
-    expect(doc.scenario).toBeNull();
+    expect(doc.scenario).toEqual({ zone: 'L-D' });
     expect(doc.ball).not.toEqual(createInitialDocument().ball);
-  });
-
-  it('setCarrier takes a player eligible in the ball zone', () => {
-    const doc = run(matchup(), { type: 'fillDefaultRoles' }, { type: 'tapZone', zone: 'R-F' });
-    const chosen = applyAction(doc, { type: 'setCarrier', playerId: exampleSlotId('mine', 'DR') });
-    expect(chosen.scenario).toEqual({ zone: 'R-F', carrierId: exampleSlotId('mine', 'DR') });
-    expect(chosen.ball).toEqual(doc.ball);
-    const swapped = applyAction(chosen, {
-      type: 'setCarrier',
-      playerId: exampleSlotId('mine', 'AMCR'),
-    });
-    expect(swapped.scenario!.carrierId).toBe(exampleSlotId('mine', 'AMCR'));
-    expect(documentIssues(swapped, FM26_DATA)).toBeNull();
-  });
-
-  it('setCarrier refuses a player that is not eligible, a defender or an unknown id', () => {
-    const doc = run(matchup(), { type: 'fillDefaultRoles' }, { type: 'tapZone', zone: 'R-F' });
-    for (const playerId of [
-      exampleSlotId('mine', 'ST'),
-      exampleSlotId('mine', 'DL'),
-      exampleSlotId('mine', 'GK'),
-      exampleSlotId('opponent', 'ST'),
-      'ghost',
-    ]) {
-      expect(applyAction(doc, { type: 'setCarrier', playerId })).toBe(doc);
-    }
-  });
-
-  it('clears the carrier when their new role is ineligible for the current zone', () => {
-    const doc = withCarrier('R-F', exampleSlotId('mine', 'AMCR'));
-
-    const changed = applyAction(doc, {
-      type: 'setRole',
-      playerId: exampleSlotId('mine', 'AMCR'),
-      roleId: 'playmaking_winger_ip',
-    });
-
-    expect(changed.scenario).toBeNull();
-    expect(documentIssues(changed, FM26_DATA)).toBeNull();
   });
 
   it('placeBall moves only the ball, clamped to the pitch', () => {
@@ -507,79 +450,15 @@ describe('scenario actions', () => {
     expect(onStriker.scenario).toBeNull();
   });
 
-  it('placeBall drops a scenario the ball has left instead of re-resolving it', () => {
-    const doc = withCarrier('C-F', exampleSlotId('mine', 'ST'));
+  it('placeBall drops the zone the ball has left', () => {
+    const doc = withZone('C-F');
     const moved = applyAction(doc, { type: 'placeBall', point: { x: 10, y: 80 } });
     expect(moved.scenario).toBeNull();
     expect(documentIssues(moved, FM26_DATA)).toBeNull();
   });
 
-  it('pass moves the ball onto the receiver', () => {
-    const doc = withCarrier('C-M', exampleSlotId('mine', 'MCL'));
-    const passed = applyAction(doc, { type: 'pass', receiverId: exampleSlotId('mine', 'MCR') });
-    expect(passed.scenario!.carrierId).toBe(exampleSlotId('mine', 'MCR'));
-    expect(passed.ball).toEqual(player(doc, exampleSlotId('mine', 'MCR')).base);
-    expect(applyAction(doc, { type: 'pass', receiverId: exampleSlotId('mine', 'MCL') })).toBe(doc);
-    expect(documentIssues(passed, FM26_DATA)).toBeNull();
-  });
-
-  it('pass needs a current carrier', () => {
-    const doc = run(matchup(), { type: 'fillDefaultRoles' }, { type: 'tapZone', zone: 'C-M' });
-    expect(applyAction(doc, { type: 'pass', receiverId: exampleSlotId('mine', 'MCR') })).toBe(doc);
-  });
-
-  it('pass can use displayed positions instead of base positions', () => {
-    const doc = withCarrier('C-M', exampleSlotId('mine', 'MCL'));
-    const positions = new Map([[exampleSlotId('mine', 'MCR'), { x: 12.345, y: 67.891 }]]);
-    const passed = applyAction(doc, {
-      type: 'pass',
-      receiverId: exampleSlotId('mine', 'MCR'),
-      positions,
-    });
-    expect(passed.ball).toEqual({ x: 12.35, y: 67.89 });
-  });
-
-  it('dribble steps the ball and keeps the carrier', () => {
-    const doc = withCarrier('C-M', exampleSlotId('mine', 'MCL'));
-    const dribbled = applyAction(doc, { type: 'dribble', direction: 'forward' });
-    expect(dribbled.ball.y).toBeLessThan(doc.ball.y);
-    expect(dribbled.scenario!.carrierId).toBe(exampleSlotId('mine', 'MCL'));
-  });
-
-  it('keeps a carrier produced by a pass across unrelated role and formation changes', () => {
-    const passed = applyAction(withCarrier('C-M', exampleSlotId('mine', 'MCL')), {
-      type: 'pass',
-      receiverId: exampleSlotId('mine', 'GK'),
-    });
-    expect(passed.scenario!.carrierId).toBe(exampleSlotId('mine', 'GK'));
-    const changed = run(
-      passed,
-      { type: 'setRole', playerId: exampleSlotId('mine', 'ST'), roleId: null },
-      { type: 'applyFormation', team: 'opponent', formationId: OPPONENT },
-    );
-    expect(changed.scenario).toEqual(passed.scenario);
-  });
-
-  it('re-checks a pass carrier only when their own role changes', () => {
-    const passed = applyAction(withCarrier('C-M', exampleSlotId('mine', 'MCL')), {
-      type: 'pass',
-      receiverId: exampleSlotId('mine', 'GK'),
-    });
-    const cleared = applyAction(passed, {
-      type: 'setRole',
-      playerId: exampleSlotId('mine', 'GK'),
-      roleId: null,
-    });
-    expect(cleared.scenario).toBeNull();
-  });
-
-  it('dribble without a scenario does nothing', () => {
-    const doc = matchup();
-    expect(applyAction(doc, { type: 'dribble', direction: 'forward' })).toBe(doc);
-  });
-
-  it('clearScenario removes the scenario and keeps the ball', () => {
-    const doc = withCarrier('C-M', exampleSlotId('mine', 'MCL'));
+  it('clearScenario removes the zone and keeps the ball', () => {
+    const doc = withZone('C-M');
     const cleared = applyAction(doc, { type: 'clearScenario' });
     expect(cleared.scenario).toBeNull();
     expect(cleared.ball).toEqual(doc.ball);

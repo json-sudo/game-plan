@@ -25,7 +25,6 @@ function exampleSlotId(team: string, slot: string): string {
   return found.id;
 }
 
-const MINE_DL = exampleSlotId('mine', 'DL');
 const MINE_DM = exampleSlotId('mine', 'DM');
 const MINE_ST = exampleSlotId('mine', 'ST');
 const OPPONENT_DML = exampleSlotId('opponent', 'DML');
@@ -48,30 +47,26 @@ function snapshot(tactic: Tactic, mode: Mode): TacticSnapshot {
   return { tactic, mode };
 }
 
-function hashOf(
-  tactic: Tactic,
-  mode: Mode = 'fm',
-  phase: 'shape' | 'runs' | 'final' = 'shape',
-): string {
-  const result = encodeShareHash(snapshot(tactic, mode), phase);
+function hashOf(tactic: Tactic, mode: Mode = 'fm'): string {
+  const result = encodeShareHash(snapshot(tactic, mode));
   if (result.status !== 'ok') throw new Error('expected the tactic to fit in a link');
   return result.hash;
 }
 
-function payloadOf(tactic: Tactic, mode: Mode, phase: 'shape' | 'runs' | 'final'): unknown[] {
-  const encoded = hashOf(tactic, mode, phase).slice(`#${SHARE_PREFIX}`.length);
+function payloadOf(tactic: Tactic, mode: Mode): unknown[] {
+  const encoded = hashOf(tactic, mode).slice(`#${SHARE_PREFIX}`.length);
   const binary = atob(encoded.replace(/-/g, '+').replace(/_/g, '/'));
   const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
   return JSON.parse(new TextDecoder().decode(inflateSync(bytes)));
 }
 
-const FM_LAYOUT = 6;
-const OPEN_LAYOUT = 5;
+const FM_LAYOUT = 5;
+const OPEN_LAYOUT = 4;
 const PLAYERS = 4;
 const SCENARIO = 6;
 
 function crafted(mutate: (payload: unknown[]) => void): DecodeResult {
-  const payload = structuredClone(payloadOf(example, 'fm', 'runs'));
+  const payload = structuredClone(payloadOf(example, 'fm'));
   mutate(payload);
   return decodeShareHash(rawHash(payload));
 }
@@ -104,34 +99,26 @@ function arranged(): Tactic {
     base,
     'fm',
     { type: 'tapZone', zone: 'L-D' },
-    { type: 'setCarrier', playerId: MINE_DL },
     { type: 'setPieceName', playerId: MINE_ST, name: 'Zoë 🙂' },
   );
 }
 
 describe('round trip', () => {
-  it('rebuilds the example tactic, the phase and the share-time mode', () => {
-    const result = decodeShareHash(hashOf(example, 'fm', 'runs'));
-    expect(result).toEqual({ status: 'ok', tactic: example, phase: 'runs', mode: 'fm' });
-  });
-
-  it('keeps each phase', () => {
-    for (const phase of ['shape', 'runs', 'final'] as const) {
-      const result = decodeShareHash(hashOf(example, 'fm', phase));
-      expect(result.status === 'ok' && result.phase).toBe(phase);
-    }
+  it('rebuilds the example tactic and the share-time mode', () => {
+    const result = decodeShareHash(hashOf(example, 'fm'));
+    expect(result).toEqual({ status: 'ok', tactic: example, mode: 'fm' });
   });
 
   it('accepts the hash with or without the leading #', () => {
-    const hash = hashOf(example, 'fm', 'final');
+    const hash = hashOf(example, 'fm');
     expect(hash.startsWith(`#${SHARE_PREFIX}`)).toBe(true);
     expect(decodeShareHash(hash.slice(1))).toEqual(decodeShareHash(hash));
   });
 
-  it('keeps both layouts, the open pitch ball and the FM scenario', () => {
+  it('keeps both layouts, the open pitch ball and the FM zone', () => {
     const tactic = arranged();
     const result = decodeShareHash(hashOf(tactic, 'openPitch'));
-    expect(result).toEqual({ status: 'ok', tactic, phase: 'shape', mode: 'openPitch' });
+    expect(result).toEqual({ status: 'ok', tactic, mode: 'openPitch' });
     expect(tactic.openPitch.ball).toEqual({ x: 70.5, y: 33.25 });
     expect(tactic.fm.scenario?.zone).toBe('L-D');
   });
@@ -155,15 +142,10 @@ describe('round trip', () => {
       { type: 'setSquadSize', team: 'opponent', size: 20 },
       { type: 'setAttacker', attacker: 'opponent' },
     );
-    expect(decodeShareHash(hashOf(tactic, 'fm', 'final'))).toEqual({
-      status: 'ok',
-      tactic,
-      phase: 'final',
-      mode: 'fm',
-    });
+    expect(decodeShareHash(hashOf(tactic, 'fm'))).toEqual({ status: 'ok', tactic, mode: 'fm' });
   });
 
-  it('keeps benched pieces and a pitch with no scenario', () => {
+  it('keeps benched pieces and a pitch with no zone', () => {
     const tactic = run(
       copyFmPositions(example),
       'openPitch',
@@ -178,7 +160,7 @@ describe('round trip', () => {
   it('keeps a blank tactic', () => {
     const blank = createInitialTactic();
     const result = decodeShareHash(hashOf(blank, 'openPitch'));
-    expect(result).toEqual({ status: 'ok', tactic: blank, phase: 'shape', mode: 'openPitch' });
+    expect(result).toEqual({ status: 'ok', tactic: blank, mode: 'openPitch' });
   });
 });
 
@@ -214,13 +196,13 @@ describe('size budget', () => {
     const full = fullTactic();
     expect(full.fm.players).toHaveLength(22);
     expect(full.openPitch.players.every((p) => p.customName?.length === 24)).toBe(true);
-    const hash = hashOf(full, 'fm', 'final');
+    const hash = hashOf(full, 'fm');
     expect(hash.length).toBeLessThan(MAX_SHARE_HASH_LENGTH / 2);
     expect(decodeShareHash(hash)).toMatchObject({ status: 'ok', tactic: full });
   });
 
   it('keeps the unnamed example far below the budget', () => {
-    expect(hashOf(example, 'fm', 'final').length).toBeLessThan(1500);
+    expect(hashOf(example, 'fm').length).toBeLessThan(1500);
   });
 
   it('fits the largest tactic: 26-player squads, both layouts placed and named', () => {
@@ -230,7 +212,7 @@ describe('size budget', () => {
       { type: 'setSquadSize', team: 'mine', size: 26 },
       { type: 'setSquadSize', team: 'opponent', size: 26 },
     );
-    const result = encodeShareHash(snapshot(squads, 'fm'), 'final');
+    const result = encodeShareHash(snapshot(squads, 'fm'));
     expect(result.status).toBe('ok');
     expect(result.status === 'ok' && result.hash.length).toBeLessThan(MAX_SHARE_HASH_LENGTH);
   });
@@ -249,7 +231,6 @@ describe('size budget', () => {
     });
     const result = encodeShareHash(
       snapshot({ openPitch: noise(example.openPitch, 0), fm: noise(example.fm, 9000) }, 'fm'),
-      'shape',
     );
     expect(result).toMatchObject({ status: 'error', code: 'too-large' });
   });
@@ -265,19 +246,19 @@ describe('rejected links', () => {
     });
   });
 
-  it('rejects every earlier version, v3 included, as an old link', () => {
-    for (const tag of ['v1', 'v2', 'v3']) {
+  it('rejects every earlier version, v4 included, as an old link', () => {
+    for (const tag of ['v1', 'v2', 'v3', 'v4']) {
       expect(decodeShareHash(`#s=${tag}.AAAA`)).toMatchObject(rejected('old-version'));
     }
   });
 
-  it('rejects a v3 payload without decoding it', () => {
-    const v3 = `#s=v3.${toBase64Url(deflateSync(strToU8(JSON.stringify(['fm26', 0]))))}`;
-    expect(decodeShareHash(v3)).toMatchObject(rejected('old-version'));
+  it('rejects a v4 payload without decoding it', () => {
+    const v4 = `#s=v4.${toBase64Url(deflateSync(strToU8(JSON.stringify(['fm26', 0]))))}`;
+    expect(decodeShareHash(v4)).toMatchObject(rejected('old-version'));
   });
 
   it('rejects newer or missing version tags', () => {
-    expect(decodeShareHash('#s=v5.AAAA')).toMatchObject(rejected('unknown-version'));
+    expect(decodeShareHash('#s=v6.AAAA')).toMatchObject(rejected('unknown-version'));
     expect(decodeShareHash('#s=AAAA')).toMatchObject(rejected('unknown-version'));
   });
 
@@ -331,12 +312,7 @@ describe('rejected links', () => {
     expect(crafted((p) => (fmPlayers(p)[0][6] = 'zzzz'))).toMatchObject(rejected('invalid'));
     expect(crafted((p) => (fmPlayers(p)[0][2] = 99))).toMatchObject(rejected('malformed'));
     expect(crafted((p) => (fmPlayers(p)[0][3] = 'STL'))).toMatchObject(rejected('invalid'));
-    expect(crafted((p) => (fmLayout(p)[SCENARIO] = ['Z-Q', MINE_ST]))).toMatchObject(
-      rejected('malformed'),
-    );
-    expect(crafted((p) => (fmLayout(p)[SCENARIO] = ['C-F', 'ghost']))).toMatchObject(
-      rejected('invalid'),
-    );
+    expect(crafted((p) => (fmLayout(p)[SCENARIO] = 'Z-Q'))).toMatchObject(rejected('malformed'));
   });
 
   it('rejects a role that does not fit the player', () => {
@@ -344,8 +320,8 @@ describe('rejected links', () => {
     expect(crafted((p) => (fmPlayers(p)[0][6] = other.code))).toMatchObject(rejected('invalid'));
   });
 
-  it('rejects roles or a scenario in the open pitch layout', () => {
-    const role = fmPlayers(structuredClone(payloadOf(example, 'fm', 'shape')))[0][6];
+  it('rejects roles or a zone in the open pitch layout', () => {
+    const role = fmPlayers(structuredClone(payloadOf(example, 'fm')))[0][6];
     expect(
       crafted((p) => {
         const open = p[OPEN_LAYOUT] as unknown[];
@@ -359,10 +335,8 @@ describe('rejected links', () => {
     ).toMatchObject(rejected('invalid'));
   });
 
-  it('rejects a scenario whose zone does not match the ball', () => {
-    expect(
-      crafted((p) => (fmLayout(p)[SCENARIO] = ['L-D', (fmLayout(p)[SCENARIO] as string[])[1]])),
-    ).toMatchObject(rejected('invalid'));
+  it('rejects a zone that does not match the ball', () => {
+    expect(crafted((p) => (fmLayout(p)[SCENARIO] = 'L-D'))).toMatchObject(rejected('invalid'));
   });
 
   it('rejects the same piece carrying different names in the two layouts', () => {
@@ -384,7 +358,7 @@ describe('rejected links', () => {
   });
 
   it('rejects names that are too long and duplicate pieces', () => {
-    expect(crafted((p) => ((p[3] as string[])[0] = 'n'.repeat(25)))).toMatchObject(
+    expect(crafted((p) => ((p[2] as string[])[0] = 'n'.repeat(25)))).toMatchObject(
       rejected('malformed'),
     );
     expect(crafted((p) => (fmPlayers(p)[0][7] = 'n'.repeat(25)))).toMatchObject(
@@ -399,10 +373,6 @@ describe('rejected links', () => {
   });
 
   it('rejects a squad that does not match its declared size', () => {
-    expect(crafted((p) => ((p[4] as number[])[0] = 20))).toMatchObject(rejected('invalid'));
-  });
-
-  it('rejects an unknown phase', () => {
-    expect(crafted((p) => (p[2] = 3))).toMatchObject(rejected('malformed'));
+    expect(crafted((p) => ((p[3] as number[])[0] = 20))).toMatchObject(rejected('invalid'));
   });
 });

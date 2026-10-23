@@ -6,7 +6,6 @@ import {
   type LoadTacticsResult,
 } from '../../persistence';
 import { readShareFromLocation, type DecodeResult } from '../../share';
-import type { Phase } from '../../engine';
 import { createExampleTactic, createInitialTactic, type Mode, type Tactic } from '../../state';
 import {
   SAVED_TACTICS_UNREADABLE_BODY,
@@ -22,7 +21,6 @@ export type SessionShareFeedback = { status: 'none' } | { status: 'error'; messa
 export interface InitialSession {
   tactic: Tactic;
   mode: Mode;
-  phase: Phase;
   visit: SessionVisit;
   tactics: LoadTacticsResult;
   share: SessionShareFeedback;
@@ -70,8 +68,8 @@ export function resolveInitialSession(sources: SessionSources = {}): InitialSess
   const tactics = readTactics(storage);
   const shared = readShare(location);
   if (shared?.status === 'ok') {
-    const { tactic, mode, phase } = shared;
-    return { tactic, mode, phase, visit: 'shared', tactics, share: { status: 'none' } };
+    const { tactic, mode } = shared;
+    return { tactic, mode, visit: 'shared', tactics, share: { status: 'none' } };
   }
   const share: SessionShareFeedback = shared
     ? { status: 'error', message: shared.message }
@@ -80,7 +78,6 @@ export function resolveInitialSession(sources: SessionSources = {}): InitialSess
     return {
       tactic: createExampleTactic(),
       mode: 'fm',
-      phase: 'shape',
       visit: 'first',
       tactics,
       share,
@@ -89,7 +86,6 @@ export function resolveInitialSession(sources: SessionSources = {}): InitialSess
   return {
     tactic: autoloaded(tactics) ?? createInitialTactic(),
     mode: 'openPitch',
-    phase: 'shape',
     visit: 'returning',
     tactics,
     share,

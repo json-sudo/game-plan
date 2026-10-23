@@ -15,7 +15,7 @@ import {
 export default function App() {
   const [session] = useState(() => resolveInitialSession());
   const [store] = useState(() =>
-    createPitchStore({ tactic: session.tactic, ui: { mode: session.mode, phase: session.phase } }),
+    createPitchStore({ tactic: session.tactic, ui: { mode: session.mode } }),
   );
   const notices = sessionNotices(session);
   useEffect(() => markVisited(), []);
