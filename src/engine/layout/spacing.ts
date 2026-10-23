@@ -16,6 +16,7 @@ export interface SpacingToken {
 
 export interface SpacingOptions {
   margin?: number;
+  minDistance?: (a: string, b: string) => number;
 }
 
 function mobilityOf(token: SpacingToken): number {
@@ -28,18 +29,26 @@ function clamp(value: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, value));
 }
 
+function towardCentre(value: number, length: number): number {
+  return value <= length / 2 ? 1 : -1;
+}
+
 export function enforceSpacing(
   tokens: readonly SpacingToken[],
   options: SpacingOptions = {},
 ): Map<string, Point> {
-  const { margin = DEFAULT_MARGIN } = options;
+  const { margin = DEFAULT_MARGIN, minDistance = () => MIN_TOKEN_SPACING } = options;
   const points = tokens.map((token) => ({ ...token.point }));
   const mobility = tokens.map(mobilityOf);
   const place = (index: number, x: number, y: number) => {
     if (mobility[index] === 0) return;
+    const clampedX = clamp(x, margin, PITCH_W - margin);
+    const clampedY = clamp(y, margin, PITCH_H - margin);
+    const slideX = Math.abs(y - clampedY) * towardCentre(clampedX, PITCH_W);
+    const slideY = Math.abs(x - clampedX) * towardCentre(clampedY, PITCH_H);
     points[index] = {
-      x: clamp(x, margin, PITCH_W - margin),
-      y: clamp(y, margin, PITCH_H - margin),
+      x: clamp(clampedX + slideX, margin, PITCH_W - margin),
+      y: clamp(clampedY + slideY, margin, PITCH_H - margin),
     };
   };
 
@@ -51,9 +60,10 @@ export function enforceSpacing(
         const dx = points[i].x - points[j].x;
         const dy = points[i].y - points[j].y;
         const distance = Math.hypot(dx, dy);
-        if (distance >= MIN_TOKEN_SPACING || total === 0) continue;
+        const need = minDistance(tokens[i].id, tokens[j].id);
+        if (distance >= need || total === 0) continue;
         const [ux, uy] = distance > 0 ? [dx / distance, dy / distance] : [0, 1];
-        const push = MIN_TOKEN_SPACING + CLEARANCE - distance;
+        const push = need + CLEARANCE - distance;
         place(
           i,
           points[i].x + ux * push * (mobility[i] / total),

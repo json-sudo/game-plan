@@ -28,7 +28,7 @@ export type {
   SquadSize,
   TeamMeta,
 } from './document';
-export { eligibleCarrierIdsOf } from './eligible-carriers';
+export { eligibleCarrierIdsOf, visualizationStartersOf } from './eligible-carriers';
 export {
   createExampleDocument,
   EXAMPLE_CARRIER,

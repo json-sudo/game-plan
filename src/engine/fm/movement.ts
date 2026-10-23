@@ -60,6 +60,19 @@ function centreSign(x: number): -1 | 0 | 1 {
   return delta < 0 ? -1 : 1;
 }
 
+export function offsetDelta(
+  offset: Offset,
+  zone: ZoneId,
+  frameBase: Point,
+  attacking: boolean,
+): Point {
+  const [side, wide, depth] = offset;
+  return {
+    x: side * laneSignOf(zone) + wide * centreSign(frameBase.x),
+    y: attacking ? -depth : depth,
+  };
+}
+
 export function targetFor(input: TargetInput): TargetResult {
   const { base, start, team, attacker, roleId, isKeeper, zone, tables, grid = ZONE_GRID } = input;
   if (isKeeper) return { status: 'ok', target: start };
@@ -71,11 +84,9 @@ export function targetFor(input: TargetInput): TargetResult {
     ? offsetFor(tables.movement, roleId, zone, ballSideOf(frameStart, zone, grid))
     : ([0, 0, 0] as const);
   if (!offset) return { status: 'setup-not-finished' };
-  const [side, wide, depth] = offset;
-  const dx = side * laneSignOf(zone) + wide * centreSign(frameBase.x);
-  const dy = attacking ? -depth : depth;
+  const delta = offsetDelta(offset, zone, frameBase, attacking);
   const target = clampToPitch(
-    { x: frameStart.x + dx, y: frameStart.y + shift + dy },
+    { x: frameStart.x + delta.x, y: frameStart.y + shift + delta.y },
     PITCH_TARGET_MARGIN,
   );
   return { status: 'ok', target: fromAttackerFrame(target, attacker) };

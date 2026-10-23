@@ -12,6 +12,14 @@ export { lineShift } from './fm/lineShift';
 export { PITCH_TARGET_MARGIN, ballSideOf, offsetFor, targetFor } from './fm/movement';
 export type { BallSide, MovementTables, TargetInput } from './fm/movement';
 export { PHASES, PHASE_PROGRESS, computePhases } from './fm/phases';
+export { buildVisualization, visualizationStarters, visualizationsFor } from './fm/visualization';
+export type {
+  Pass,
+  Visualization,
+  VisualizationFrame,
+  VisualizationInput,
+} from './fm/visualization';
+export { chooseReceiver } from './fm/receiver';
 export { PROVISIONAL_POSITION_ENGINE } from './fm/position-engine';
 export type { PositionEngine } from './fm/position-engine';
 export type {
@@ -47,4 +55,5 @@ export {
 } from './layout/formations';
 export type { TeamLayout } from './layout/formations';
 export { MIN_TOKEN_SPACING, enforceSpacing, minSpacingOf } from './layout/spacing';
-export { computeZoneShape, zoneShapeShift } from './fm/shape';
+export { SHAPE_MARGIN, computeZoneShape } from './fm/shape';
+export type { ShapeInput, ZoneShape } from './fm/shape';
