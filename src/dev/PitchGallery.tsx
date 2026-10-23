@@ -6,7 +6,7 @@ import { Bench } from '../ui/bench/Bench';
 import { BenchChip } from '../ui/bench/BenchChip';
 import type { BenchPiece } from '../ui/bench/BenchChip';
 import { Instrument } from '../ui/instrument/Instrument';
-import { TransportBar } from '../ui/instrument/TransportBar';
+import { SequenceControls } from '../ui/instrument/SequenceControls';
 import { ZoneMap } from '../ui/instrument/ZoneMap';
 import { Arrow } from '../ui/pitch/Arrow';
 import { Ball } from '../ui/pitch/Ball';
@@ -72,8 +72,6 @@ function PitchSample({ label, children }: { label: string; children: ReactNode }
 
 export function PitchGallery() {
   const [zone, setZone] = useState<ZoneId | null>('R-F');
-  const [phase, setPhase] = useState<0 | 1 | 2>(1);
-  const [playing, setPlaying] = useState(false);
   const [role, setRole] = useState('wb');
 
   return (
@@ -134,7 +132,7 @@ export function PitchGallery() {
       <Section id="zone-map-title" title="Zone map">
         <div className={styles.gallery__columns}>
           <Instrument>
-            <ZoneMap value={zone} onPick={setZone} attackerName="Wing-back" presets />
+            <ZoneMap value={zone} onPick={setZone} attackerName="Wing-back" />
           </Instrument>
           <Instrument>
             <ZoneMap value={null} phone />
@@ -180,18 +178,13 @@ export function PitchGallery() {
         </div>
       </Section>
 
-      <Section id="transport-title" title="Transport">
+      <Section id="controls-title" title="Visualization controls">
         <div className={styles.gallery__stack}>
           <Instrument>
-            <TransportBar
-              phase={phase}
-              playing={playing}
-              onPhase={(next) => setPhase(next as 0 | 1 | 2)}
-              onTogglePlay={() => setPlaying((value) => !value)}
-            />
+            <SequenceControls starter="AM(R) · Winger" total={2} />
           </Instrument>
           <Instrument>
-            <TransportBar phone phase={0} />
+            <SequenceControls phone starter="AM(R) · Winger" total={1} />
           </Instrument>
         </div>
       </Section>

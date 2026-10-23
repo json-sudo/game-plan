@@ -1,0 +1,17 @@
+$picker-width: 380px;
+
+.step {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.hint {
+    margin: 0;
+}
+
+.picker {
+    position: fixed;
+    z-index: 2;
+    width: $picker-width;
+}

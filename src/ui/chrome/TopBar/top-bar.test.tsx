@@ -35,7 +35,17 @@ describe('TopBar on desktop', () => {
   });
 
   it('offers the full action set with copy-deck names', () => {
-    render(<TopBar canUndo canRedo canReset onToggleTheme={vi.fn<() => void>()} />);
+    render(
+      <TopBar
+        canUndo
+        canRedo
+        canReset
+        onSave={vi.fn<() => void>()}
+        onLoad={vi.fn<() => void>()}
+        onCopyJson={vi.fn<() => void>()}
+        onToggleTheme={vi.fn<() => void>()}
+      />,
+    );
     for (const name of [
       'Undo',
       'Redo',
@@ -194,5 +204,38 @@ describe('TopBar on a phone', () => {
   it('uses Open pitch as the default mode', () => {
     render(<TopBar phone />);
     expect(screen.getByText('Open pitch')).toBeInTheDocument();
+  });
+});
+
+describe('TopBar in FM mode and at narrow widths', () => {
+  it('shows the FM tooltips on Export PNG and Share tactic', () => {
+    render(<TopBar mode="fm" />);
+    expect(screen.getByRole('button', { name: 'Export PNG' })).toHaveAccessibleDescription(
+      'Export PNG of this frame',
+    );
+    expect(screen.getByRole('button', { name: 'Share tactic' })).toHaveAccessibleDescription(
+      'Saves the zone and visualization',
+    );
+  });
+
+  it('shows Clear disabled with its reason instead of hiding it', () => {
+    render(
+      <TopBar
+        mode="fm"
+        canClear={false}
+        clearReason="Clear is for Open pitch. Use Reset in FM mode."
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Clear' })).toHaveAccessibleDescription(
+      'Clear is for Open pitch. Use Reset in FM mode.',
+    );
+  });
+
+  it('turns Reset, Clear and Export PNG into icon buttons when compact', () => {
+    render(<TopBar compact />);
+    for (const name of ['Reset', 'Clear', 'Export PNG']) {
+      expect(screen.getByRole('button', { name })).toHaveAttribute('data-variant', 'icon');
+    }
+    expect(screen.getByRole('button', { name: 'Share tactic' })).toHaveTextContent('Share tactic');
   });
 });

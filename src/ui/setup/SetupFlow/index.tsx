@@ -1,25 +1,26 @@
 import { useStore, type StoreApi } from 'zustand';
-import { FM26_DATA } from '../../../data/fm26';
-import { pieceLabel } from '../../../state/bench-pieces';
 import { isSetupComplete, placedPlayers, type PitchDocument } from '../../../state/document';
 import type { PitchStore } from '../../../state/store';
 import {
+  SETUP_ATTACKS_HINT,
+  SETUP_FORMATION_NEXT_REASON,
+  SETUP_OPPONENT_LABEL,
   SETUP_ROLES,
-  SETUP_ROLES_HINT,
-  SETUP_ROLES_PHONE_HINT,
   SETUP_STEP_FORMATIONS,
   SETUP_STEP_WHO_ATTACKS,
-  TOKEN_TEAM_LABELS,
   setupAttacksSummary,
-  setupRoleChoiceLabel,
   setupRolesSummary,
 } from '../../copy';
 import { SegmentedControl } from '../../controls/SegmentedControl';
 import { ChoiceGrid } from '../ChoiceGrid';
+import { RolesStep } from '../RolesStep';
 import {
-  FORMATION_OPTIONS,
+  FORMATION_CARDS,
+  FORMATION_MORE,
+  NO_OPPONENT_VALUE,
+  OPPONENT_CARDS,
   formationSummary,
-  roleOptions,
+  isRoleChanged,
   setupCursor,
   setupStepNumbers,
   stepMark,
@@ -31,51 +32,12 @@ import styles from './setup-flow.module.scss';
 export interface SetupFlowProps {
   store: StoreApi<PitchStore>;
   phone?: boolean;
+  onClose?: () => void;
 }
 
-function rolesStep(
-  store: StoreApi<PitchStore>,
-  doc: PitchDocument,
-  phone: boolean,
-): Pick<SetupStep, 'content' | 'summary'> {
+function rolesSummary(doc: PitchDocument) {
   const placed = placedPlayers(doc);
-  return {
-    summary: isSetupComplete(doc) ? setupRolesSummary(placed.length) : undefined,
-    content: (
-      <>
-        <p className={styles['roles-hint']}>{phone ? SETUP_ROLES_PHONE_HINT : SETUP_ROLES_HINT}</p>
-        {placed.map((player) => {
-          const options = roleOptions(doc, player);
-          if (!player.slot || options.length === 0) return null;
-          return (
-            <label key={player.id} className={styles['role-choice']}>
-              <span>{pieceLabel(doc, player, FM26_DATA)}</span>
-              <select
-                aria-label={setupRoleChoiceLabel(
-                  pieceLabel(doc, player, FM26_DATA),
-                  TOKEN_TEAM_LABELS[player.team],
-                )}
-                value={player.role ?? ''}
-                onChange={(event) =>
-                  store.getState().dispatch({
-                    type: 'setRole',
-                    playerId: player.id,
-                    roleId: event.target.value,
-                  })
-                }
-              >
-                {options.map((role) => (
-                  <option key={role.id} value={role.id}>
-                    {role.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          );
-        })}
-      </>
-    ),
-  };
+  return setupRolesSummary(placed.length, placed.filter((p) => isRoleChanged(doc, p)).length);
 }
 
 function buildSteps(
@@ -86,30 +48,39 @@ function buildSteps(
 ): SetupStep[] {
   const complete = isSetupComplete(doc);
   const marks = ([1, 2, 3] as const).map((index) => stepMark(index, cursor, complete));
+  const dispatch = store.getState().dispatch;
   const steps: SetupStep[] = [
     {
       title: SETUP_STEP_FORMATIONS,
       state: marks[0].state,
       reopened: marks[0].reopened,
       summary: formationSummary(doc),
+      nextDisabled: doc.teams.mine.formationId === null,
+      nextReason: SETUP_FORMATION_NEXT_REASON,
       content: (
         <>
           <ChoiceGrid
             label={doc.teams.mine.name}
             mark="mine"
-            options={FORMATION_OPTIONS}
+            options={FORMATION_CARDS}
+            moreOptions={FORMATION_MORE}
             value={doc.teams.mine.formationId ?? undefined}
             onChange={(formationId) =>
-              store.getState().dispatch({ type: 'applyFormation', team: 'mine', formationId })
+              dispatch({ type: 'applyFormation', team: 'mine', formationId })
             }
           />
           <ChoiceGrid
-            label={doc.teams.opponent.name}
+            label={SETUP_OPPONENT_LABEL}
             mark="opp"
-            options={FORMATION_OPTIONS}
-            value={doc.teams.opponent.formationId ?? undefined}
+            options={OPPONENT_CARDS}
+            moreOptions={FORMATION_MORE}
+            value={doc.teams.opponent.formationId ?? NO_OPPONENT_VALUE}
             onChange={(formationId) =>
-              store.getState().dispatch({ type: 'applyFormation', team: 'opponent', formationId })
+              dispatch(
+                formationId === NO_OPPONENT_VALUE
+                  ? { type: 'clearOpponent' }
+                  : { type: 'applyFormation', team: 'opponent', formationId },
+              )
             }
           />
         </>
@@ -121,26 +92,30 @@ function buildSteps(
       reopened: marks[1].reopened,
       summary: setupAttacksSummary(doc.teams[doc.attacker].name),
       content: (
-        <SegmentedControl
-          label={SETUP_STEP_WHO_ATTACKS}
-          value={doc.attacker}
-          options={[
-            { value: 'mine', label: doc.teams.mine.name },
-            { value: 'opponent', label: doc.teams.opponent.name },
-          ]}
-          onChange={(value) => {
-            if (value === 'mine' || value === 'opponent') {
-              store.getState().dispatch({ type: 'setAttacker', attacker: value });
-            }
-          }}
-        />
+        <>
+          <p className={styles.hint}>{SETUP_ATTACKS_HINT}</p>
+          <SegmentedControl
+            label={SETUP_STEP_WHO_ATTACKS}
+            value={doc.attacker}
+            options={[
+              { value: 'mine', label: doc.teams.mine.name },
+              { value: 'opponent', label: doc.teams.opponent.name },
+            ]}
+            onChange={(value) => {
+              if (value === 'mine' || value === 'opponent') {
+                dispatch({ type: 'setAttacker', attacker: value });
+              }
+            }}
+          />
+        </>
       ),
     },
     {
       title: SETUP_ROLES,
       state: marks[2].state,
       reopened: marks[2].reopened,
-      ...rolesStep(store, doc, phone),
+      summary: complete ? rolesSummary(doc) : undefined,
+      content: <RolesStep store={store} phone={phone} />,
     },
   ];
   return setupStepNumbers(doc).map((number) => steps[number - 1]);
@@ -160,7 +135,7 @@ function advance(store: StoreApi<PitchStore>, index: number) {
   state.patchUi({ setupStep: next });
 }
 
-export function SetupFlow({ store, phone = false }: SetupFlowProps) {
+export function SetupFlow({ store, phone = false, onClose }: SetupFlowProps) {
   const doc = useStore(store, (state) => state.doc);
   const setupStep = useStore(store, (state) => state.ui.setupStep);
   const cursor = setupCursor(doc, setupStep);
@@ -168,7 +143,8 @@ export function SetupFlow({ store, phone = false }: SetupFlowProps) {
     <div className={styles.flow}>
       <SetupStepper
         steps={buildSteps(store, doc, cursor, phone)}
-        phone={phone}
+        sheet={phone}
+        onClose={onClose}
         onBack={(index) => {
           const previous = setupStepNumbers(doc)[index - 1];
           if (previous !== undefined) store.getState().patchUi({ setupStep: previous });

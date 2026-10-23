@@ -31,6 +31,7 @@ export interface UiState {
   setupStep: 1 | 2 | 3 | null;
   theme: Theme;
   drag: DragState | null;
+  restartCount: number;
 }
 
 export interface LoadTacticOptions {
@@ -45,6 +46,7 @@ export interface PitchStore {
   dispatch: (action: Action) => void;
   copyFmPositions: (positions: ReadonlyMap<string, Point>) => void;
   showAnotherVisualization: () => void;
+  restartVisualization: () => void;
   loadTactic: (tactic: Tactic, options: LoadTacticOptions) => boolean;
   undo: () => void;
   redo: () => void;
@@ -69,6 +71,7 @@ export function initialUi(mode: Mode): UiState {
     setupStep: null,
     theme: 'light',
     drag: null,
+    restartCount: 0,
   };
 }
 
@@ -118,6 +121,10 @@ export function createPitchStore(options: PitchStoreOptions = {}): StoreApi<Pitc
         const { tactic: current, ui } = get();
         const next = withLayout(current, 'fm', nextVisualization(current.fm));
         if (next !== current) set({ tactic: next, doc: next[ui.mode] });
+      },
+      restartVisualization: () => {
+        const { ui } = get();
+        set({ ui: { ...ui, restartCount: ui.restartCount + 1 } });
       },
       loadTactic: (next, { mode }) => {
         if (tacticIssues(next, FM26_DATA) !== null) return false;

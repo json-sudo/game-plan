@@ -1,4 +1,15 @@
-import { MODE_LABELS, MODE_OPTIONS, RESET_DISABLED_REASON, type PitchMode } from '../../copy';
+import {
+  CLEAR_LABEL,
+  EXPORT_FM_TOOLTIP,
+  EXPORT_PNG_LABEL,
+  MODE_LABELS,
+  MODE_OPTIONS,
+  RESET_DISABLED_REASON,
+  RESET_LABEL,
+  SHARE_FM_TOOLTIP,
+  SHARE_LABEL,
+  type PitchMode,
+} from '../../copy';
 import { Button } from '../../controls/Button';
 import { SegmentedControl } from '../../controls/SegmentedControl';
 import { TeamMark } from '../../controls/TeamMark';
@@ -13,8 +24,12 @@ export interface TopBarProps {
   canUndo?: boolean;
   canRedo?: boolean;
   canReset?: boolean;
+  resetReason?: string;
+  canClear?: boolean;
+  clearReason?: string;
   theme?: 'light' | 'dark';
   phone?: boolean;
+  compact?: boolean;
   menuOpen?: boolean;
   showResetTip?: boolean;
   undoLabel?: string;
@@ -36,7 +51,8 @@ export interface TopBarProps {
 }
 
 const SWATCH_SIZE = 12;
-const SHARE_LABEL = 'Share tactic';
+const TEAM_FIELD_WIDTH = 150;
+const TEAM_FIELD_WIDTH_COMPACT = 128;
 
 function PhoneTopBar(props: TopBarProps) {
   const { mine = 'My team', opp = 'Opponent', mode = 'open', canUndo, menuOpen } = props;
@@ -63,6 +79,26 @@ function PhoneTopBar(props: TopBarProps) {
   );
 }
 
+function ghostAction(
+  compact: boolean,
+  label: string,
+  icon: 'reset' | 'clear',
+  rest: {
+    disabled?: boolean;
+    disabledReason?: string;
+    tipOpen?: boolean;
+    onClick?: () => void;
+  },
+) {
+  return compact ? (
+    <Button variant="icon" icon={icon} label={label} {...rest} />
+  ) : (
+    <Button variant="ghost" icon={icon} {...rest}>
+      {label}
+    </Button>
+  );
+}
+
 export function TopBar(props: TopBarProps) {
   if (props.phone) return <PhoneTopBar {...props} />;
   const {
@@ -72,12 +108,20 @@ export function TopBar(props: TopBarProps) {
     canUndo,
     canRedo,
     canReset,
+    canClear = true,
+    compact = false,
     theme = 'light',
   } = props;
   const nextTheme = theme === 'dark' ? 'Light theme' : 'Dark theme';
+  const fm = mode === 'fm';
+  const fieldWidth = compact ? TEAM_FIELD_WIDTH_COMPACT : TEAM_FIELD_WIDTH;
+
+  const hasUtilities = Boolean(
+    props.onSave || props.onLoad || props.onCopyJson || props.onToggleTheme,
+  );
 
   return (
-    <header className={styles.bar}>
+    <header className={styles.bar} data-compact={compact || undefined}>
       <div className={styles.teams}>
         <TeamMark team="mine" size={SWATCH_SIZE} />
         <TextField
@@ -86,7 +130,7 @@ export function TopBar(props: TopBarProps) {
           hideLabel
           value={mine}
           counter={false}
-          width={150}
+          width={fieldWidth}
           readOnly={!props.onMineChange}
           onChange={props.onMineChange}
         />
@@ -98,7 +142,7 @@ export function TopBar(props: TopBarProps) {
           hideLabel
           value={opp}
           counter={false}
-          width={150}
+          width={fieldWidth}
           readOnly={!props.onOppChange}
           onChange={props.onOppChange}
         />
@@ -124,38 +168,71 @@ export function TopBar(props: TopBarProps) {
       />
       <span className={styles.separator} />
       <div className={styles.group}>
+        {ghostAction(compact, RESET_LABEL, 'reset', {
+          disabled: !canReset,
+          disabledReason: canReset ? undefined : (props.resetReason ?? RESET_DISABLED_REASON),
+          tipOpen: props.showResetTip,
+          onClick: props.onReset,
+        })}
+        {ghostAction(compact, CLEAR_LABEL, 'clear', {
+          disabled: !canClear,
+          disabledReason: canClear ? undefined : props.clearReason,
+          onClick: props.onClear,
+        })}
+      </div>
+      {hasUtilities ? (
+        <>
+          <span className={styles.separator} />
+          <div className={styles.group}>
+            {props.onSave ? (
+              <Button variant="icon" icon="save" label="Save" onClick={props.onSave} />
+            ) : null}
+            {props.onLoad ? (
+              <Button variant="icon" icon="load" label="Load" onClick={props.onLoad} />
+            ) : null}
+            {props.onCopyJson ? (
+              <Button
+                variant="icon"
+                icon="copy"
+                label="Copy tactic JSON"
+                onClick={props.onCopyJson}
+              />
+            ) : null}
+            {props.onToggleTheme ? (
+              <Button
+                variant="icon"
+                icon={theme === 'dark' ? 'sun' : 'moon'}
+                label={nextTheme}
+                onClick={props.onToggleTheme}
+              />
+            ) : null}
+          </div>
+        </>
+      ) : null}
+      {compact ? (
         <Button
-          variant="ghost"
-          icon="reset"
-          disabled={!canReset}
-          disabledReason={canReset ? undefined : RESET_DISABLED_REASON}
-          tipOpen={props.showResetTip}
-          onClick={props.onReset}
+          variant="icon"
+          icon="image"
+          label={EXPORT_PNG_LABEL}
+          tooltip={fm ? EXPORT_FM_TOOLTIP : undefined}
+          onClick={props.onExport}
+        />
+      ) : (
+        <Button
+          variant="secondary"
+          icon="image"
+          tooltip={fm ? EXPORT_FM_TOOLTIP : undefined}
+          onClick={props.onExport}
         >
-          Reset
+          {EXPORT_PNG_LABEL}
         </Button>
-        <Button variant="ghost" icon="clear" onClick={props.onClear}>
-          Clear
-        </Button>
-      </div>
-      <span className={styles.separator} />
-      <div className={styles.group}>
-        <Button variant="icon" icon="save" label="Save" onClick={props.onSave} />
-        <Button variant="icon" icon="load" label="Load" onClick={props.onLoad} />
-        <Button variant="icon" icon="copy" label="Copy tactic JSON" onClick={props.onCopyJson} />
-        {props.onToggleTheme ? (
-          <Button
-            variant="icon"
-            icon={theme === 'dark' ? 'sun' : 'moon'}
-            label={nextTheme}
-            onClick={props.onToggleTheme}
-          />
-        ) : null}
-      </div>
-      <Button variant="secondary" icon="image" onClick={props.onExport}>
-        Export PNG
-      </Button>
-      <Button variant="ink" icon="share" onClick={props.onShare}>
+      )}
+      <Button
+        variant="ink"
+        icon="share"
+        tooltip={fm ? SHARE_FM_TOOLTIP : undefined}
+        onClick={props.onShare}
+      >
         {SHARE_LABEL}
       </Button>
     </header>

@@ -107,27 +107,98 @@ $number-size: 28px;
     gap: var(--space-2);
 }
 
-.stepper[data-phone='true'] {
+.nav [role='tooltip'] {
+    right: 0;
+    left: auto;
+    transform: none;
+}
+
+.reason {
+    @include m.type('small');
+
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.sheet {
+    display: flex;
     flex: 1;
-    overflow: visible;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-height: 0;
+    padding-top: var(--space-3);
+}
 
-    .steps,
-    .step[data-state='active'] {
-        display: flex;
-        flex: 1;
-        flex-direction: column;
+.sheet-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 0 var(--space-3) 0 var(--space-4);
+
+    button {
+        min-width: 44px;
+        min-height: 44px;
     }
+}
 
-    .body {
-        flex: 1;
-        padding-left: var(--space-4);
-        background: inherit;
+.sheet-title {
+    margin: 0;
+    color: var(--text);
+    font: 700 22px/26px var(--font-display);
+}
+
+.progress {
+    display: flex;
+    gap: var(--space-1);
+    padding: 0 var(--space-4);
+}
+
+.segment {
+    flex: 1;
+    height: 4px;
+    border-radius: var(--radius-full);
+    background: var(--border);
+
+    &[data-filled='true'] {
+        background: var(--accent);
     }
+}
 
-    .nav {
-        position: sticky;
-        bottom: 0;
-        padding-top: var(--space-2);
-        background: inherit;
+.sheet-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-height: 0;
+    padding: 0 var(--space-4);
+    overflow-y: auto;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+
+    .number {
+        border-color: var(--accent-ink);
+        background: var(--surface-body);
+        color: var(--accent-ink);
+    }
+}
+
+.sheet-nav {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--border);
+    background: var(--surface-body);
+
+    button {
+        min-height: 44px;
     }
 }

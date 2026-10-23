@@ -1,0 +1,36 @@
+@use 'mixins' as m;
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-panel);
+
+    button {
+        width: 100%;
+        min-height: 44px;
+    }
+}
+
+.eyebrow {
+    @include m.type('eyebrow');
+
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.title {
+    margin: 0;
+    color: var(--text);
+    font: 700 20px/24px var(--font-display);
+}
+
+.hint {
+    @include m.type('small');
+
+    margin: 0;
+    color: var(--text-muted);
+}

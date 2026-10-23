@@ -166,6 +166,11 @@ export function blankTeam(doc: PitchDocument, team: Side): PitchDocument {
   };
 }
 
+export function clearOpponent(doc: PitchDocument, data: DataSet): PitchDocument {
+  if (doc.teams.opponent.formationId === null) return doc;
+  return settle({ ...blankTeam(doc, 'opponent'), attacker: 'mine' }, data);
+}
+
 export function resetFm(doc: PitchDocument): PitchDocument {
   if (!doc.scenario) return doc;
   return { ...SIDES.reduce(blankTeam, doc), attacker: 'mine', ball: BALL_START, scenario: null };

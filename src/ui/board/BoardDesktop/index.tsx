@@ -1,7 +1,5 @@
 import {
   useEffect,
-  useLayoutEffect,
-  useRef,
   useState,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -9,7 +7,7 @@ import {
 import { useStore, type StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
 import type { Point } from '../../../data/types';
-import { targetFor, zoneOf } from '../../../engine';
+import { zoneOf } from '../../../engine';
 import { benchPieces, pieceLabel } from '../../../state/bench-pieces';
 import { activeRoleOf } from '../../../state/context';
 import {
@@ -18,51 +16,45 @@ import {
   SQUAD_SIZES,
   playerSide,
   placedPlayers,
-  possessionOf,
   formationOf,
+  isSetupComplete,
   type PitchDocument,
   type Player,
 } from '../../../state/document';
 import { benchPlacementPoint } from '../../../state/placement';
 import { canSetSquadSize } from '../../../state/tactic-actions';
-import { selectCanUndo } from '../../../state/selectors';
+import { selectCanUndo, selectFmVisualization } from '../../../state/selectors';
 import type { PitchStore } from '../../../state/store';
-import { UndoControl } from '../../chrome/UndoControl';
+import { TopBar } from '../../chrome/TopBar';
 import {
   BALL_TOOLTIP,
-  CLEAR_LABEL,
-  MODE_OPTIONS,
+  CLEAR_FM_REASON,
   PITCH_LABEL,
-  RESET_DISABLED_REASON,
-  RESET_LABEL,
   SIDE_COLUMN_LABEL,
   SETUP_COLUMN_LABEL,
-  THEME_DARK_LABEL,
-  THEME_LIGHT_LABEL,
   TOKEN_TOOLTIP,
 } from '../../copy';
+import { useShareExport } from '../use-share-export';
 import { SetupFlow } from '../../setup/SetupFlow';
 import { MatchupStep } from '../../setup/MatchupStep';
-import { roleOptions } from '../../setup/setup-model';
-import { Button } from '../../controls/Button';
-import { SegmentedControl } from '../../controls/SegmentedControl';
+import { setupCursor } from '../../setup/setup-model';
 import { Bench } from '../../bench/Bench';
 import { SquadControls, type SquadControlTeam } from '../../bench/SquadControls';
 import { useBelowBreakpoint } from '../../../shared/hooks/useBelowBreakpoint';
 import { BALL_PIECE_ID } from '../../hooks/usePitchMotion';
 import { BallCard } from '../../instrument/BallCard';
 import { Instrument } from '../../instrument/Instrument';
+import { SequenceControls } from '../../instrument/SequenceControls';
 import { ZoneMap } from '../../instrument/ZoneMap';
 import { Ball } from '../../pitch/Ball';
 import { pieceKeyStep } from '../../pitch/piece-keys';
 import { Pitch } from '../../pitch/Pitch';
 import { PitchFrame } from '../../pitch/PitchFrame';
 import { PlayerToken } from '../../pitch/PlayerToken';
-import { RolePicker, type RolePickerRole } from '../../roles/RolePicker';
-import { PICKER_SIZE, anchorRolePicker } from './anchor-role-picker';
 import { tokenKeyCommand } from '../token-keys';
 import { useBoardDrag } from '../use-board-drag';
 import { useBoardMetrics } from '../use-board-metrics';
+import { fmPitchNotice, opponentOnPitch, resetState, visualizationControls } from '../fm-pieces';
 import { useBoardPieces } from '../use-board-pieces';
 import styles from './board-desktop.module.scss';
 
@@ -82,113 +74,27 @@ function roleLabel(doc: PitchDocument, player: Player) {
   return FM26_DATA.roles.find((role) => role.id === roleId)?.name;
 }
 
-function roleMovement(doc: PitchDocument, player: Player, roleId: string) {
-  const from = player.base ?? { x: 0, y: 0 };
-  if (!doc.scenario || !player.base) return { from, to: from };
-  const result = targetFor({
-    base: player.base,
-    start: player.base,
-    team: player.team,
-    attacker: doc.attacker,
-    roleId,
-    isKeeper: player.isKeeper,
-    zone: doc.scenario.zone,
-    tables: {
-      movement: FM26_DATA.movement,
-      shapeLineShift: FM26_DATA.shapeLineShift,
-      lineShift: FM26_DATA.lineShift,
-    },
-  });
-  return { from, to: result.status === 'ok' ? result.target : from };
-}
-
-function pickerRoles(doc: PitchDocument, player: Player): RolePickerRole[] {
-  return roleOptions(doc, player).map((role) => ({
-    id: role.id,
-    name: role.name,
-    desc: role.description,
-    ...roleMovement(doc, player, role.id),
-  }));
-}
-
 export function BoardDesktop({ store }: BoardDesktopProps) {
   const doc = useStore(store, (state) => state.doc);
   const tactic = useStore(store, (state) => state.tactic);
   const ui = useStore(store, (state) => state.ui);
   const canUndo = useStore(store, selectCanUndo);
+  const viz = useStore(store, selectFmVisualization);
   const view = useBoardPieces(store);
   const metrics = useBoardMetrics();
   const compactBar = useBelowBreakpoint(TOP_BAR_COMPACT_MAX_WIDTH);
-  const canReset = doc.teams.mine.applied !== null || doc.teams.opponent.applied !== null;
   const fm = ui.mode === 'fm';
+  const reset = resetState(doc, fm);
+  const shareExport = useShareExport(store);
   const ballZone = zoneOf(doc.ball, doc.attacker);
   const hasAttackerFormation = formationOf(FM26_DATA, doc.teams[doc.attacker].formationId) !== null;
 
-  const [pickedId, setPickedId] = useState<string | null>(null);
   const [ballFocused, setBallFocused] = useState(false);
-  const [pickerPlace, setPickerPlace] = useState({ left: 0, top: 0 });
-  const openToken = useRef<SVGGElement | null>(null);
-  const pickerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     document.documentElement.dataset.theme = ui.theme;
   }, [ui.theme]);
 
-  useEffect(() => {
-    if (!fm) setPickedId(null);
-  }, [fm]);
-
-  const drag = useBoardDrag(store, setPickedId);
-
-  const picked = fm && pickedId ? doc.players.find((player) => player.id === pickedId) : undefined;
-  const pickedRoleId = picked ? activeRoleOf(doc, picked, FM26_DATA) : undefined;
-  const pickedRoles = picked && picked.slot && pickedRoleId ? pickerRoles(doc, picked) : [];
-
-  useLayoutEffect(() => {
-    const token = openToken.current;
-    const node = pickerRef.current;
-    if (!picked || !token || !node) return;
-    const rect = token.getBoundingClientRect();
-    const measured = { width: node.offsetWidth, height: node.offsetHeight };
-    const size = measured.width > 0 && measured.height > 0 ? measured : PICKER_SIZE;
-    setPickerPlace(
-      anchorRolePicker(
-        { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
-        { width: window.innerWidth, height: window.innerHeight },
-        size,
-      ),
-    );
-  }, [picked, doc]);
-
-  useEffect(() => {
-    if (!picked) return;
-    const token = openToken.current;
-    const close = (focusToken: boolean) => {
-      setPickedId(null);
-      if (focusToken) token?.focus();
-    };
-    const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      close(true);
-    };
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target;
-      if (!(target instanceof Node)) return;
-      if (pickerRef.current?.contains(target)) return;
-      if (token?.contains(target)) return;
-      const onPitchToken =
-        target instanceof Element &&
-        drag.svgRef.current?.contains(target) &&
-        target.closest('[role="button"]');
-      close(!onPitchToken);
-    };
-    document.addEventListener('keydown', onKey);
-    document.addEventListener('pointerdown', onPointerDown, true);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('pointerdown', onPointerDown, true);
-    };
-  }, [picked, drag.svgRef]);
+  const drag = useBoardDrag(store);
 
   const pieceScale = { ppu: metrics.ppu, tokenPx: metrics.tokenPx, hitPx: DESKTOP_HIT_PX };
   const ballAtCentre = samePoint(doc.ball, BALL_START);
@@ -205,12 +111,9 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
       base: player.base,
       mode: ui.mode,
     });
-    if (!command) return;
+    if (!command || command.kind === 'select') return;
     event.preventDefault();
-    if (command.kind === 'select') {
-      openToken.current = event.currentTarget;
-      setPickedId(player.id);
-    } else if (command.kind === 'move') {
+    if (command.kind === 'move') {
       store.getState().dispatch({ type: 'movePlayer', playerId: player.id, point: command.point });
     } else {
       store.getState().dispatch({ type: 'benchPlayer', playerId: player.id });
@@ -220,9 +123,10 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
   const draggedFromPitch = doc.players.some(
     (player) => player.id === draggedPlayerId && player.base !== undefined,
   );
-  const piecesOnPitch = doc.players.filter(
-    (player) => player.base !== undefined || player.id === draggedPlayerId,
+  const piecesOnPitch = view.doc.players.filter((player) =>
+    fm ? view.pieces.has(player.id) : player.base !== undefined || player.id === draggedPlayerId,
   );
+  const cursor = setupCursor(doc, ui.setupStep);
   const squadTeams: SquadControlTeam[] = SIDES.map((team) => ({
     team,
     name: doc.teams[team].name,
@@ -252,60 +156,43 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
       data-labels={metrics.labels}
       style={boardStyle}
     >
-      <header className={styles.top} data-compact={compactBar || undefined}>
-        <SegmentedControl
-          label="Mode"
-          value={fm ? 'fm' : 'open'}
-          options={MODE_OPTIONS}
-          onChange={(value) => store.getState().setMode(value === 'fm' ? 'fm' : 'openPitch')}
-        />
-        <UndoControl canUndo={canUndo} redo={false} onUndo={() => store.getState().undo()} />
-        <span className={styles.spacer} />
-        {compactBar ? (
-          <Button
-            variant="icon"
-            icon="reset"
-            label={RESET_LABEL}
-            disabled={!canReset}
-            disabledReason={canReset ? undefined : RESET_DISABLED_REASON}
-            onClick={() => store.getState().dispatch({ type: 'reset' })}
-          />
-        ) : (
-          <Button
-            variant="ghost"
-            icon="reset"
-            disabled={!canReset}
-            disabledReason={canReset ? undefined : RESET_DISABLED_REASON}
-            onClick={() => store.getState().dispatch({ type: 'reset' })}
-          >
-            {RESET_LABEL}
-          </Button>
-        )}
-        {compactBar ? (
-          <Button
-            variant="icon"
-            icon="clear"
-            label={CLEAR_LABEL}
-            onClick={() => store.getState().dispatch({ type: 'clearPitch' })}
-          />
-        ) : (
-          <Button
-            variant="ghost"
-            icon="clear"
-            onClick={() => store.getState().dispatch({ type: 'clearPitch' })}
-          >
-            {CLEAR_LABEL}
-          </Button>
-        )}
-        <Button
-          variant="icon"
-          icon={ui.theme === 'dark' ? 'sun' : 'moon'}
-          label={ui.theme === 'dark' ? THEME_LIGHT_LABEL : THEME_DARK_LABEL}
-          onClick={() =>
-            store.getState().patchUi({ theme: ui.theme === 'dark' ? 'light' : 'dark' })
-          }
-        />
-      </header>
+      <TopBar
+        mine={doc.teams.mine.name}
+        opp={doc.teams.opponent.name}
+        mode={fm ? 'fm' : 'open'}
+        theme={ui.theme}
+        compact={compactBar}
+        canUndo={canUndo}
+        redo={false}
+        canReset={reset.enabled}
+        resetReason={reset.reason}
+        canClear={!fm}
+        clearReason={fm ? CLEAR_FM_REASON : undefined}
+        onMineChange={(name) =>
+          store.getState().dispatch({ type: 'renameTeam', team: 'mine', name })
+        }
+        onOppChange={(name) =>
+          store.getState().dispatch({ type: 'renameTeam', team: 'opponent', name })
+        }
+        onModeChange={(value) => store.getState().setMode(value === 'fm' ? 'fm' : 'openPitch')}
+        onUndo={() => store.getState().undo()}
+        onReset={() => store.getState().dispatch({ type: 'reset' })}
+        onClear={() => store.getState().dispatch({ type: 'clearPitch' })}
+        onToggleTheme={() =>
+          store.getState().patchUi({ theme: ui.theme === 'dark' ? 'light' : 'dark' })
+        }
+        onExport={() =>
+          shareExport.openExport({
+            doc: view.doc,
+            pieces: view.pieces,
+            ball: view.ballVisible ? view.ball : null,
+            fm,
+            showRole: metrics.labels === 'full',
+            tokenPx: metrics.tokenPx,
+          })
+        }
+        onShare={shareExport.share}
+      />
       <div className={styles.main}>
         <section className={styles.setup} data-column="setup" aria-label={SETUP_COLUMN_LABEL}>
           {fm ? <SetupFlow store={store} /> : <MatchupStep store={store} />}
@@ -316,14 +203,16 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
             attacking={doc.attacker}
             mine={doc.teams.mine.name}
             opponent={doc.teams.opponent.name}
+            solo={fm && !opponentOnPitch(doc)}
+            notice={view.ballVisible ? undefined : fmPitchNotice(cursor)}
           >
             <Pitch label={PITCH_LABEL} svgRef={drag.svgRef}>
               {piecesOnPitch.map((player) => {
                 const point = view.pieces.get(player.id);
                 if (!point) return null;
-                const dragging = draggedPlayerId === player.id;
-                const role = fm ? roleLabel(doc, player) : undefined;
-                const selected = picked?.id === player.id;
+                const role = fm ? roleLabel(view.doc, player) : undefined;
+                const position = pieceLabel(view.doc, player, FM26_DATA);
+                const compact = metrics.labels !== 'full';
                 return (
                   <PlayerToken
                     key={player.id}
@@ -332,36 +221,33 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
                     scale={pieceScale}
                     team={player.team}
                     keeper={player.isKeeper}
-                    label={pieceLabel(doc, player, FM26_DATA)}
+                    label={position}
                     side={playerSide(player)}
                     role={role}
-                    showRole={Boolean(role) && (metrics.labels === 'full' || selected)}
-                    selected={selected}
-                    title={
-                      role ? TOKEN_TOOLTIP(pieceLabel(doc, player, FM26_DATA), role) : undefined
-                    }
-                    dragging={dragging}
-                    onPointerDown={(event) => {
-                      openToken.current = event.currentTarget;
-                      drag.startDrag(player.id)(event);
-                    }}
+                    showRole={Boolean(role) && !compact}
+                    title={role && compact ? TOKEN_TOOLTIP(position, role) : undefined}
+                    fixed={fm}
+                    dragging={draggedPlayerId === player.id}
+                    onPointerDown={drag.startDrag(player.id)}
                     onKeyDown={onTokenKey(player)}
                   />
                 );
               })}
-              <Ball
-                x={view.ball.x}
-                y={view.ball.y}
-                scale={pieceScale}
-                title={fm ? undefined : BALL_TOOLTIP}
-                fixed={fm}
-                selected={ballFocused}
-                dragging={ui.drag?.target.kind === 'ball'}
-                onPointerDown={drag.startDrag(BALL_PIECE_ID)}
-                onFocus={() => setBallFocused(true)}
-                onBlur={() => setBallFocused(false)}
-                onKeyDown={onBallKey}
-              />
+              {view.ballVisible ? (
+                <Ball
+                  x={view.ball.x}
+                  y={view.ball.y}
+                  scale={pieceScale}
+                  title={fm ? undefined : BALL_TOOLTIP}
+                  fixed={fm}
+                  selected={ballFocused}
+                  dragging={ui.drag?.target.kind === 'ball'}
+                  onPointerDown={drag.startDrag(BALL_PIECE_ID)}
+                  onFocus={() => setBallFocused(true)}
+                  onBlur={() => setBallFocused(false)}
+                  onKeyDown={onBallKey}
+                />
+              ) : null}
             </Pitch>
           </PitchFrame>
         </div>
@@ -374,8 +260,14 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
             <Instrument>
               <ZoneMap
                 value={hasAttackerFormation ? ballZone : null}
+                locked={!isSetupComplete(doc)}
                 attackerName={doc.teams[doc.attacker].name}
                 onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
+              />
+              <SequenceControls
+                {...visualizationControls(doc, viz)}
+                onRestart={() => store.getState().restartVisualization()}
+                onAnother={() => store.getState().showAnotherVisualization()}
               />
             </Instrument>
           ) : (
@@ -406,28 +298,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
           )}
         </section>
       </div>
-      {picked && picked.slot && pickedRoleId ? (
-        <div
-          ref={pickerRef}
-          className={styles.picker}
-          style={{ left: pickerPlace.left, top: pickerPlace.top }}
-        >
-          <RolePicker
-            slotLabel={pieceLabel(doc, picked, FM26_DATA)}
-            side={playerSide(picked)}
-            phase={possessionOf(doc, picked.team) === 'in' ? 'IP' : 'OOP'}
-            team={picked.team}
-            roles={pickedRoles}
-            current={pickedRoleId}
-            value={pickedRoleId}
-            zone={doc.scenario?.zone}
-            onChoose={(roleId) =>
-              store.getState().dispatch({ type: 'setRole', playerId: picked.id, roleId })
-            }
-            onClose={() => setPickedId(null)}
-          />
-        </div>
-      ) : null}
+      {shareExport.dialogs}
     </div>
   );
 }

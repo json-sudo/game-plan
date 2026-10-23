@@ -21,7 +21,7 @@ export const MODE_OPTIONS = (Object.keys(MODE_LABELS) as PitchMode[]).map((value
 
 export const VERSUS_LABEL = 'v';
 export const SETUP_COLUMN_LABEL = 'Setup and arrows';
-export const SIDE_COLUMN_LABEL = 'Zone map and transport';
+export const SIDE_COLUMN_LABEL = 'Zone map and visualization controls';
 export const ARROWS_LABEL = 'Arrows';
 export const ARROWS_ALL_LABEL = 'All players';
 export const ARROWS_SELECTED_LABEL = 'Selected only';
@@ -30,20 +30,42 @@ export const SETUP_STEP_FORMATIONS = 'Formations';
 export const SETUP_STEP_WHO_ATTACKS = 'Who attacks';
 export const SETUP_ROLES = 'Roles';
 export const SETUP_ROLES_HINT =
-  'Every player has an FM26 default role. Tap a player on the pitch to change it.';
+  'Every player starts on their FM26 default role. Pick a player to change it.';
 export const SETUP_ROLES_PHONE_HINT =
-  'Every player has an FM26 default role. Change a role with its menu below.';
+  'Every player starts on their FM26 default role. Change roles on a desktop.';
+export const SETUP_ATTACKS_HINT =
+  'The attacking team plays up the pitch. Changing it turns the pitch.';
+export const SETUP_ROLES_RECOMPUTE_NOTE =
+  'Changing a role recomputes the visualization and restarts it.';
+export const SETUP_CARD_TITLE = 'Set up your tactic';
+export const SETUP_CARD_HINT =
+  'Two steps: formations, then roles. Who attacks appears when you pick an opponent.';
+export const SETUP_CARD_START = 'Start setup';
+export const SETUP_SHEET_LABEL = 'Guided setup';
+export const SETUP_SHEET_CLOSE = 'Close setup';
+export const SETUP_SHEET_CANCEL = 'Cancel';
+export const SETUP_OPPONENT_LABEL = 'Opponent (optional)';
+export const NO_OPPONENT_LABEL = 'No opponent';
+export const NO_OPPONENT_SUMMARY = 'no opponent';
+export const FORMATION_MORE_LABEL = 'More';
+export const SETUP_FORMATION_NEXT_REASON = 'Pick a formation for your team first.';
 export const setupAttacksSummary = (name: string) => `${name} attacks`;
-export const setupRolesSummary = (count: number) =>
-  `${count} ${count === 1 ? 'role' : 'roles'} set`;
-export const setupRoleChoiceLabel = (slot: string, side: string) => `${slot} role, ${side}`;
+export const setupRolesSummary = (count: number, changed: number) =>
+  [`${count} ${count === 1 ? 'role' : 'roles'} set`, changed > 0 ? `${changed} changed` : null]
+    .filter(Boolean)
+    .join(' · ');
+export const ROLE_CHANGED_TOOLTIP = 'Changed from the FM26 default';
+export const ROLE_LIST_HEADINGS = {
+  in: 'In possession roles',
+  out: 'Out of possession roles',
+} as const;
+export const ROLE_LIST_TEAM_LABEL = 'Team';
 
 export const KEEPER_LABEL = 'GK';
 export const BALL_LABEL = 'Ball';
 export const TOKEN_TEAM_LABELS = { mine: 'my team', opponent: 'opponent' } as const;
 export const tokenSideLabel = (side: 'left' | 'right') => `${side} side`;
 
-export const NEXT_AT_FINAL_HINT = 'Already at Final position. Press Play to start again.';
 export const ATTACKING_TAG = 'Attacking ↑';
 export const DEFENDING_TAG = 'Defending';
 export const OPEN_PITCH_HINT = 'Places both teams attack against defence, with space between them.';
@@ -59,6 +81,9 @@ export const BALL_TO_CENTRE_LABEL = 'Ball to the centre spot';
 export const BALL_AT_CENTRE_REASON = 'The ball is on the centre spot.';
 export const BALL_TOOLTIP = 'Ball. Drag it anywhere on the pitch.';
 export const TOKEN_TOOLTIP = (position: string, role: string) => `${position} · ${role}`;
+export const PITCH_EMPTY_SETUP =
+  'Finish setting up your preferences to see your tactic visualization';
+export const PITCH_EMPTY_ZONE = 'Pick a zone to finish setting up your tactic visualization';
 
 export const ZONE_MAP_HEADING = 'Ball zone';
 export const NO_ZONE_TITLE = 'No zone yet';
@@ -67,10 +92,26 @@ export const ZONE_UNFINISHED_SUFFIX = ', setup not finished';
 export const ZONE_UNFINISHED_MESSAGE = 'Finish setting up your tactic to see the runs.';
 export const CARRIER_PICKED_SUFFIX = '(you picked)';
 export const carrierLine = (carrier: string) => `On the ball: ${carrier}`;
-export const ZONE_PRESETS = [
-  { label: 'Attack down the left', zone: 'L-F' },
-  { label: 'Attack down the right', zone: 'R-F' },
-] as const;
+export const ZONE_LOCKED_HINT = 'Finish setting up your tactic to pick a zone.';
+export const ZONE_AFTER_HINT = 'Tap another zone to see a new visualization.';
+
+export const RESET_FM_REASON = 'Pick a zone and start a visualization first.';
+export const CLEAR_FM_REASON = 'Clear is for Open pitch. Use Reset in FM mode.';
+export const EXPORT_PNG_LABEL = 'Export PNG';
+export const EXPORT_FM_TOOLTIP = 'Export PNG of this frame';
+export const SHARE_LABEL = 'Share tactic';
+export const SHARE_FM_TOOLTIP = 'Saves the zone and visualization';
+
+export const SHARE_LINK_LABEL = 'Link';
+export const SHARE_COPIED = 'Link copied';
+export const SHARE_HINT = 'Paste it in your group chat.';
+export const SHARE_DONE_LABEL = 'Done';
+export const EXPORT_NOTE = '1080 × 1350 PNG. Reads at group-chat size.';
+export const EXPORT_CANCEL_LABEL = 'Cancel';
+export const EXPORT_DOWNLOAD_LABEL = 'Download PNG';
+export const EXPORT_PREVIEW_LABEL = 'Preview of the exported image';
+export const EXPORT_FOOTER = 'Game Plan';
+export const EXPORT_FILE_NAME = 'game-plan.png';
 
 export const BENCH_HEADING = 'Bench';
 export const benchCount = (placed: number, benched: number) =>
@@ -92,15 +133,12 @@ export const ROLE_CURRENT_MARK = 'Current';
 export const ROLE_PICKER_CLOSE_LABEL = 'Close role picker';
 export const ROLE_HOLDS_POSITION = 'Holds position';
 
-export const TRANSPORT_PHASE_LABELS = ['Shape', 'Runs', 'Final'] as const;
-export const BACK_AT_SHAPE_HINT = 'Already at Shape.';
-export const TRANSPORT_BACK_LABEL = 'Back';
-export const TRANSPORT_NEXT_LABEL = 'Next';
-export const TRANSPORT_PLAY_LABEL = 'Play';
-export const TRANSPORT_PAUSE_LABEL = 'Pause';
-export const TRANSPORT_PLAYING_STATUS = 'Playing';
-export const transportStatus = (phase: number) =>
-  `${phase + 1} of ${TRANSPORT_PHASE_LABELS.length}`;
+export const VISUALIZATION_RESTART_LABEL = 'Restart';
+export const VISUALIZATION_ANOTHER_LABEL = 'Show another visualization';
+export const VISUALIZATION_SETUP_FIRST_REASON = 'Finish setting up your tactic first.';
+export const VISUALIZATION_ZONE_FIRST_REASON = 'Pick a zone first.';
+export const VISUALIZATION_SINGLE_REASON = 'This zone has one visualization.';
+export const startsWithLine = (starter: string) => `Starts with ${starter}`;
 
 export const DRIBBLE_LABELS = {
   up: 'Dribble forward',

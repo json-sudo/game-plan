@@ -43,6 +43,15 @@
         background: var(--zone-hover);
     }
 
+    &[aria-disabled='true'] {
+        cursor: not-allowed;
+        opacity: 0.6;
+
+        &:hover {
+            background: transparent;
+        }
+    }
+
     &[data-unfinished='true'] {
         background-image: repeating-linear-gradient(
             45deg,
@@ -94,14 +103,4 @@
     border-radius: var(--radius-sm);
     background: var(--control);
     color: var(--control-text);
-}
-
-.presets {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-
-    [data-phone='true'] > & {
-        flex-direction: row;
-    }
 }

@@ -1,0 +1,40 @@
+.frame {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-6) var(--space-6) var(--space-5);
+    background: var(--surface-panel);
+    color: var(--text);
+}
+
+.head {
+    align-self: stretch;
+}
+
+.teams {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font: var(--type-title-1);
+}
+
+.versus {
+    color: var(--text-muted);
+    font: var(--type-small);
+}
+
+.zone {
+    margin: var(--space-1) 0 0;
+    color: var(--text-muted);
+    font: var(--type-small);
+}
+
+.footer {
+    margin: auto 0 0;
+    color: var(--text-muted);
+    font: var(--type-eyebrow);
+    letter-spacing: var(--type-eyebrow-letter-spacing);
+    text-transform: uppercase;
+}

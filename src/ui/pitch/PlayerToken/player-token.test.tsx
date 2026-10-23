@@ -117,3 +117,20 @@ describe('PlayerToken', () => {
     expect(onKeyDown).toHaveBeenCalledOnce();
   });
 });
+
+describe('PlayerToken fixed', () => {
+  it('is a plain image that cannot be focused, pressed or dragged', () => {
+    const onPointerDown = vi.fn<() => void>();
+    const onKeyDown = vi.fn<() => void>();
+    renderToken({ fixed: true, role: 'Winger', onPointerDown, onKeyDown });
+    expect(screen.queryByRole('button')).toBeNull();
+    const token = screen.getByRole('img', { name: /DM, Winger/ });
+    expect(token).not.toHaveAttribute('tabindex');
+    expect(token).not.toHaveAttribute('aria-pressed');
+    fireEvent.pointerDown(token);
+    fireEvent.keyDown(token, { key: 'Enter' });
+    expect(onPointerDown).not.toHaveBeenCalled();
+    expect(onKeyDown).not.toHaveBeenCalled();
+    expect(token).toHaveAttribute('data-fixed', 'true');
+  });
+});

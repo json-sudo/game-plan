@@ -124,3 +124,130 @@ test('the ball can be dragged to a new spot in open pitch', async ({ page }) => 
     })
     .toBeGreaterThan(5);
 });
+
+test('the first zone pick walks tokens on from the goal lines', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  await expect(
+    page.getByText('Finish setting up your preferences to see your tactic visualization'),
+  ).toBeVisible();
+  await expect(page.getByRole('img', { name: /my team$/ })).toHaveCount(0);
+
+  await page
+    .getByRole('radiogroup', { name: 'My team' })
+    .getByRole('radio', { name: '4-3-3 DM Wide' })
+    .click();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(page.getByRole('img', { name: /my team$/ })).toHaveCount(0);
+  await page.getByRole('button', { name: /^(Done|Save)$/ }).click();
+  await expect(
+    page.getByText('Pick a zone to finish setting up your tactic visualization'),
+  ).toBeVisible();
+  await expect(page.getByRole('img', { name: /my team$/ })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Right flank - final third' }).click();
+  const keeper = 'GK, No-Nonsense Goalkeeper, my team';
+  await expect(page.getByRole('img', { name: keeper, exact: true })).toBeVisible();
+  const sampled: number[] = [];
+  for (let sample = 0; sample < 40; sample += 1) {
+    sampled.push((await readTranslate(page, 'img', keeper)).y);
+    await page.waitForTimeout(30);
+  }
+  const first = sampled[0];
+  const last = sampled[sampled.length - 1];
+  expect(first).toBeGreaterThan(90);
+  expect(last).toBeLessThan(first - 5);
+  expect(sampled.some((y) => Math.abs(y - first) > 0.01 && Math.abs(y - last) > 0.01)).toBe(true);
+});
+
+test('a picked zone starts a visualization by itself and the ball moves without a click', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  await page
+    .getByRole('radiogroup', { name: 'My team' })
+    .getByRole('radio', { name: '4-3-3 DM Wide' })
+    .click();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: /^(Done|Save)$/ }).click();
+  await page.getByRole('button', { name: 'Right flank - final third' }).click();
+
+  const another = page.getByRole('button', { name: 'Show another visualization' });
+  const winger = page.getByText('Starts with AM(R) · Winger');
+  await expect(page.getByText(/^Starts with /)).toBeVisible();
+  for (let step = 0; step < 4 && !(await winger.isVisible()); step += 1) await another.click();
+  await expect(winger).toBeVisible();
+  const ball = page.getByRole('img', { name: 'Ball', exact: true });
+  await expect(ball).toBeVisible();
+  const seen = new Set<string>();
+  for (let sample = 0; sample < 60; sample += 1) {
+    seen.add((await ball.getAttribute('style')) ?? '');
+    await page.waitForTimeout(100);
+  }
+  expect(seen.size).toBeGreaterThan(2);
+});
+
+async function pickZoneInFm(page: Page) {
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  await page
+    .getByRole('radiogroup', { name: 'My team' })
+    .getByRole('radio', { name: '4-3-3 DM Wide' })
+    .click();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: /^(Done|Save)$/ }).click();
+  await page.getByRole('button', { name: 'Right flank - final third' }).click();
+  await expect(page.getByText(/^Starts with /)).toBeVisible();
+}
+
+test('Reset after a zone empties the pitch and returns to step 1, and Undo restores it', async ({
+  page,
+}) => {
+  await pickZoneInFm(page);
+  const starts = await page.getByText(/^Starts with /).textContent();
+  await page.getByRole('button', { name: 'Reset' }).click();
+  await expect(page.getByRole('img', { name: /my team$/ })).toHaveCount(0, { timeout: 5000 });
+  await expect(
+    page.getByText('Finish setting up your preferences to see your tactic visualization'),
+  ).toBeVisible();
+  await expect(page.getByRole('radiogroup', { name: 'My team' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByText(starts ?? '')).toBeVisible();
+  await expect(page.getByRole('img', { name: /my team$/ }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Right flank - final third' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+});
+
+test('a Share tactic link from visualization 2 opens at the same zone and plays by itself', async ({
+  page,
+  context,
+}) => {
+  await pickZoneInFm(page);
+  await page.getByRole('button', { name: 'Show another visualization' }).click();
+  const starts = await page.getByText(/^Starts with /).textContent();
+
+  await page.getByRole('button', { name: 'Share tactic' }).click();
+  const link = await page.getByRole('textbox', { name: 'Link' }).inputValue();
+  await page.getByRole('button', { name: 'Done' }).click();
+
+  const shared = await context.newPage();
+  await shared.goto(link);
+  await expect(shared.getByRole('radio', { name: 'FM mode', exact: true })).toBeChecked();
+  await expect(shared.getByText(starts ?? '')).toBeVisible();
+  await expect(shared.getByRole('button', { name: 'Right flank - final third' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  const ball = shared.getByRole('img', { name: 'Ball', exact: true });
+  await expect(ball).toBeVisible();
+  const seen = new Set<string>();
+  for (let sample = 0; sample < 60; sample += 1) {
+    seen.add((await ball.getAttribute('style')) ?? '');
+    await shared.waitForTimeout(100);
+  }
+  expect(seen.size).toBeGreaterThan(2);
+});

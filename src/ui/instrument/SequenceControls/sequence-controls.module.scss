@@ -1,0 +1,26 @@
+@use 'mixins' as m;
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+}
+
+.starts {
+    @include m.type('body-strong');
+
+    margin: 0;
+    color: var(--text);
+}
+
+.buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+
+    .controls[data-phone='true'] & {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+}

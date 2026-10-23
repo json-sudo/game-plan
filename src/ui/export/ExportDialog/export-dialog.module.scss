@@ -1,0 +1,31 @@
+@use 'mixins' as m;
+
+.preview {
+    display: flex;
+    justify-content: center;
+    min-height: 120px;
+    max-height: 50dvh;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    background: var(--surface-panel);
+}
+
+.image {
+    max-width: 100%;
+    max-height: 50dvh;
+    object-fit: contain;
+}
+
+.note {
+    @include m.type('small');
+
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.source {
+    position: fixed;
+    top: 0;
+    left: -20000px;
+    pointer-events: none;
+}

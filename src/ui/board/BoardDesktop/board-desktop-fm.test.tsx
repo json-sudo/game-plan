@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createExampleDocument } from '../../../state/example';
 import { createPitchStore } from '../../../state/store';
-import { ARROWS_LABEL, TRANSPORT_PLAY_LABEL } from '../../copy';
+import { ARROWS_LABEL } from '../../copy';
 import { BoardDesktop } from '.';
 
 beforeEach(() =>
@@ -27,7 +27,7 @@ describe('FM mode board without carrier, pass, dribble or arrows', () => {
     expect(screen.getByRole('heading', { name: 'Ball zone' })).toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: 'Pass to' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Dribble forward' })).toBeNull();
-    expect(screen.queryByRole('button', { name: TRANSPORT_PLAY_LABEL })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Play' })).toBeNull();
     expect(screen.queryByText(ARROWS_LABEL)).toBeNull();
     expect(screen.queryByText('See where every role goes')).toBeNull();
   });

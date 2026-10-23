@@ -1,10 +1,9 @@
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { FM26_DATA } from '../../../data/fm26';
 import { zoneName } from '../../../engine';
-import { activeRoleOf } from '../../../state/context';
-import { createInitialDocument, placedPlayers, type PitchDocument } from '../../../state/document';
+import { applyAction } from '../../../state/actions';
+import { createInitialDocument } from '../../../state/document';
 import { createPitchStore } from '../../../state/store';
 import { createExampleDocument, EXAMPLE_FORMATIONS } from '../../../state/example';
 import {
@@ -12,7 +11,6 @@ import {
   PITCH_LABEL,
   RESET_DISABLED_REASON,
   THEME_DARK_LABEL,
-  TRANSPORT_PLAY_LABEL,
   UNDO_DISABLED_REASON,
   ZONE_MAP_HEADING,
 } from '../../copy';
@@ -27,13 +25,6 @@ beforeEach(() => {
       removeEventListener: vi.fn<() => void>(),
     }) as unknown as typeof window.matchMedia;
 });
-
-function roleNameOf(doc: PitchDocument, playerId: string) {
-  const player = doc.players.find((candidate) => candidate.id === playerId);
-  if (!player) throw new Error(`no player ${playerId}`);
-  const roleId = activeRoleOf(doc, player, FM26_DATA);
-  return FM26_DATA.roles.find((role) => role.id === roleId)?.name ?? '';
-}
 
 function pitchTokens() {
   return within(screen.getByRole('img', { name: PITCH_LABEL })).getAllByRole('button');
@@ -51,14 +42,15 @@ async function openMenu() {
 }
 
 describe('BoardPhone top bar', () => {
-  it('shows the title, Undo and Menu, and no share, save, load, export or copy control', () => {
+  it('shows the title, Undo, Share tactic and Menu, and no save, load, export or copy control', () => {
     const store = createPitchStore({ doc: createInitialDocument() });
     render(<BoardPhone store={store} />);
     expect(screen.getByText('My team v Opponent')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Share tactic' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Menu' })).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /share|save|load|export|copy/i }),
+      screen.queryByRole('button', { name: /save|load|export|copy/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -82,7 +74,7 @@ describe('BoardPhone top bar', () => {
 });
 
 describe('BoardPhone menu', () => {
-  it('holds the mode toggle, Reset, Clear and the theme toggle', async () => {
+  it('holds the mode toggle, Reset, Clear, Export PNG and the theme toggle', async () => {
     const store = createPitchStore({ doc: createInitialDocument() });
     render(<BoardPhone store={store} />);
     const menu = await openMenu();
@@ -93,6 +85,7 @@ describe('BoardPhone menu', () => {
       'Mode: Open pitch',
       `Reset${RESET_DISABLED_REASON}`,
       'Clear',
+      'Export PNG',
       THEME_DARK_LABEL,
     ]);
   });
@@ -203,7 +196,7 @@ describe('BoardPhone board', () => {
   it('shows no playback, carrier choice, pass control or first-run hint in FM mode', () => {
     const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
     render(<BoardPhone store={store} />);
-    expect(screen.queryByRole('button', { name: TRANSPORT_PLAY_LABEL })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Play' })).not.toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Who has the ball?' })).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: 'Pass to' })).not.toBeInTheDocument();
     expect(
@@ -212,19 +205,66 @@ describe('BoardPhone board', () => {
   });
 });
 
+describe('BoardPhone setup', () => {
+  it('shows the setup card under the empty pitch, with no zone map or controls', () => {
+    const store = createPitchStore({ doc: createInitialDocument(), ui: { mode: 'fm' } });
+    render(<BoardPhone store={store} />);
+    expect(screen.getByRole('heading', { name: 'Set up your tactic' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Guided setup' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: ZONE_MAP_HEADING })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Restart' })).not.toBeInTheDocument();
+  });
+
+  it('opens step sheets from Start setup and closes them with Cancel', async () => {
+    const user = userEvent.setup();
+    const store = createPitchStore({ doc: createInitialDocument(), ui: { mode: 'fm' } });
+    render(<BoardPhone store={store} />);
+    await user.click(screen.getByRole('button', { name: 'Start setup' }));
+    const sheet = screen.getByRole('dialog', { name: 'Guided setup' });
+    expect(within(sheet).getByText('Step 1 of 2')).toBeInTheDocument();
+    await user.click(within(sheet).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog', { name: 'Guided setup' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Set up your tactic' })).toBeInTheDocument();
+  });
+
+  it('puts only the zone map under the pitch after setup, and the controls above it after a zone', async () => {
+    const user = userEvent.setup();
+    const doc = applyAction(
+      applyAction(createInitialDocument(), {
+        type: 'applyFormation',
+        team: 'mine',
+        formationId: EXAMPLE_FORMATIONS.mine,
+      }),
+      { type: 'fillDefaultRoles' },
+    );
+    const store = createPitchStore({ doc, ui: { mode: 'fm' } });
+    render(<BoardPhone store={store} />);
+    expect(screen.getByRole('heading', { name: ZONE_MAP_HEADING })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Restart' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: zoneName('C-F') }));
+    const restart = screen.getByRole('button', { name: 'Restart' });
+    const zoneMap = screen.getByRole('heading', { name: ZONE_MAP_HEADING });
+    const pitch = screen.getByRole('img', { name: PITCH_LABEL });
+    expect(pitch.compareDocumentPosition(restart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      restart.compareDocumentPosition(zoneMap) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+});
+
 describe('BoardPhone tokens', () => {
-  it('tapping a token shows its role name for that player only, with no role picker', async () => {
+  it('tapping a token in FM mode does nothing', async () => {
     const user = userEvent.setup();
     const doc = createExampleDocument();
     const store = createPitchStore({ doc, ui: { mode: 'fm' } });
     render(<BoardPhone store={store} />);
-    const [first, second] = placedPlayers(doc);
-    const tokens = pitchTokens();
-    await user.click(tokens[0]);
-    expect(shownRolePlates()).toEqual([roleNameOf(doc, first.id).replace(/\s/g, '')]);
-    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
-    await user.click(tokens[1]);
-    expect(shownRolePlates()).toEqual([roleNameOf(doc, second.id).replace(/\s/g, '')]);
+    const token = within(screen.getByRole('img', { name: PITCH_LABEL })).getAllByRole('img', {
+      name: /my team$/,
+    })[0];
+    await user.click(token);
+    expect(token).not.toHaveAttribute('aria-pressed');
+    expect(shownRolePlates()).toEqual([]);
+    expect(store.getState().ui.drag).toBeNull();
     expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
   });
 
