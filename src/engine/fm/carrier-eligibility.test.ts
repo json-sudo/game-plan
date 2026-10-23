@@ -230,7 +230,13 @@ describe('eligibleCarrierIds - middle third', () => {
       'box_to_box_midfielder_ip',
       'half_back_ip',
     ].map((role) => player(role, role, 'DM', 'DM'));
-    expect(idsFor('C-M', [...excluded, ...eligible])).toEqual(roles.map(([role]) => role));
+    const withCentralMidfield: readonly FormationSlot[] = [
+      ...FOUR_BACK,
+      { id: 'MCL', family: 'M(C)', base: { x: 28, y: 50 } },
+    ];
+    expect(idsFor('C-M', [...excluded, ...eligible], withCentralMidfield)).toEqual(
+      roles.map(([role]) => role),
+    );
   });
 });
 
@@ -306,5 +312,50 @@ describe('eligibleCarrierIds - general rules', () => {
       'lcb',
       'mcb',
     ]);
+  });
+});
+
+describe('eligibleCarrierIds - formation fallbacks', () => {
+  const backThreeNoWide: readonly FormationSlot[] = [
+    ...THREE_BACK,
+    { id: 'DMCL', family: 'DM', base: { x: 28, y: 57 } },
+    { id: 'DMCR', family: 'DM', base: { x: 48, y: 57 } },
+    { id: 'AMCL', family: 'AM(C)', base: { x: 28, y: 32 } },
+    { id: 'AMCR', family: 'AM(C)', base: { x: 48, y: 32 } },
+  ];
+  const leftDm = player('ldm', 'defensive_midfielder_ip', 'DM', 'DMCL', 'left');
+  const rightDm = player('rdm', 'defensive_midfielder_ip', 'DM', 'DMCR', 'right');
+  const leftAm = player('lam', 'attacking_midfielder_ip', 'AM(C)', 'AMCL', 'left');
+  const rightAm = player('ram', 'attacking_midfielder_ip', 'AM(C)', 'AMCR', 'right');
+
+  it('offers the outermost centre-back on a defensive flank with no wide defender on that side', () => {
+    const players = [leftCentreBack, middleCentreBack, rightCentreBack, keeper];
+    expect(idsFor('L-D', players, backThreeNoWide)).toEqual(['lcb']);
+    expect(idsFor('R-D', players, backThreeNoWide)).toEqual(['rcb']);
+    expect(
+      idsFor('L-D', players, [
+        ...backThreeNoWide,
+        { id: 'WBL', family: 'WB(L)', base: { x: 11, y: 65 } },
+      ]),
+    ).toEqual([]);
+  });
+
+  it('offers same-side DMs and AM(C)s on the middle half-space with no wide defender on that side', () => {
+    const players = [leftDm, rightDm, leftAm, rightAm];
+    expect(idsFor('LH-M', players, backThreeNoWide)).toEqual(['ldm', 'lam']);
+    expect(idsFor('RH-M', players, backThreeNoWide)).toEqual(['rdm', 'ram']);
+    expect(
+      idsFor('LH-M', players, [...FOUR_BACK, { id: 'DL', family: 'D(L)', base: { x: 11, y: 72 } }]),
+    ).toEqual([]);
+  });
+
+  it('offers DMs in the middle centre only when the formation has no M(C) or AM(C)', () => {
+    const noCentral: readonly FormationSlot[] = [
+      ...FOUR_BACK,
+      { id: 'DMCL', family: 'DM', base: { x: 28, y: 57 } },
+      { id: 'DMCR', family: 'DM', base: { x: 48, y: 57 } },
+    ];
+    expect(idsFor('C-M', [leftDm, rightDm], noCentral)).toEqual(['ldm', 'rdm']);
+    expect(idsFor('C-M', [leftDm, rightDm, leftAm], backThreeNoWide)).toEqual(['lam']);
   });
 });

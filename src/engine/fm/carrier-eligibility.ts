@@ -14,13 +14,13 @@ export interface CarrierPlayer {
 
 type LaneKind = 'flank' | 'halfSpace' | 'centre';
 type SideRule = 'zone' | 'any';
-type Gate = 'outermostCentreBack';
+type Gate = 'outermostCentreBack' | 'noWideDefenderOnSide' | 'noCentralMidfield';
 
 interface CarrierRule {
   roles?: readonly string[];
   families?: readonly Family[];
   side: SideRule;
-  gate?: Gate;
+  gates?: readonly Gate[];
 }
 
 const OVERLAPPING_CENTRE_BACK = 'overlapping_centre_back_ip';
@@ -60,6 +60,10 @@ const STRIKER_FAMILIES: readonly Family[] = ['ST'];
 const CENTRAL_FAMILIES: readonly Family[] = ['M(C)', 'AM(C)'];
 const WING_BACK_FAMILIES: readonly Family[] = ['WB(L)', 'WB(R)'];
 const SECOND_STRIKER_FAMILIES: readonly Family[] = ['AM(C)'];
+const WIDE_DEFENDER_FAMILIES: readonly Family[] = ['D(L)', 'D(R)', 'WB(L)', 'WB(R)'];
+const CENTRE_BACK_FAMILIES: readonly Family[] = ['D(C)'];
+const DEFENSIVE_MIDFIELD_FAMILIES: readonly Family[] = ['DM'];
+const MIDDLE_HALF_SPACE_FALLBACK_FAMILIES: readonly Family[] = ['DM', 'AM(C)'];
 
 const MIDDLE_WIDE_ROLES = [FULL_BACK, WING_BACK, WIDE_CENTRAL_MIDFIELDER, WIDE_MIDFIELDER];
 
@@ -70,7 +74,12 @@ const CARRIER_RULES: Record<Third, Record<LaneKind, readonly CarrierRule[]>> = {
       {
         roles: [OVERLAPPING_CENTRE_BACK, WIDE_CENTRE_BACK],
         side: 'zone',
-        gate: 'outermostCentreBack',
+        gates: ['outermostCentreBack'],
+      },
+      {
+        families: CENTRE_BACK_FAMILIES,
+        side: 'zone',
+        gates: ['outermostCentreBack', 'noWideDefenderOnSide'],
       },
     ],
     halfSpace: [
@@ -80,12 +89,12 @@ const CARRIER_RULES: Record<Third, Record<LaneKind, readonly CarrierRule[]>> = {
       {
         roles: [OVERLAPPING_CENTRE_BACK, WIDE_CENTRE_BACK],
         side: 'zone',
-        gate: 'outermostCentreBack',
+        gates: ['outermostCentreBack'],
       },
     ],
     centre: [
       { roles: [HALF_BACK, ...CENTRE_BACKS], side: 'any' },
-      { roles: [OVERLAPPING_CENTRE_BACK], side: 'any', gate: 'outermostCentreBack' },
+      { roles: [OVERLAPPING_CENTRE_BACK], side: 'any', gates: ['outermostCentreBack'] },
     ],
   },
   M: {
@@ -108,6 +117,11 @@ const CARRIER_RULES: Record<Third, Record<LaneKind, readonly CarrierRule[]>> = {
         side: 'zone',
       },
       { roles: [CHANNEL_MIDFIELDER], families: CENTRAL_FAMILIES, side: 'any' },
+      {
+        families: MIDDLE_HALF_SPACE_FALLBACK_FAMILIES,
+        side: 'zone',
+        gates: ['noWideDefenderOnSide'],
+      },
     ],
     centre: [
       {
@@ -121,6 +135,7 @@ const CARRIER_RULES: Record<Third, Record<LaneKind, readonly CarrierRule[]>> = {
         ],
         side: 'any',
       },
+      { families: DEFENSIVE_MIDFIELD_FAMILIES, side: 'any', gates: ['noCentralMidfield'] },
     ],
   },
   F: {
@@ -182,21 +197,56 @@ export function isRoleAllowedInSlot(
   return slot !== null && outermostCentreBacks(slots).has(slot);
 }
 
+interface FormationFacts {
+  outermost: ReadonlySet<SlotId>;
+  wideDefenderSides: ReadonlySet<LateralSide>;
+  hasCentralMidfield: boolean;
+}
+
+function wideDefenderSides(slots: readonly FormationSlot[]): ReadonlySet<LateralSide> {
+  return new Set(
+    slots
+      .filter((slot) => WIDE_DEFENDER_FAMILIES.includes(slot.family))
+      .map((slot): LateralSide => (slot.family.endsWith('(L)') ? 'left' : 'right')),
+  );
+}
+
+function formationFacts(slots: readonly FormationSlot[]): FormationFacts {
+  return {
+    outermost: outermostCentreBacks(slots),
+    wideDefenderSides: wideDefenderSides(slots),
+    hasCentralMidfield: slots.some((slot) => CENTRAL_FAMILIES.includes(slot.family)),
+  };
+}
+
+function passesGate(
+  gate: Gate,
+  player: CarrierPlayer,
+  zoneSide: LateralSide | undefined,
+  facts: FormationFacts,
+): boolean {
+  switch (gate) {
+    case 'outermostCentreBack':
+      return player.slot !== null && facts.outermost.has(player.slot);
+    case 'noWideDefenderOnSide':
+      return zoneSide !== undefined && !facts.wideDefenderSides.has(zoneSide);
+    case 'noCentralMidfield':
+      return !facts.hasCentralMidfield;
+  }
+}
+
 function matches(
   rule: CarrierRule,
   player: CarrierPlayer & { roleId: string },
   zoneSide: LateralSide | undefined,
-  outermost: ReadonlySet<SlotId>,
+  facts: FormationFacts,
 ): boolean {
   if (rule.roles && !rule.roles.includes(player.roleId)) return false;
   if (rule.families && (player.family === null || !rule.families.includes(player.family))) {
     return false;
   }
   if (rule.side === 'zone' && player.side !== zoneSide) return false;
-  if (rule.gate === 'outermostCentreBack') {
-    return player.slot !== null && outermost.has(player.slot);
-  }
-  return true;
+  return (rule.gates ?? []).every((gate) => passesGate(gate, player, zoneSide, facts));
 }
 
 export function eligibleCarrierIds(
@@ -207,10 +257,10 @@ export function eligibleCarrierIds(
   const lane = laneOf(zone);
   const rules = CARRIER_RULES[thirdOf(zone)][LANE_KINDS[lane]];
   const zoneSide = LANE_SIDES[lane];
-  const outermost = outermostCentreBacks(slots);
+  const facts = formationFacts(slots);
   return players.flatMap(({ roleId, ...player }) => {
     if (roleId === undefined) return [];
     const candidate = { ...player, roleId };
-    return rules.some((rule) => matches(rule, candidate, zoneSide, outermost)) ? [player.id] : [];
+    return rules.some((rule) => matches(rule, candidate, zoneSide, facts)) ? [player.id] : [];
   });
 }
