@@ -10,9 +10,9 @@ import {
   setKeeper,
   setSquadSize,
 } from './layout-actions';
-import { benchPlayer, movePlayer, renameTeam, setPieceName } from './piece-actions';
+import { benchPlayer, clearPitch, movePlayer, renameTeam, setPieceName } from './piece-actions';
 import { fillDefaultRoles, setAttacker, setRole } from './role-actions';
-import { clearScenario, placeBall, tapZone } from './scenario-actions';
+import { placeBall, tapZone } from './scenario-actions';
 
 export type Action =
   | { type: 'applyFormation'; team: Side; formationId: string }
@@ -29,7 +29,7 @@ export type Action =
   | { type: 'benchPlayer'; playerId: string }
   | { type: 'tapZone'; zone: ZoneId }
   | { type: 'placeBall'; point: Point }
-  | { type: 'clearScenario' }
+  | { type: 'clearPitch' }
   | { type: 'reset' };
 
 export function applyAction(
@@ -66,8 +66,8 @@ export function applyAction(
       return tapZone(doc, action.zone);
     case 'placeBall':
       return placeBall(doc, action.point);
-    case 'clearScenario':
-      return clearScenario(doc);
+    case 'clearPitch':
+      return clearPitch(doc);
     case 'reset':
       return resetPitch(doc, data);
   }

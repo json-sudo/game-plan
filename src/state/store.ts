@@ -43,7 +43,7 @@ export interface PitchStore {
   history: History<TacticSnapshot>;
   ui: UiState;
   dispatch: (action: Action) => void;
-  copyFmPositions: () => void;
+  copyFmPositions: (positions: ReadonlyMap<string, Point>) => void;
   showAnotherVisualization: () => void;
   loadTactic: (tactic: Tactic, options: LoadTacticOptions) => boolean;
   undo: () => void;
@@ -113,7 +113,7 @@ export function createPitchStore(options: PitchStoreOptions = {}): StoreApi<Pitc
       history: emptyHistory<TacticSnapshot>(),
       ui: initialUiState,
       dispatch,
-      copyFmPositions: () => replaceTactic(copyFmPositions(get().tactic)),
+      copyFmPositions: (positions) => replaceTactic(copyFmPositions(get().tactic, positions)),
       showAnotherVisualization: () => {
         const { tactic: current, ui } = get();
         const next = withLayout(current, 'fm', nextVisualization(current.fm));

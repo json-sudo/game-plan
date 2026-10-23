@@ -4,13 +4,14 @@ import { FM26_DATA } from '../data/fm26';
 import {
   applyTacticAction,
   copyFmPositions,
-  createExampleTactic,
+  selectBasePositions,
   createInitialTactic,
   type Action,
   type Mode,
   type Tactic,
   type TacticSnapshot,
 } from '../state';
+import { createExampleTactic } from '../state/tactic';
 import {
   MAX_SHARE_HASH_LENGTH,
   SHARE_PREFIX,
@@ -109,6 +110,14 @@ describe('round trip', () => {
     expect(result).toEqual({ status: 'ok', tactic: example, mode: 'fm' });
   });
 
+  it('keeps the FM zone and sequence index 2', () => {
+    const tactic = {
+      ...example,
+      fm: { ...example.fm, scenario: { zone: 'L-D', sequenceIndex: 2 } as const },
+    };
+    expect(decodeShareHash(hashOf(tactic, 'fm'))).toEqual({ status: 'ok', tactic, mode: 'fm' });
+  });
+
   it('accepts the hash with or without the leading #', () => {
     const hash = hashOf(example, 'fm');
     expect(hash.startsWith(`#${SHARE_PREFIX}`)).toBe(true);
@@ -147,12 +156,12 @@ describe('round trip', () => {
 
   it('keeps benched pieces and a pitch with no zone', () => {
     const tactic = run(
-      copyFmPositions(example),
+      copyFmPositions(example, selectBasePositions(example.fm)),
       'openPitch',
       { type: 'benchPlayer', playerId: MINE_DM },
       { type: 'benchPlayer', playerId: OPPONENT_DML },
     );
-    const cleared = run(tactic, 'fm', { type: 'clearScenario' });
+    const cleared = { ...tactic, fm: { ...tactic.fm, scenario: null } };
     const result = decodeShareHash(hashOf(cleared, 'openPitch'));
     expect(result.status === 'ok' && result.tactic).toEqual(cleared);
   });
@@ -185,7 +194,7 @@ describe('size budget', () => {
       example,
     );
     return run(
-      copyFmPositions(named),
+      copyFmPositions(named, selectBasePositions(named.fm)),
       'fm',
       { type: 'renameTeam', team: 'mine', name: pseudoRandomName(101) },
       { type: 'renameTeam', team: 'opponent', name: pseudoRandomName(102) },

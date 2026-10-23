@@ -458,12 +458,12 @@ describe('scenario actions', () => {
     expect(documentIssues(moved, FM26_DATA)).toBeNull();
   });
 
-  it('clearScenario removes the zone and keeps the ball', () => {
-    const doc = withZone('C-M');
-    const cleared = applyAction(doc, { type: 'clearScenario' });
-    expect(cleared.scenario).toBeNull();
-    expect(cleared.ball).toEqual(doc.ball);
-    expect(applyAction(cleared, { type: 'clearScenario' })).toBe(cleared);
+  it('clearPitch benches every placed piece and keeps the ball', () => {
+    const doc = applyAction(matchup(), { type: 'placeBall', point: { x: 40, y: 20 } });
+    const cleared = applyAction(doc, { type: 'clearPitch' });
+    expect(cleared.players.every((player) => player.base === undefined)).toBe(true);
+    expect(cleared.ball).toEqual({ x: 40, y: 20 });
+    expect(applyAction(cleared, { type: 'clearPitch' })).toBe(cleared);
   });
 });
 

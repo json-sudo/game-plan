@@ -4,10 +4,11 @@ import { encodeShareHash } from '../../share';
 import {
   applyTacticAction,
   copyFmPositions,
-  createExampleTactic,
+  selectBasePositions,
   createInitialTactic,
   placedPlayers,
 } from '../../state';
+import { createExampleTactic } from '../../state/tactic';
 import { openedShareLink, resolveInitialSession, sessionNotices } from './initial-session';
 
 function memoryStorage(initial: Record<string, string> = {}): Storage {
@@ -41,9 +42,14 @@ function visited(extra: Record<string, string> = {}): Storage {
   return memoryStorage({ [VISITED_STORAGE_KEY]: '1', ...extra });
 }
 
+function arrangedExample() {
+  const example = createExampleTactic();
+  return copyFmPositions(example, selectBasePositions(example.fm));
+}
+
 function storageWithSave(): Storage {
   const storage = visited();
-  const arranged = copyFmPositions(createExampleTactic());
+  const arranged = arrangedExample();
   const named = applyTacticAction(arranged, 'fm', {
     type: 'renameTeam',
     team: 'mine',
@@ -55,11 +61,13 @@ function storageWithSave(): Storage {
 }
 
 describe('first visit', () => {
-  it('opens the FM example in FM mode with an empty open pitch', () => {
+  it('opens FM mode with an empty FM layout and an empty open pitch', () => {
     const session = resolveInitialSession({ storage: memoryStorage(), location: noLink });
     expect(session.visit).toBe('first');
     expect(session.mode).toBe('fm');
-    expect(session.tactic).toEqual(createExampleTactic());
+    expect(session.tactic).toEqual(createInitialTactic());
+    expect(session.tactic.fm.scenario).toBeNull();
+    expect(placedPlayers(session.tactic.fm)).toHaveLength(0);
     expect(placedPlayers(session.tactic.openPitch)).toHaveLength(0);
   });
 
@@ -111,13 +119,13 @@ describe('later visit', () => {
   it('treats blocked storage as a first visit and still opens', () => {
     const session = resolveInitialSession({ storage: blockedStorage(), location: noLink });
     expect(session.tactics).toEqual({ status: 'unavailable' });
-    expect(session.tactic).toEqual(createExampleTactic());
+    expect(session.tactic).toEqual(createInitialTactic());
   });
 });
 
 describe('share link', () => {
   function linkTo(mode: 'openPitch' | 'fm') {
-    const tactic = copyFmPositions(createExampleTactic());
+    const tactic = arrangedExample();
     const encoded = encodeShareHash({ tactic, mode });
     if (encoded.status !== 'ok') throw new Error('expected a link');
     return { tactic, hash: encoded.hash };
@@ -151,13 +159,13 @@ describe('share link', () => {
     expect(session.mode).toBe('openPitch');
   });
 
-  it('reports a damaged link on a first visit without losing the example', () => {
+  it('reports a damaged link on a first visit and still opens FM mode', () => {
     const session = resolveInitialSession({
       storage: memoryStorage(),
       location: { hash: '#s=v4.not-a-payload' },
     });
     expect(session.share.status).toBe('error');
-    expect(session.tactic).toEqual(createExampleTactic());
+    expect(session.tactic).toEqual(createInitialTactic());
     expect(session.mode).toBe('fm');
   });
 });

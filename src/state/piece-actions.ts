@@ -41,3 +41,7 @@ export function benchPlayer(doc: PitchDocument, playerId: string): PitchDocument
   const players = doc.players.map((player) => (player === target ? benched : player));
   return refreshScenario({ ...doc, players });
 }
+
+export function clearPitch(doc: PitchDocument): PitchDocument {
+  return doc.players.reduce((current, player) => benchPlayer(current, player.id), doc);
+}

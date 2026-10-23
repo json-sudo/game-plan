@@ -6,7 +6,7 @@ import {
   type LoadTacticsResult,
 } from '../../persistence';
 import { readShareFromLocation, type DecodeResult } from '../../share';
-import { createExampleTactic, createInitialTactic, type Mode, type Tactic } from '../../state';
+import { createInitialTactic, type Mode, type Tactic } from '../../state';
 import {
   SAVED_TACTICS_UNREADABLE_BODY,
   SAVED_TACTICS_UNREADABLE_TITLE,
@@ -76,7 +76,7 @@ export function resolveInitialSession(sources: SessionSources = {}): InitialSess
     : { status: 'none' };
   if (readFirstVisit(storage)) {
     return {
-      tactic: createExampleTactic(),
+      tactic: createInitialTactic(),
       mode: 'fm',
       visit: 'first',
       tactics,

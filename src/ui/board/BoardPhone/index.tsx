@@ -117,7 +117,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
     {
       icon: 'clear',
       label: CLEAR_LABEL,
-      onSelect: choose(() => store.getState().dispatch({ type: 'clearScenario' })),
+      onSelect: choose(() => store.getState().dispatch({ type: 'clearPitch' })),
     },
     {
       icon: dark ? 'sun' : 'moon',

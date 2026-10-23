@@ -286,13 +286,13 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
             variant="icon"
             icon="clear"
             label={CLEAR_LABEL}
-            onClick={() => store.getState().dispatch({ type: 'clearScenario' })}
+            onClick={() => store.getState().dispatch({ type: 'clearPitch' })}
           />
         ) : (
           <Button
             variant="ghost"
             icon="clear"
-            onClick={() => store.getState().dispatch({ type: 'clearScenario' })}
+            onClick={() => store.getState().dispatch({ type: 'clearPitch' })}
           >
             {CLEAR_LABEL}
           </Button>

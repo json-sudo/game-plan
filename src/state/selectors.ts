@@ -11,7 +11,7 @@ const dragCache = new WeakMap<
 >();
 const visualizationCache = new WeakMap<PitchDocument, FmVisualization | null>();
 
-function selectBasePositions(doc: PitchDocument): Map<string, Point> {
+export function selectBasePositions(doc: PitchDocument): Map<string, Point> {
   const cached = baseCache.get(doc);
   if (cached) return cached;
   const computed = new Map(

@@ -278,16 +278,25 @@ describe('top bar actions', () => {
     );
   });
 
-  it('clears the zone, and one undo brings it back', async () => {
+  it('clears every piece on the open pitch, and one undo brings them back', async () => {
     const user = userEvent.setup();
-    const store = exampleStore();
-    const scenario = store.getState().doc.scenario;
-    expect(scenario?.zone).toBeTruthy();
+    const store = exampleStore({ mode: 'openPitch' });
+    const before = store.getState().doc;
     render(<BoardDesktop store={store} />);
     await user.click(screen.getByRole('button', { name: 'Clear' }));
-    expect(store.getState().doc.scenario).toBeNull();
+    expect(store.getState().doc.players.some((player) => player.base)).toBe(false);
+    expect(store.getState().doc.ball).toEqual(before.ball);
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(store.getState().doc.scenario).toEqual(scenario);
+    expect(store.getState().doc).toEqual(before);
+  });
+
+  it('leaves the FM layout alone when Clear is pressed', async () => {
+    const user = userEvent.setup();
+    const store = exampleStore();
+    const before = store.getState().tactic;
+    render(<BoardDesktop store={store} />);
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(store.getState().tactic).toBe(before);
   });
 
   it('updates dataset.theme and does not write localStorage', async () => {

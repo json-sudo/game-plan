@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   applyTacticAction,
   copyFmPositions,
+  selectBasePositions,
   createExampleDocument,
-  createExampleTactic,
   createInitialTactic,
   type Tactic,
   type TacticSnapshot,
 } from '../state';
+import { createExampleTactic } from '../state/tactic';
 import {
   TACTICS_STORAGE_KEY,
   CURRENT_TACTICS_VERSION,
@@ -167,6 +168,18 @@ describe('loadTactics', () => {
     });
   });
 
+  it('round-trips an FM zone with sequence index 2', () => {
+    const tactic: Tactic = {
+      ...exampleTactic,
+      fm: { ...exampleTactic.fm, scenario: { zone: 'L-D', sequenceIndex: 2 } },
+    };
+    const storage = memoryStorage();
+    saveSlot(null, null, 'Alpha', { tactic, mode: 'fm' }, storage, 100);
+    const loaded = loadTactics(storage);
+    if (loaded.status !== 'ok') throw new Error('expected ok');
+    expect(loaded.wrapper.slots[0].tactic.fm.scenario).toEqual({ zone: 'L-D', sequenceIndex: 2 });
+  });
+
   it('keeps custom piece names through a save', () => {
     const named = applyTacticAction(createExampleTactic(), 'fm', {
       type: 'setPieceName',
@@ -298,7 +311,7 @@ describe('new-format only', () => {
 
 describe('both layouts in a save', () => {
   function arranged(): Tactic {
-    const placed = copyFmPositions(exampleTactic);
+    const placed = copyFmPositions(exampleTactic, selectBasePositions(exampleTactic.fm));
     const moved = applyTacticAction(placed, 'openPitch', {
       type: 'movePlayer',
       playerId: MINE_ST,

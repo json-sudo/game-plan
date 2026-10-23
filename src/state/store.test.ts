@@ -48,7 +48,7 @@ describe('dispatch', () => {
 
   it('does not add history for an action that changes nothing', () => {
     const store = blankStore();
-    store.getState().dispatch({ type: 'clearScenario' });
+    store.getState().dispatch({ type: 'clearPitch' });
     expect(store.getState().history.past).toHaveLength(0);
   });
 
@@ -132,7 +132,7 @@ describe('undo and redo', () => {
   it('reset restores the applied layout and undo brings the edit back', () => {
     const store = blankStore();
     const { dispatch, undo } = store.getState();
-    dispatch({ type: 'clearScenario' });
+    dispatch({ type: 'clearPitch' });
     expect(store.getState().history.past).toHaveLength(0);
     dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_3_3_dm_wide' });
     const applied = store.getState().doc.players.find((player) => player.id === MINE_ST)!.base;

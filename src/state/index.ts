@@ -35,19 +35,14 @@ export type { History, HistoryStep } from './history';
 export {
   selectCanRedo,
   selectCanUndo,
+  selectBasePositions,
   selectDisplayPositions,
   selectFmVisualization,
   selectTeamPlayers,
 } from './selectors';
 export type { FmVisualization } from './visualization';
 export { canSetSquadSize, copyFmPositions, applyTacticAction } from './tactic-actions';
-export {
-  MODES,
-  createExampleTactic,
-  createInitialTactic,
-  otherMode,
-  tacticFromDocument,
-} from './tactic';
+export { MODES, createInitialTactic, otherMode, tacticFromDocument } from './tactic';
 export type { Tactic, TacticSnapshot } from './tactic';
 export { tacticIssues } from './tactic-validate';
 export { createPitchStore, initialUi } from './store';

@@ -24,7 +24,3 @@ export function placeBall(doc: PitchDocument, point: Point): PitchDocument {
   if (samePoint(ball, doc.ball) && doc.scenario === null) return doc;
   return { ...doc, ball, scenario: null };
 }
-
-export function clearScenario(doc: PitchDocument): PitchDocument {
-  return doc.scenario ? { ...doc, scenario: null } : doc;
-}

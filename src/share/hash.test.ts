@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { createExampleTactic } from '../state';
+import { createExampleTactic } from '../state/tactic';
 import { encodeShareHash } from './codec';
 import { clearShareHash, readShareFromLocation } from './hash';
 
