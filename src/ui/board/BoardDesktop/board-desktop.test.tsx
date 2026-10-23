@@ -22,7 +22,6 @@ import {
   ROLE_CURRENT_MARK,
   ROLE_PHASE_LABELS,
   roleCount,
-  setupRoleChoiceLabel,
   tokenSideLabel,
 } from '../../copy';
 import { BoardDesktop } from '.';
@@ -366,11 +365,9 @@ describe('setup', () => {
     });
     const dispatch = vi.spyOn(formations.getState(), 'dispatch');
     const { rerender } = render(<BoardDesktop store={formations} />);
-    await user.click(
-      within(screen.getByRole('radiogroup', { name: 'My team' })).getByRole('radio', {
-        name: '4-4-2 Diamond Narrow',
-      }),
-    );
+    const mineGrid = within(screen.getByRole('radiogroup', { name: 'My team' }));
+    await user.click(mineGrid.getByRole('button', { name: 'More' }));
+    await user.click(mineGrid.getByRole('radio', { name: '4-4-2 Diamond Narrow' }));
     expect(dispatch).toHaveBeenCalledWith({
       type: 'applyFormation',
       team: 'mine',
@@ -396,10 +393,8 @@ describe('setup', () => {
     )!;
     const roleDispatch = vi.spyOn(roles.getState(), 'dispatch');
     rerender(<BoardDesktop store={roles} />);
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: setupRoleChoiceLabel('ST', 'my team') }),
-      nextRole.id,
-    );
+    await user.click(screen.getByRole('button', { name: /^ST\s/ }));
+    await user.click(screen.getByRole('radio', { name: nextRole.name }));
     expect(roleDispatch).toHaveBeenCalledWith({
       type: 'setRole',
       playerId: MINE_ST,

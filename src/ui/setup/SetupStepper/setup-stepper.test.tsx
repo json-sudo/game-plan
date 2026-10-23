@@ -105,6 +105,40 @@ describe('SetupStepper', () => {
     expect(onNext).toHaveBeenCalledWith(1);
   });
 
+  it('disables Next with its reason as a line above it and as its tooltip', async () => {
+    const onNext = vi.fn<(index: number) => void>();
+    render(
+      <SetupStepper
+        steps={[
+          {
+            title: 'Formations',
+            state: 'active',
+            nextDisabled: true,
+            nextReason: 'Pick a formation for your team first.',
+          },
+        ]}
+        onNext={onNext}
+      />,
+    );
+    const next = screen.getByRole('button', { name: 'Done' });
+    expect(next).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getAllByText('Pick a formation for your team first.').length).toBeGreaterThan(0);
+    await userEvent.click(next);
+    expect(onNext).not.toHaveBeenCalled();
+  });
+
+  it('shows no summary on todo steps', () => {
+    render(
+      <SetupStepper
+        steps={[
+          { title: 'Formations', state: 'active' },
+          { title: 'Roles', state: 'todo', summary: 'should not show' },
+        ]}
+      />,
+    );
+    expect(screen.queryByText('should not show')).not.toBeInTheDocument();
+  });
+
   it('uses full-size buttons on a phone and small ones on desktop', () => {
     const steps: SetupStep[] = [
       { title: 'One', state: 'done' },

@@ -6,6 +6,7 @@ import {
   applyFormation,
   applyMatchup,
   applyMatchupChoice,
+  clearOpponent,
   resetPitch,
   setKeeper,
   setSquadSize,
@@ -17,6 +18,7 @@ import { placeBall, tapZone } from './scenario-actions';
 export type Action =
   | { type: 'applyFormation'; team: Side; formationId: string }
   | { type: 'applyMatchup' }
+  | { type: 'clearOpponent' }
   | { type: 'applyMatchupChoice'; mine: string; opponent: string }
   | { type: 'setAttacker'; attacker: Side }
   | { type: 'renameTeam'; team: Side; name: string }
@@ -42,6 +44,8 @@ export function applyAction(
       return applyFormation(doc, action.team, action.formationId, data);
     case 'applyMatchup':
       return applyMatchup(doc, data);
+    case 'clearOpponent':
+      return clearOpponent(doc, data);
     case 'applyMatchupChoice':
       return applyMatchupChoice(doc, action, data);
     case 'setAttacker':

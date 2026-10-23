@@ -9,7 +9,7 @@ import {
 import { useStore, type StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
 import type { Point } from '../../../data/types';
-import { targetFor, zoneOf } from '../../../engine';
+import { zoneOf } from '../../../engine';
 import { benchPieces, pieceLabel } from '../../../state/bench-pieces';
 import { activeRoleOf } from '../../../state/context';
 import {
@@ -43,7 +43,7 @@ import {
 } from '../../copy';
 import { SetupFlow } from '../../setup/SetupFlow';
 import { MatchupStep } from '../../setup/MatchupStep';
-import { roleOptions } from '../../setup/setup-model';
+import { pickerRoles } from '../../roles/picker-roles';
 import { Button } from '../../controls/Button';
 import { SegmentedControl } from '../../controls/SegmentedControl';
 import { Bench } from '../../bench/Bench';
@@ -58,7 +58,7 @@ import { pieceKeyStep } from '../../pitch/piece-keys';
 import { Pitch } from '../../pitch/Pitch';
 import { PitchFrame } from '../../pitch/PitchFrame';
 import { PlayerToken } from '../../pitch/PlayerToken';
-import { RolePicker, type RolePickerRole } from '../../roles/RolePicker';
+import { RolePicker } from '../../roles/RolePicker';
 import { PICKER_SIZE, anchorRolePicker } from './anchor-role-picker';
 import { tokenKeyCommand } from '../token-keys';
 import { useBoardDrag } from '../use-board-drag';
@@ -80,35 +80,6 @@ function samePoint(a: Point, b: Point) {
 function roleLabel(doc: PitchDocument, player: Player) {
   const roleId = activeRoleOf(doc, player, FM26_DATA);
   return FM26_DATA.roles.find((role) => role.id === roleId)?.name;
-}
-
-function roleMovement(doc: PitchDocument, player: Player, roleId: string) {
-  const from = player.base ?? { x: 0, y: 0 };
-  if (!doc.scenario || !player.base) return { from, to: from };
-  const result = targetFor({
-    base: player.base,
-    start: player.base,
-    team: player.team,
-    attacker: doc.attacker,
-    roleId,
-    isKeeper: player.isKeeper,
-    zone: doc.scenario.zone,
-    tables: {
-      movement: FM26_DATA.movement,
-      shapeLineShift: FM26_DATA.shapeLineShift,
-      lineShift: FM26_DATA.lineShift,
-    },
-  });
-  return { from, to: result.status === 'ok' ? result.target : from };
-}
-
-function pickerRoles(doc: PitchDocument, player: Player): RolePickerRole[] {
-  return roleOptions(doc, player).map((role) => ({
-    id: role.id,
-    name: role.name,
-    desc: role.description,
-    ...roleMovement(doc, player, role.id),
-  }));
 }
 
 export function BoardDesktop({ store }: BoardDesktopProps) {

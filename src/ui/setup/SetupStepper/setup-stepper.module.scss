@@ -107,6 +107,19 @@ $number-size: 28px;
     gap: var(--space-2);
 }
 
+.nav [role='tooltip'] {
+    right: 0;
+    left: auto;
+    transform: none;
+}
+
+.reason {
+    @include m.type('small');
+
+    margin: 0;
+    color: var(--text-muted);
+}
+
 .stepper[data-phone='true'] {
     flex: 1;
     overflow: visible;

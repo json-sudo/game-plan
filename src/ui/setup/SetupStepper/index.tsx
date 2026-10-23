@@ -12,6 +12,8 @@ export interface SetupStep {
   content?: ReactNode;
   reopened?: boolean;
   nextLabel?: string;
+  nextDisabled?: boolean;
+  nextReason?: string;
 }
 
 export interface SetupStepperProps {
@@ -55,7 +57,7 @@ export function SetupStepper({ steps, phone = false, onBack, onNext, onEdit }: S
                     {state === 'done' ? ' · Done' : ''}
                   </div>
                   <div className={styles.title}>{step.title}</div>
-                  {step.summary && state !== 'active' ? (
+                  {step.summary && state === 'done' ? (
                     <div className={styles.summary}>{step.summary}</div>
                   ) : null}
                 </div>
@@ -74,6 +76,9 @@ export function SetupStepper({ steps, phone = false, onBack, onNext, onEdit }: S
               {state === 'active' ? (
                 <div className={styles.body}>
                   {step.content}
+                  {step.nextDisabled && step.nextReason ? (
+                    <p className={styles.reason}>{step.nextReason}</p>
+                  ) : null}
                   <div className={styles.nav}>
                     {index > 0 || phone ? (
                       <Button
@@ -90,6 +95,8 @@ export function SetupStepper({ steps, phone = false, onBack, onNext, onEdit }: S
                     <Button
                       variant="primary"
                       size={buttonSize}
+                      disabled={step.nextDisabled}
+                      disabledReason={step.nextReason}
                       onClick={onNext ? () => onNext(index) : undefined}
                     >
                       {forwardLabel(step, index, total)}

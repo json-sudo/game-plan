@@ -30,13 +30,29 @@ export const SETUP_STEP_FORMATIONS = 'Formations';
 export const SETUP_STEP_WHO_ATTACKS = 'Who attacks';
 export const SETUP_ROLES = 'Roles';
 export const SETUP_ROLES_HINT =
-  'Every player has an FM26 default role. Tap a player on the pitch to change it.';
+  'Every player starts on their FM26 default role. Pick a player to change it.';
 export const SETUP_ROLES_PHONE_HINT =
-  'Every player has an FM26 default role. Change a role with its menu below.';
+  'Every player starts on their FM26 default role. Change roles on a desktop.';
+export const SETUP_ATTACKS_HINT =
+  'The attacking team plays up the pitch. Changing it turns the pitch.';
+export const SETUP_ROLES_RECOMPUTE_NOTE =
+  'Changing a role recomputes the visualization and restarts it.';
+export const SETUP_OPPONENT_LABEL = 'Opponent (optional)';
+export const NO_OPPONENT_LABEL = 'No opponent';
+export const NO_OPPONENT_SUMMARY = 'no opponent';
+export const FORMATION_MORE_LABEL = 'More';
+export const SETUP_FORMATION_NEXT_REASON = 'Pick a formation for your team first.';
 export const setupAttacksSummary = (name: string) => `${name} attacks`;
-export const setupRolesSummary = (count: number) =>
-  `${count} ${count === 1 ? 'role' : 'roles'} set`;
-export const setupRoleChoiceLabel = (slot: string, side: string) => `${slot} role, ${side}`;
+export const setupRolesSummary = (count: number, changed: number) =>
+  [`${count} ${count === 1 ? 'role' : 'roles'} set`, changed > 0 ? `${changed} changed` : null]
+    .filter(Boolean)
+    .join(' · ');
+export const ROLE_CHANGED_TOOLTIP = 'Changed from the FM26 default';
+export const ROLE_LIST_HEADINGS = {
+  in: 'In possession roles',
+  out: 'Out of possession roles',
+} as const;
+export const ROLE_LIST_TEAM_LABEL = 'Team';
 
 export const KEEPER_LABEL = 'GK';
 export const BALL_LABEL = 'Ball';
