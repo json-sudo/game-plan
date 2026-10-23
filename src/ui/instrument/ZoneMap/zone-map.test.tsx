@@ -12,17 +12,32 @@ describe('ZoneMap', () => {
     expect(onPick).toHaveBeenCalledExactlyOnceWith('RH-F');
   });
 
-  it('picks the flank zones from the presets', async () => {
-    const onPick = vi.fn<(zone: ZoneId) => void>();
-    render(<ZoneMap onPick={onPick} presets />);
-    await userEvent.click(screen.getByRole('button', { name: 'Attack down the left' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Attack down the right' }));
-    expect(onPick.mock.calls).toEqual([['L-F'], ['R-F']]);
+  it('has no attack presets', () => {
+    render(<ZoneMap />);
+    expect(screen.queryByRole('button', { name: /Attack down/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(15);
   });
 
-  it('hides the presets by default', () => {
-    render(<ZoneMap />);
-    expect(screen.queryByRole('button', { name: 'Attack down the left' })).not.toBeInTheDocument();
+  it('sizes the lane columns 15.5 : 12.3 : 20.6 : 12.3 : 15.5', () => {
+    const { container } = render(<ZoneMap />);
+    const grid = container.querySelector<HTMLElement>('[data-lane="L"]')?.parentElement;
+    expect(grid?.style.gridTemplateColumns).toBe('15.5fr 12.3fr 20.6fr 12.3fr 15.5fr');
+  });
+
+  it('tells the user to tap another zone once a zone is picked', () => {
+    render(<ZoneMap value="C-F" />);
+    expect(screen.getByText('Tap another zone to see a new visualization.')).toBeInTheDocument();
+  });
+
+  it('is locked until setup is done and does not pick', async () => {
+    const onPick = vi.fn<(zone: ZoneId) => void>();
+    render(<ZoneMap locked onPick={onPick} />);
+    expect(screen.getByText('No zone yet')).toBeInTheDocument();
+    expect(screen.getByText('Finish setting up your tactic to pick a zone.')).toBeInTheDocument();
+    const cell = screen.getByRole('button', { name: 'Right half-space - final third' });
+    expect(cell).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(cell);
+    expect(onPick).not.toHaveBeenCalled();
   });
 
   it('shows the lane key', () => {

@@ -187,3 +187,67 @@ test('a picked zone starts a visualization by itself and the ball moves without 
   }
   expect(seen.size).toBeGreaterThan(2);
 });
+
+async function pickZoneInFm(page: Page) {
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  await page
+    .getByRole('radiogroup', { name: 'My team' })
+    .getByRole('radio', { name: '4-3-3 DM Wide' })
+    .click();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: /^(Done|Save)$/ }).click();
+  await page.getByRole('button', { name: 'Right flank - final third' }).click();
+  await expect(page.getByText(/^Starts with /)).toBeVisible();
+}
+
+test('Reset after a zone empties the pitch and returns to step 1, and Undo restores it', async ({
+  page,
+}) => {
+  await pickZoneInFm(page);
+  const starts = await page.getByText(/^Starts with /).textContent();
+  await page.getByRole('button', { name: 'Reset' }).click();
+  await expect(page.getByRole('img', { name: /my team$/ })).toHaveCount(0, { timeout: 5000 });
+  await expect(
+    page.getByText('Finish setting up your preferences to see your tactic visualization'),
+  ).toBeVisible();
+  await expect(page.getByRole('radiogroup', { name: 'My team' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByText(starts ?? '')).toBeVisible();
+  await expect(page.getByRole('img', { name: /my team$/ }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Right flank - final third' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+});
+
+test('a Share tactic link from visualization 2 opens at the same zone and plays by itself', async ({
+  page,
+  context,
+}) => {
+  await pickZoneInFm(page);
+  await page.getByRole('button', { name: 'Show another visualization' }).click();
+  const starts = await page.getByText(/^Starts with /).textContent();
+
+  await page.getByRole('button', { name: 'Share tactic' }).click();
+  const link = await page.getByRole('textbox', { name: 'Link' }).inputValue();
+  await page.getByRole('button', { name: 'Done' }).click();
+
+  const shared = await context.newPage();
+  await shared.goto(link);
+  await expect(shared.getByRole('radio', { name: 'FM mode', exact: true })).toBeChecked();
+  await expect(shared.getByText(starts ?? '')).toBeVisible();
+  await expect(shared.getByRole('button', { name: 'Right flank - final third' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  const ball = shared.getByRole('img', { name: 'Ball', exact: true });
+  await expect(ball).toBeVisible();
+  const seen = new Set<string>();
+  for (let sample = 0; sample < 60; sample += 1) {
+    seen.add((await ball.getAttribute('style')) ?? '');
+    await shared.waitForTimeout(100);
+  }
+  expect(seen.size).toBeGreaterThan(2);
+});

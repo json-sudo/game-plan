@@ -16,7 +16,7 @@ describe('interface copy', () => {
   });
 
   it('uses pitch and tactic labels in TopBar', () => {
-    render(<TopBar canUndo canRedo canReset />);
+    render(<TopBar canUndo canRedo canReset onCopyJson={() => undefined} />);
     expect(screen.getByText('Open pitch')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Share tactic' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy tactic JSON' })).toBeInTheDocument();

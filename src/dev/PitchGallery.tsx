@@ -132,7 +132,7 @@ export function PitchGallery() {
       <Section id="zone-map-title" title="Zone map">
         <div className={styles.gallery__columns}>
           <Instrument>
-            <ZoneMap value={zone} onPick={setZone} attackerName="Wing-back" presets />
+            <ZoneMap value={zone} onPick={setZone} attackerName="Wing-back" />
           </Instrument>
           <Instrument>
             <ZoneMap value={null} phone />

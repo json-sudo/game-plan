@@ -8,6 +8,8 @@ import type { FmVisualization } from '../../state/visualization';
 import {
   PITCH_EMPTY_SETUP,
   PITCH_EMPTY_ZONE,
+  RESET_DISABLED_REASON,
+  RESET_FM_REASON,
   VISUALIZATION_SETUP_FIRST_REASON,
   VISUALIZATION_ZONE_FIRST_REASON,
 } from '../copy';
@@ -52,6 +54,14 @@ export function visualizationControls(
     reason: isSetupComplete(doc)
       ? VISUALIZATION_ZONE_FIRST_REASON
       : VISUALIZATION_SETUP_FIRST_REASON,
+  };
+}
+
+export function resetState(doc: PitchDocument, fm: boolean): { enabled: boolean; reason: string } {
+  if (fm) return { enabled: doc.scenario !== null, reason: RESET_FM_REASON };
+  return {
+    enabled: doc.teams.mine.applied !== null || doc.teams.opponent.applied !== null,
+    reason: RESET_DISABLED_REASON,
   };
 }
 

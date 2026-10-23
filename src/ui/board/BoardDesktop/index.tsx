@@ -17,6 +17,7 @@ import {
   playerSide,
   placedPlayers,
   formationOf,
+  isSetupComplete,
   type PitchDocument,
   type Player,
 } from '../../../state/document';
@@ -24,25 +25,19 @@ import { benchPlacementPoint } from '../../../state/placement';
 import { canSetSquadSize } from '../../../state/tactic-actions';
 import { selectCanUndo, selectFmVisualization } from '../../../state/selectors';
 import type { PitchStore } from '../../../state/store';
-import { UndoControl } from '../../chrome/UndoControl';
+import { TopBar } from '../../chrome/TopBar';
 import {
   BALL_TOOLTIP,
-  CLEAR_LABEL,
-  MODE_OPTIONS,
+  CLEAR_FM_REASON,
   PITCH_LABEL,
-  RESET_DISABLED_REASON,
-  RESET_LABEL,
   SIDE_COLUMN_LABEL,
   SETUP_COLUMN_LABEL,
-  THEME_DARK_LABEL,
-  THEME_LIGHT_LABEL,
   TOKEN_TOOLTIP,
 } from '../../copy';
+import { useShareExport } from '../use-share-export';
 import { SetupFlow } from '../../setup/SetupFlow';
 import { MatchupStep } from '../../setup/MatchupStep';
 import { setupCursor } from '../../setup/setup-model';
-import { Button } from '../../controls/Button';
-import { SegmentedControl } from '../../controls/SegmentedControl';
 import { Bench } from '../../bench/Bench';
 import { SquadControls, type SquadControlTeam } from '../../bench/SquadControls';
 import { useBelowBreakpoint } from '../../../shared/hooks/useBelowBreakpoint';
@@ -59,7 +54,7 @@ import { PlayerToken } from '../../pitch/PlayerToken';
 import { tokenKeyCommand } from '../token-keys';
 import { useBoardDrag } from '../use-board-drag';
 import { useBoardMetrics } from '../use-board-metrics';
-import { fmPitchNotice, opponentOnPitch, visualizationControls } from '../fm-pieces';
+import { fmPitchNotice, opponentOnPitch, resetState, visualizationControls } from '../fm-pieces';
 import { useBoardPieces } from '../use-board-pieces';
 import styles from './board-desktop.module.scss';
 
@@ -88,8 +83,9 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
   const view = useBoardPieces(store);
   const metrics = useBoardMetrics();
   const compactBar = useBelowBreakpoint(TOP_BAR_COMPACT_MAX_WIDTH);
-  const canReset = doc.teams.mine.applied !== null || doc.teams.opponent.applied !== null;
   const fm = ui.mode === 'fm';
+  const reset = resetState(doc, fm);
+  const shareExport = useShareExport(store);
   const ballZone = zoneOf(doc.ball, doc.attacker);
   const hasAttackerFormation = formationOf(FM26_DATA, doc.teams[doc.attacker].formationId) !== null;
 
@@ -160,60 +156,43 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
       data-labels={metrics.labels}
       style={boardStyle}
     >
-      <header className={styles.top} data-compact={compactBar || undefined}>
-        <SegmentedControl
-          label="Mode"
-          value={fm ? 'fm' : 'open'}
-          options={MODE_OPTIONS}
-          onChange={(value) => store.getState().setMode(value === 'fm' ? 'fm' : 'openPitch')}
-        />
-        <UndoControl canUndo={canUndo} redo={false} onUndo={() => store.getState().undo()} />
-        <span className={styles.spacer} />
-        {compactBar ? (
-          <Button
-            variant="icon"
-            icon="reset"
-            label={RESET_LABEL}
-            disabled={!canReset}
-            disabledReason={canReset ? undefined : RESET_DISABLED_REASON}
-            onClick={() => store.getState().dispatch({ type: 'reset' })}
-          />
-        ) : (
-          <Button
-            variant="ghost"
-            icon="reset"
-            disabled={!canReset}
-            disabledReason={canReset ? undefined : RESET_DISABLED_REASON}
-            onClick={() => store.getState().dispatch({ type: 'reset' })}
-          >
-            {RESET_LABEL}
-          </Button>
-        )}
-        {compactBar ? (
-          <Button
-            variant="icon"
-            icon="clear"
-            label={CLEAR_LABEL}
-            onClick={() => store.getState().dispatch({ type: 'clearPitch' })}
-          />
-        ) : (
-          <Button
-            variant="ghost"
-            icon="clear"
-            onClick={() => store.getState().dispatch({ type: 'clearPitch' })}
-          >
-            {CLEAR_LABEL}
-          </Button>
-        )}
-        <Button
-          variant="icon"
-          icon={ui.theme === 'dark' ? 'sun' : 'moon'}
-          label={ui.theme === 'dark' ? THEME_LIGHT_LABEL : THEME_DARK_LABEL}
-          onClick={() =>
-            store.getState().patchUi({ theme: ui.theme === 'dark' ? 'light' : 'dark' })
-          }
-        />
-      </header>
+      <TopBar
+        mine={doc.teams.mine.name}
+        opp={doc.teams.opponent.name}
+        mode={fm ? 'fm' : 'open'}
+        theme={ui.theme}
+        compact={compactBar}
+        canUndo={canUndo}
+        redo={false}
+        canReset={reset.enabled}
+        resetReason={reset.reason}
+        canClear={!fm}
+        clearReason={fm ? CLEAR_FM_REASON : undefined}
+        onMineChange={(name) =>
+          store.getState().dispatch({ type: 'renameTeam', team: 'mine', name })
+        }
+        onOppChange={(name) =>
+          store.getState().dispatch({ type: 'renameTeam', team: 'opponent', name })
+        }
+        onModeChange={(value) => store.getState().setMode(value === 'fm' ? 'fm' : 'openPitch')}
+        onUndo={() => store.getState().undo()}
+        onReset={() => store.getState().dispatch({ type: 'reset' })}
+        onClear={() => store.getState().dispatch({ type: 'clearPitch' })}
+        onToggleTheme={() =>
+          store.getState().patchUi({ theme: ui.theme === 'dark' ? 'light' : 'dark' })
+        }
+        onExport={() =>
+          shareExport.openExport({
+            doc: view.doc,
+            pieces: view.pieces,
+            ball: view.ballVisible ? view.ball : null,
+            fm,
+            showRole: metrics.labels === 'full',
+            tokenPx: metrics.tokenPx,
+          })
+        }
+        onShare={shareExport.share}
+      />
       <div className={styles.main}>
         <section className={styles.setup} data-column="setup" aria-label={SETUP_COLUMN_LABEL}>
           {fm ? <SetupFlow store={store} /> : <MatchupStep store={store} />}
@@ -281,6 +260,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
             <Instrument>
               <ZoneMap
                 value={hasAttackerFormation ? ballZone : null}
+                locked={!isSetupComplete(doc)}
                 attackerName={doc.teams[doc.attacker].name}
                 onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
               />
@@ -318,6 +298,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
           )}
         </section>
       </div>
+      {shareExport.dialogs}
     </div>
   );
 }

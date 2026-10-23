@@ -85,10 +85,26 @@ export const ZONE_UNFINISHED_SUFFIX = ', setup not finished';
 export const ZONE_UNFINISHED_MESSAGE = 'Finish setting up your tactic to see the runs.';
 export const CARRIER_PICKED_SUFFIX = '(you picked)';
 export const carrierLine = (carrier: string) => `On the ball: ${carrier}`;
-export const ZONE_PRESETS = [
-  { label: 'Attack down the left', zone: 'L-F' },
-  { label: 'Attack down the right', zone: 'R-F' },
-] as const;
+export const ZONE_LOCKED_HINT = 'Finish setting up your tactic to pick a zone.';
+export const ZONE_AFTER_HINT = 'Tap another zone to see a new visualization.';
+
+export const RESET_FM_REASON = 'Pick a zone and start a visualization first.';
+export const CLEAR_FM_REASON = 'Clear is for Open pitch. Use Reset in FM mode.';
+export const EXPORT_PNG_LABEL = 'Export PNG';
+export const EXPORT_FM_TOOLTIP = 'Export PNG of this frame';
+export const SHARE_LABEL = 'Share tactic';
+export const SHARE_FM_TOOLTIP = 'Saves the zone and visualization';
+
+export const SHARE_LINK_LABEL = 'Link';
+export const SHARE_COPIED = 'Link copied';
+export const SHARE_HINT = 'Paste it in your group chat.';
+export const SHARE_DONE_LABEL = 'Done';
+export const EXPORT_NOTE = '1080 × 1350 PNG. Reads at group-chat size.';
+export const EXPORT_CANCEL_LABEL = 'Cancel';
+export const EXPORT_DOWNLOAD_LABEL = 'Download PNG';
+export const EXPORT_PREVIEW_LABEL = 'Preview of the exported image';
+export const EXPORT_FOOTER = 'Game Plan';
+export const EXPORT_FILE_NAME = 'game-plan.png';
 
 export const BENCH_HEADING = 'Bench';
 export const benchCount = (placed: number, benched: number) =>

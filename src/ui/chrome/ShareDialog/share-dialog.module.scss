@@ -1,0 +1,55 @@
+@use 'mixins' as m;
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.label {
+    @include m.type('small');
+
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.input {
+    width: 100%;
+    height: var(--control-height);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--surface-raised);
+    color: var(--text);
+    font: 600 15px/22px var(--font-ui);
+    text-overflow: ellipsis;
+
+    &:focus-visible {
+        @include m.focus-ring;
+    }
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    height: var(--control-height);
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--control);
+    color: var(--control-text);
+    font: 600 15px/22px var(--font-ui);
+    white-space: nowrap;
+}
+
+.hint {
+    @include m.type('small');
+
+    color: var(--text-muted);
+}

@@ -41,14 +41,15 @@ async function openMenu() {
 }
 
 describe('BoardPhone top bar', () => {
-  it('shows the title, Undo and Menu, and no share, save, load, export or copy control', () => {
+  it('shows the title, Undo, Share tactic and Menu, and no save, load, export or copy control', () => {
     const store = createPitchStore({ doc: createInitialDocument() });
     render(<BoardPhone store={store} />);
     expect(screen.getByText('My team v Opponent')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Share tactic' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Menu' })).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /share|save|load|export|copy/i }),
+      screen.queryByRole('button', { name: /save|load|export|copy/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -72,7 +73,7 @@ describe('BoardPhone top bar', () => {
 });
 
 describe('BoardPhone menu', () => {
-  it('holds the mode toggle, Reset, Clear and the theme toggle', async () => {
+  it('holds the mode toggle, Reset, Clear, Export PNG and the theme toggle', async () => {
     const store = createPitchStore({ doc: createInitialDocument() });
     render(<BoardPhone store={store} />);
     const menu = await openMenu();
@@ -83,6 +84,7 @@ describe('BoardPhone menu', () => {
       'Mode: Open pitch',
       `Reset${RESET_DISABLED_REASON}`,
       'Clear',
+      'Export PNG',
       THEME_DARK_LABEL,
     ]);
   });

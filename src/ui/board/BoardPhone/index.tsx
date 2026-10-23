@@ -9,6 +9,7 @@ import {
   SIDES,
   SQUAD_SIZES,
   formationOf,
+  isSetupComplete,
   playerSide,
   placedPlayers,
   type PitchDocument,
@@ -26,12 +27,14 @@ import type { SquadControlTeam } from '../../bench/SquadControls';
 import {
   BALL_TOOLTIP,
   BENCH_BUTTON_LABEL,
+  CLEAR_FM_REASON,
   CLEAR_LABEL,
+  EXPORT_PNG_LABEL,
   MATCHUP_BUTTON_LABEL,
   MODE_LABELS,
   PITCH_LABEL,
-  RESET_DISABLED_REASON,
   RESET_LABEL,
+  SHARE_LABEL,
   THEME_DARK_LABEL,
   THEME_LIGHT_LABEL,
   TOKEN_TOOLTIP,
@@ -53,7 +56,8 @@ import { BALL_PIECE_ID } from '../../hooks/usePitchMotion';
 import { tokenKeyCommand } from '../token-keys';
 import { useBoardDrag } from '../use-board-drag';
 import { useBoardMetrics } from '../use-board-metrics';
-import { fmPitchNotice, opponentOnPitch, visualizationControls } from '../fm-pieces';
+import { fmPitchNotice, opponentOnPitch, resetState, visualizationControls } from '../fm-pieces';
+import { useShareExport } from '../use-share-export';
 import { useBoardPieces } from '../use-board-pieces';
 import styles from './board-phone.module.scss';
 
@@ -85,8 +89,9 @@ export function BoardPhone({ store }: BoardPhoneProps) {
   const menuSlot = useRef<HTMLDivElement>(null);
   const benchSlot = useRef<HTMLDivElement>(null);
   const matchupSlot = useRef<HTMLDivElement>(null);
-  const canReset = doc.teams.mine.applied !== null || doc.teams.opponent.applied !== null;
   const fm = ui.mode === 'fm';
+  const reset = resetState(doc, fm);
+  const shareExport = useShareExport(store);
   const dark = ui.theme === 'dark';
   const cursor = setupCursor(doc, ui.setupStep);
   const ballZone = zoneOf(doc.ball, doc.attacker);
@@ -114,14 +119,30 @@ export function BoardPhone({ store }: BoardPhoneProps) {
     {
       icon: 'reset',
       label: RESET_LABEL,
-      disabled: !canReset,
-      note: canReset ? undefined : RESET_DISABLED_REASON,
+      disabled: !reset.enabled,
+      note: reset.enabled ? undefined : reset.reason,
       onSelect: choose(() => store.getState().dispatch({ type: 'reset' })),
     },
     {
       icon: 'clear',
       label: CLEAR_LABEL,
+      disabled: fm,
+      note: fm ? CLEAR_FM_REASON : undefined,
       onSelect: choose(() => store.getState().dispatch({ type: 'clearPitch' })),
+    },
+    {
+      icon: 'image',
+      label: EXPORT_PNG_LABEL,
+      onSelect: choose(() =>
+        shareExport.openExport({
+          doc: view.doc,
+          pieces: view.pieces,
+          ball: view.ballVisible ? view.ball : null,
+          fm,
+          showRole: false,
+          tokenPx: metrics.tokenPx,
+        }),
+      ),
     },
     {
       icon: dark ? 'sun' : 'moon',
@@ -241,6 +262,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
           <div className={styles.sub}>{MODE_LABELS[fm ? 'fm' : 'open']}</div>
         </div>
         <UndoControl canUndo={canUndo} redo={false} onUndo={() => store.getState().undo()} />
+        <Button variant="icon" icon="share" label={SHARE_LABEL} onClick={shareExport.share} />
         <div ref={menuSlot}>
           <Button
             variant="icon"
@@ -296,6 +318,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
                 <ZoneMap
                   phone
                   value={hasAttackerFormation ? ballZone : null}
+                  locked={!isSetupComplete(doc)}
                   attackerName={doc.teams[doc.attacker].name}
                   onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
                 />
@@ -305,6 +328,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
         )}
       </div>
       {menuOpen ? <PhoneMenu items={menuItems} onClose={() => setMenuOpen(false)} /> : null}
+      {shareExport.dialogs}
       {benchOpen ? (
         <BenchSheet
           pieces={benchPieces(doc, FM26_DATA)}
