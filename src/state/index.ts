@@ -36,8 +36,10 @@ export {
   selectCanRedo,
   selectCanUndo,
   selectDisplayPositions,
+  selectFmVisualization,
   selectTeamPlayers,
 } from './selectors';
+export type { FmVisualization } from './visualization';
 export { canSetSquadSize, copyFmPositions, applyTacticAction } from './tactic-actions';
 export {
   MODES,

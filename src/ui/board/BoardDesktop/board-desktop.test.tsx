@@ -314,6 +314,9 @@ function guidedSteps() {
 describe('setup', () => {
   it('marks each setup step active, done or reopened from setupStep', () => {
     const fresh = createPitchStore({ doc: createInitialDocument(), ui: { mode: 'fm' } });
+    fresh
+      .getState()
+      .dispatch({ type: 'applyFormation', team: 'opponent', formationId: '4_2_3_1_dm_wide' });
     const { rerender } = render(<BoardDesktop store={fresh} />);
     let steps = guidedSteps();
     expect(steps.map((step) => step.getAttribute('data-state'))).toEqual([

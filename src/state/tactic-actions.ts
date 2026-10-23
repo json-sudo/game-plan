@@ -10,7 +10,8 @@ import {
   type Player,
   type SquadSize,
 } from './document';
-import { benchedPlayer, isRemovable, setSquadSize } from './layout-actions';
+import { benchedPlayer, isRemovable, resetFm, setSquadSize } from './layout-actions';
+import { wrapSequenceIndex } from './visualization';
 import { syncRoster } from './tactic-sync';
 import { otherMode, type Mode, type Tactic } from './tactic';
 
@@ -28,7 +29,9 @@ function applyToLayout(
   data: DataSet,
 ): PitchDocument {
   if (mode === 'openPitch' && FM_ONLY_ACTIONS.has(action.type)) return doc;
-  return applyAction(doc, action, data);
+  if (mode === 'fm' && action.type === 'reset') return resetFm(doc);
+  const next = applyAction(doc, action, data);
+  return mode === 'fm' ? wrapSequenceIndex(next) : next;
 }
 
 function applyToTacticLayout(

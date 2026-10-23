@@ -197,7 +197,7 @@ describe('BoardPhone board', () => {
     render(<BoardPhone store={store} />);
     await user.click(screen.getByRole('button', { name: zoneName('C-F') }));
     expect(store.getState().doc.ball.y).toBeLessThan(35);
-    expect(store.getState().doc.scenario).toEqual({ zone: 'C-F' });
+    expect(store.getState().doc.scenario).toEqual({ zone: 'C-F', sequenceIndex: 0 });
   });
 
   it('shows no playback, carrier choice, pass control or first-run hint in FM mode', () => {

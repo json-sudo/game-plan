@@ -52,5 +52,6 @@ export function setRole(
 
 export function setAttacker(doc: PitchDocument, attacker: Side, data: DataSet): PitchDocument {
   if (doc.attacker === attacker) return doc;
+  if (attacker === 'opponent' && doc.teams.opponent.formationId === null) return doc;
   return refreshScenario(reconcileRoles({ ...doc, attacker }, data));
 }

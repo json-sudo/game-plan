@@ -12,7 +12,7 @@ describe('createExampleDocument', () => {
     expect(doc.attacker).toBe('mine');
     expect(placedPlayers(doc)).toHaveLength(22);
     expect(doc.players.every((p) => p.role !== undefined)).toBe(true);
-    expect(doc.scenario).toEqual({ zone: EXAMPLE_ZONE });
+    expect(doc.scenario).toEqual({ zone: EXAMPLE_ZONE, sequenceIndex: 0 });
     expect(documentIssues(doc, FM26_DATA)).toBeNull();
   });
 });

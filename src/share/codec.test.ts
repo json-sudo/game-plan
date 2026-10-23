@@ -247,7 +247,7 @@ describe('rejected links', () => {
   });
 
   it('rejects every earlier version, v4 included, as an old link', () => {
-    for (const tag of ['v1', 'v2', 'v3', 'v4']) {
+    for (const tag of ['v1', 'v2', 'v3', 'v4', 'v5']) {
       expect(decodeShareHash(`#s=${tag}.AAAA`)).toMatchObject(rejected('old-version'));
     }
   });
@@ -258,7 +258,7 @@ describe('rejected links', () => {
   });
 
   it('rejects newer or missing version tags', () => {
-    expect(decodeShareHash('#s=v6.AAAA')).toMatchObject(rejected('unknown-version'));
+    expect(decodeShareHash('#s=v7.AAAA')).toMatchObject(rejected('unknown-version'));
     expect(decodeShareHash('#s=AAAA')).toMatchObject(rejected('unknown-version'));
   });
 
@@ -335,8 +335,8 @@ describe('rejected links', () => {
     ).toMatchObject(rejected('invalid'));
   });
 
-  it('rejects a zone that does not match the ball', () => {
-    expect(crafted((p) => (fmLayout(p)[SCENARIO] = 'L-D'))).toMatchObject(rejected('invalid'));
+  it('rejects a negative sequence index', () => {
+    expect(crafted((p) => (fmLayout(p)[SCENARIO + 1] = -1))).toMatchObject(rejected('malformed'));
   });
 
   it('rejects the same piece carrying different names in the two layouts', () => {

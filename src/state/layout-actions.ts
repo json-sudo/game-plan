@@ -166,6 +166,11 @@ export function blankTeam(doc: PitchDocument, team: Side): PitchDocument {
   };
 }
 
+export function resetFm(doc: PitchDocument): PitchDocument {
+  if (!doc.scenario) return doc;
+  return { ...SIDES.reduce(blankTeam, doc), attacker: 'mine', ball: BALL_START, scenario: null };
+}
+
 export function resetPitch(doc: PitchDocument, data: DataSet): PitchDocument {
   const cleared: PitchDocument = { ...doc, ball: BALL_START, scenario: null };
   const bothMatchup = SIDES.every((team) => doc.teams[team].applied === 'matchup');

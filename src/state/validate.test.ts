@@ -80,9 +80,14 @@ describe('documentIssues', () => {
     expect(issue(withPlayer({ role: 'nope' }))).toMatch(/role that does not fit/);
   });
 
-  it('rejects a scenario with a bad zone', () => {
+  it('rejects the opponent attacking without a formation', () => {
+    const teams = { ...valid.teams, opponent: { ...valid.teams.opponent, formationId: null } };
+    expect(issue({ ...valid, attacker: 'opponent', teams })).toMatch(/without a formation/);
+  });
+
+  it('rejects a scenario with a bad zone or sequence index', () => {
     const real = valid.scenario!;
-    expect(issue({ ...valid, scenario: { ...real, zone: 'L-D' } })).toMatch(/does not match/);
+    expect(issue({ ...valid, scenario: { ...real, sequenceIndex: -1 } })).toMatch(/sequence index/);
     expect(issue({ ...valid, scenario: { ...real, zone: 'nope' as typeof real.zone } })).toMatch(
       /zone is unknown/,
     );

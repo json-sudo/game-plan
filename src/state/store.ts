@@ -5,9 +5,11 @@ import type { PitchDocument } from './document';
 import { commit, emptyHistory, redo, undo, type History } from './history';
 import { copyFmPositions, applyTacticAction } from './tactic-actions';
 import { tacticIssues } from './tactic-validate';
+import { nextVisualization } from './visualization';
 import {
   createInitialTactic,
   tacticFromDocument,
+  withLayout,
   type Mode,
   type Tactic,
   type TacticSnapshot,
@@ -42,6 +44,7 @@ export interface PitchStore {
   ui: UiState;
   dispatch: (action: Action) => void;
   copyFmPositions: () => void;
+  showAnotherVisualization: () => void;
   loadTactic: (tactic: Tactic, options: LoadTacticOptions) => boolean;
   undo: () => void;
   redo: () => void;
@@ -111,6 +114,11 @@ export function createPitchStore(options: PitchStoreOptions = {}): StoreApi<Pitc
       ui: initialUiState,
       dispatch,
       copyFmPositions: () => replaceTactic(copyFmPositions(get().tactic)),
+      showAnotherVisualization: () => {
+        const { tactic: current, ui } = get();
+        const next = withLayout(current, 'fm', nextVisualization(current.fm));
+        if (next !== current) set({ tactic: next, doc: next[ui.mode] });
+      },
       loadTactic: (next, { mode }) => {
         if (tacticIssues(next, FM26_DATA) !== null) return false;
         const { history, ui } = get();

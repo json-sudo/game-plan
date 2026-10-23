@@ -1,6 +1,7 @@
 import type { Point, Side } from '../data/types';
 import type { PitchDocument, Player } from './document';
 import type { DragState, PitchStore } from './store';
+import { fmVisualization, type FmVisualization } from './visualization';
 
 const baseCache = new WeakMap<PitchDocument, Map<string, Point>>();
 const teamCache = new WeakMap<PitchDocument, Record<Side, Player[]>>();
@@ -8,6 +9,7 @@ const dragCache = new WeakMap<
   DragState,
   { base: Map<string, Point>; result: Map<string, Point> }
 >();
+const visualizationCache = new WeakMap<PitchDocument, FmVisualization | null>();
 
 function selectBasePositions(doc: PitchDocument): Map<string, Point> {
   const cached = baseCache.get(doc);
@@ -47,4 +49,12 @@ export function selectCanUndo(state: PitchStore): boolean {
 
 export function selectCanRedo(state: PitchStore): boolean {
   return state.history.future.length > 0;
+}
+
+export function selectFmVisualization(state: PitchStore): FmVisualization | null {
+  if (state.ui.mode !== 'fm') return null;
+  if (visualizationCache.has(state.doc)) return visualizationCache.get(state.doc) ?? null;
+  const computed = fmVisualization(state.doc);
+  visualizationCache.set(state.doc, computed);
+  return computed;
 }

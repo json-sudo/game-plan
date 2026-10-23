@@ -1,16 +1,19 @@
-import { render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { FM26_DATA } from '../../../data/fm26';
 import { createExampleDocument } from '../../../state/example';
-import { createInitialDocument, placedPlayers } from '../../../state/document';
+import { createInitialDocument, isSetupComplete, placedPlayers } from '../../../state/document';
 import { createPitchStore } from '../../../state/store';
 import {
+  SETUP_ROLES,
   SETUP_ROLES_PHONE_HINT,
+  SETUP_STEP_FORMATIONS,
   SETUP_STEP_WHO_ATTACKS,
   TOKEN_TEAM_LABELS,
   setupRoleChoiceLabel,
 } from '../../copy';
+import { applyAction } from '../../../state/actions';
 import { formationSummary } from '../setup-model';
 import { SetupFlow } from '.';
 
@@ -98,5 +101,53 @@ describe('SetupFlow on phones', () => {
     );
     await user.selectOptions(select, next!.value);
     expect(store.getState().doc.players.find((p) => p.id === player!.id)?.role).toBe(next!.value);
+  });
+});
+
+describe('SetupFlow step list', () => {
+  const mineOnly = () =>
+    applyAction(createInitialDocument(), {
+      type: 'applyFormation',
+      team: 'mine',
+      formationId: FM26_DATA.formations[0].id,
+    });
+
+  it('has Formations and Roles only without an opponent, and three steps with one', () => {
+    renderFlow(1, mineOnly());
+    const titles = screen.getAllByRole('listitem').map((item) => item.textContent);
+    expect(titles).toHaveLength(2);
+    expect(titles[0]).toContain(SETUP_STEP_FORMATIONS);
+    expect(titles[1]).toContain(SETUP_ROLES);
+    cleanup();
+    renderFlow(1, createExampleDocument());
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+  });
+
+  it('goes from Formations straight to Roles with default roles, and back', async () => {
+    const user = userEvent.setup();
+    const store = renderFlow(1, mineOnly());
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(store.getState().ui.setupStep).toBe(3);
+    expect(isSetupComplete(store.getState().doc)).toBe(true);
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect(store.getState().ui.setupStep).toBe(1);
+  });
+
+  it('finishes from Roles with Done', async () => {
+    const user = userEvent.setup();
+    const store = renderFlow(1, mineOnly());
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(screen.getByRole('button', { name: /Done|Save/ }));
+    expect(store.getState().ui.setupStep).toBeNull();
+  });
+
+  it('reopens the Roles step from its Edit button', async () => {
+    const user = userEvent.setup();
+    const done = applyAction(mineOnly(), { type: 'fillDefaultRoles' });
+    const store = renderFlow(1, done);
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(store.getState().ui.setupStep).toBeNull();
+    await user.click(screen.getByRole('button', { name: `Edit ${SETUP_ROLES}` }));
+    expect(store.getState().ui.setupStep).toBe(3);
   });
 });

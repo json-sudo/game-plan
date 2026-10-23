@@ -29,6 +29,7 @@ const layoutTuple = z.tuple([
   z.array(playerTuple).max(54),
   z.tuple([int, int]),
   z.union([z.literal(0), zoneIdSchema]),
+  int.min(0),
 ]);
 
 export const sharePayloadSchema = z.tuple([

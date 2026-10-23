@@ -98,7 +98,7 @@ describe('App', () => {
 
   it('shows the skipped-saves banner for an unreadable save', async () => {
     localStorage.setItem('game-plan:visited', '1');
-    localStorage.setItem('gameplan:tactics', JSON.stringify({ version: 4, slots: [{ nope: 1 }] }));
+    localStorage.setItem('gameplan:tactics', JSON.stringify({ version: 5, slots: [{ nope: 1 }] }));
     await renderAppAt(1440);
     expect(screen.getByRole('alert')).toHaveTextContent('1 saved tactic was skipped.');
   });

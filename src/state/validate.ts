@@ -1,6 +1,6 @@
 import type { DataSet, Point } from '../data/types';
 import { ZONE_IDS } from '../data/zones';
-import { PITCH_H, PITCH_W, zoneOf } from '../engine';
+import { PITCH_H, PITCH_W } from '../engine';
 import {
   PIECE_NAME_MAX_LENGTH,
   SIDES,
@@ -49,10 +49,13 @@ function teamIssue(doc: PitchDocument, data: DataSet): string | null {
 
 function scenarioIssue(doc: PitchDocument): string | null {
   if (!insidePitch(doc.ball)) return 'ball is outside the pitch';
+  if (doc.attacker === 'opponent' && doc.teams.opponent.formationId === null) {
+    return 'opponent attacks without a formation';
+  }
   if (!doc.scenario) return null;
   if (!ZONE_IDS.includes(doc.scenario.zone)) return 'scenario zone is unknown';
-  if (zoneOf(doc.ball, doc.attacker) !== doc.scenario.zone)
-    return 'scenario zone does not match the ball';
+  if (!Number.isInteger(doc.scenario.sequenceIndex) || doc.scenario.sequenceIndex < 0)
+    return 'scenario sequence index is invalid';
   return null;
 }
 

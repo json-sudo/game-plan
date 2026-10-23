@@ -1,7 +1,7 @@
 import { useStore, type StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
 import { pieceLabel } from '../../../state/bench-pieces';
-import { placedPlayers, type PitchDocument } from '../../../state/document';
+import { isSetupComplete, placedPlayers, type PitchDocument } from '../../../state/document';
 import type { PitchStore } from '../../../state/store';
 import {
   SETUP_ROLES,
@@ -20,8 +20,8 @@ import {
   FORMATION_OPTIONS,
   formationSummary,
   roleOptions,
-  setupComplete,
   setupCursor,
+  setupStepNumbers,
   stepMark,
   type SetupCursor,
 } from '../setup-model';
@@ -40,7 +40,7 @@ function rolesStep(
 ): Pick<SetupStep, 'content' | 'summary'> {
   const placed = placedPlayers(doc);
   return {
-    summary: setupComplete(doc) ? setupRolesSummary(placed.length) : undefined,
+    summary: isSetupComplete(doc) ? setupRolesSummary(placed.length) : undefined,
     content: (
       <>
         <p className={styles['roles-hint']}>{phone ? SETUP_ROLES_PHONE_HINT : SETUP_ROLES_HINT}</p>
@@ -84,9 +84,9 @@ function buildSteps(
   cursor: SetupCursor,
   phone: boolean,
 ): SetupStep[] {
-  const complete = setupComplete(doc);
+  const complete = isSetupComplete(doc);
   const marks = ([1, 2, 3] as const).map((index) => stepMark(index, cursor, complete));
-  return [
+  const steps: SetupStep[] = [
     {
       title: SETUP_STEP_FORMATIONS,
       state: marks[0].state,
@@ -143,22 +143,21 @@ function buildSteps(
       ...rolesStep(store, doc, phone),
     },
   ];
+  return setupStepNumbers(doc).map((number) => steps[number - 1]);
 }
 
 function advance(store: StoreApi<PitchStore>, index: number) {
   const state = store.getState();
-  const finished = setupComplete(state.doc);
-  const open = state.ui.setupStep ?? (finished ? null : 1);
-  if ((finished && open !== null) || index === 2) {
+  const numbers = setupStepNumbers(state.doc);
+  const finished = isSetupComplete(state.doc);
+  const open = setupCursor(state.doc, state.ui.setupStep);
+  const next = numbers[index + 1];
+  if ((finished && open !== null) || next === undefined) {
     state.patchUi({ setupStep: null });
     return;
   }
-  if (index === 1) {
-    state.dispatch({ type: 'fillDefaultRoles' });
-    state.patchUi({ setupStep: 3 });
-    return;
-  }
-  state.patchUi({ setupStep: 2 });
+  if (next === 3) state.dispatch({ type: 'fillDefaultRoles' });
+  state.patchUi({ setupStep: next });
 }
 
 export function SetupFlow({ store, phone = false }: SetupFlowProps) {
@@ -171,14 +170,13 @@ export function SetupFlow({ store, phone = false }: SetupFlowProps) {
         steps={buildSteps(store, doc, cursor, phone)}
         phone={phone}
         onBack={(index) => {
-          if (index === 1 || index === 2) store.getState().patchUi({ setupStep: index });
+          const previous = setupStepNumbers(doc)[index - 1];
+          if (previous !== undefined) store.getState().patchUi({ setupStep: previous });
         }}
         onNext={(index) => advance(store, index)}
         onEdit={(index) => {
-          const step = index + 1;
-          if (step === 1 || step === 2 || step === 3) {
-            store.getState().patchUi({ setupStep: step });
-          }
+          const step = setupStepNumbers(doc)[index];
+          if (step !== undefined) store.getState().patchUi({ setupStep: step });
         }}
       />
     </div>

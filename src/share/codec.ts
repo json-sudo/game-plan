@@ -22,7 +22,7 @@ import {
 } from './schema';
 
 export const SHARE_PARAM = 's';
-export const SHARE_VERSION = 'v5';
+export const SHARE_VERSION = 'v6';
 export const SHARE_PREFIX = `${SHARE_PARAM}=${SHARE_VERSION}.`;
 export const MAX_SHARE_HASH_LENGTH = 8000;
 export const MAX_SHARE_PAYLOAD_BYTES = 65536;
@@ -88,6 +88,7 @@ function encodeLayout(doc: PitchDocument, data: DataSet): ShareLayoutTuple {
     doc.players.map((player) => encodePlayer(player, data)),
     [fixed(doc.ball.x), fixed(doc.ball.y)],
     doc.scenario ? doc.scenario.zone : 0,
+    doc.scenario?.sequenceIndex ?? 0,
   ];
 }
 
@@ -160,7 +161,7 @@ function decodeLayout(
     teams: { mine: teamAt(0), opponent: teamAt(1) },
     players: players as Player[],
     ball: { x: layout[5][0] / FIXED_POINT, y: layout[5][1] / FIXED_POINT },
-    scenario: scenario === 0 ? null : { zone: scenario },
+    scenario: scenario === 0 ? null : { zone: scenario, sequenceIndex: layout[7] },
   };
 }
 
@@ -182,7 +183,7 @@ function inflatePayload(text: string): unknown {
   }
 }
 
-const OLD_VERSION_TAGS: readonly string[] = ['v1', 'v2', 'v3', 'v4'];
+const OLD_VERSION_TAGS: readonly string[] = ['v1', 'v2', 'v3', 'v4', 'v5'];
 
 function versionFailure(tag: string): DecodeResult {
   return failure(OLD_VERSION_TAGS.includes(tag) ? 'old-version' : 'unknown-version');

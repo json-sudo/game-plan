@@ -184,12 +184,13 @@ describe('setAttacker', () => {
     expect(applyAction(doc, { type: 'setAttacker', attacker: 'mine' })).toBe(doc);
   });
 
-  it('swaps the possession of roles and re-reads the zone from the ball', () => {
+  it('swaps the possession of roles and keeps the zone', () => {
     const start = withZone('C-F');
     expect(start.scenario).not.toBeNull();
     const flipped = applyAction(start, { type: 'setAttacker', attacker: 'opponent' });
     expect(flipped.attacker).toBe('opponent');
-    expect(flipped.scenario).toEqual({ zone: zoneOf(flipped.ball, 'opponent') });
+    expect(flipped.scenario).toEqual({ zone: 'C-F', sequenceIndex: 0 });
+    expect(zoneOf(flipped.ball, 'opponent')).toBe('C-F');
     const roleOf = (id: string) => FM26_DATA.roles.find((r) => r.id === player(flipped, id).role)!;
     expect(roleOf(MINE_ST).possession).toBe('out');
     expect(roleOf(OPPONENT_ST).possession).toBe('in');
@@ -413,7 +414,7 @@ describe('scenario actions', () => {
     const doc = run(matchup(), { type: 'fillDefaultRoles' });
     const result = applyAction(doc, { type: 'tapZone', zone: 'R-F' });
     expect(result.ball).toEqual(round(zoneCentre('R-F', 'mine')));
-    expect(result.scenario).toEqual({ zone: 'R-F' });
+    expect(result.scenario).toEqual({ zone: 'R-F', sequenceIndex: 0 });
     expect(result.players).toBe(doc.players);
     expect(documentIssues(result, FM26_DATA)).toBeNull();
   });
@@ -425,7 +426,7 @@ describe('scenario actions', () => {
 
   it('tapZone on an empty pitch only moves the ball', () => {
     const doc = applyAction(createInitialDocument(), { type: 'tapZone', zone: 'L-D' });
-    expect(doc.scenario).toEqual({ zone: 'L-D' });
+    expect(doc.scenario).toEqual({ zone: 'L-D', sequenceIndex: 0 });
     expect(doc.ball).not.toEqual(createInitialDocument().ball);
   });
 

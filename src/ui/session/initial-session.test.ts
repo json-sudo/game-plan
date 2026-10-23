@@ -92,7 +92,7 @@ describe('later visit', () => {
 
   it('falls back to an empty open pitch and reports skipped saves', () => {
     const storage = visited({
-      [TACTICS_STORAGE_KEY]: JSON.stringify({ version: 4, slots: [{ nope: true }] }),
+      [TACTICS_STORAGE_KEY]: JSON.stringify({ version: 5, slots: [{ nope: true }] }),
     });
     const session = resolveInitialSession({ storage, location: noLink });
     expect(session.tactic).toEqual(createInitialTactic());
@@ -194,7 +194,7 @@ describe('session notices', () => {
 
   it('reports skipped and unreadable saves', () => {
     const skipped = visited({
-      [TACTICS_STORAGE_KEY]: JSON.stringify({ version: 4, slots: [{ nope: true }] }),
+      [TACTICS_STORAGE_KEY]: JSON.stringify({ version: 5, slots: [{ nope: true }] }),
     });
     expect(sessionNotices(resolveInitialSession({ storage: skipped, location: noLink }))).toEqual([
       { id: 'saved', tone: 'error', title: '1 saved tactic was skipped.' },
