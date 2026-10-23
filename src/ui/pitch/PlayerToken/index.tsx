@@ -18,6 +18,7 @@ export interface PlayerTokenProps {
   name?: string;
   selected?: boolean;
   dragging?: boolean;
+  fixed?: boolean;
   ghost?: boolean;
   showRole?: boolean;
   title?: string;
@@ -52,6 +53,7 @@ export function PlayerToken({
   name,
   selected = false,
   dragging = false,
+  fixed = false,
   ghost = false,
   showRole = false,
   title,
@@ -87,15 +89,16 @@ export function PlayerToken({
       data-keeper={keeper || undefined}
       data-dragging={dragging || undefined}
       data-ghost={ghost || undefined}
-      tabIndex={0}
-      onPointerDown={onPointerDown}
-      onKeyDown={onKeyDown}
-      role="button"
+      data-fixed={fixed || undefined}
+      tabIndex={fixed ? undefined : 0}
+      onPointerDown={fixed ? undefined : onPointerDown}
+      onKeyDown={fixed ? undefined : onKeyDown}
+      role={fixed ? 'img' : 'button'}
       aria-label={accessibleName}
-      aria-pressed={selected}
+      aria-pressed={fixed ? undefined : selected}
     >
       {title ? <title>{title}</title> : null}
-      <circle className={styles.hit} r={units.hitRadius} />
+      {fixed ? null : <circle className={styles.hit} r={units.hitRadius} />}
       {selected && team === 'opponent' ? (
         <rect
           className={styles.halo}

@@ -124,3 +124,38 @@ test('the ball can be dragged to a new spot in open pitch', async ({ page }) => 
     })
     .toBeGreaterThan(5);
 });
+
+test('the first zone pick walks tokens on from the goal lines', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  await expect(
+    page.getByText('Finish setting up your preferences to see your tactic visualization'),
+  ).toBeVisible();
+  await expect(page.getByRole('img', { name: /my team$/ })).toHaveCount(0);
+
+  await page
+    .getByRole('radiogroup', { name: 'My team' })
+    .getByRole('radio', { name: '4-3-3 DM Wide' })
+    .click();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(page.getByRole('img', { name: /my team$/ })).toHaveCount(0);
+  await page.getByRole('button', { name: /^(Done|Save)$/ }).click();
+  await expect(
+    page.getByText('Pick a zone to finish setting up your tactic visualization'),
+  ).toBeVisible();
+  await expect(page.getByRole('img', { name: /my team$/ })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Right flank - final third' }).click();
+  const keeper = 'GK, No-Nonsense Goalkeeper, my team';
+  await expect(page.getByRole('img', { name: keeper, exact: true })).toBeVisible();
+  const sampled: number[] = [];
+  for (let sample = 0; sample < 40; sample += 1) {
+    sampled.push((await readTranslate(page, 'img', keeper)).y);
+    await page.waitForTimeout(30);
+  }
+  const first = sampled[0];
+  const last = sampled[sampled.length - 1];
+  expect(first).toBeGreaterThan(90);
+  expect(last).toBeLessThan(first - 5);
+  expect(sampled.some((y) => Math.abs(y - first) > 0.01 && Math.abs(y - last) > 0.01)).toBe(true);
+});

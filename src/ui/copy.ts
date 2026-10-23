@@ -75,6 +75,9 @@ export const BALL_TO_CENTRE_LABEL = 'Ball to the centre spot';
 export const BALL_AT_CENTRE_REASON = 'The ball is on the centre spot.';
 export const BALL_TOOLTIP = 'Ball. Drag it anywhere on the pitch.';
 export const TOKEN_TOOLTIP = (position: string, role: string) => `${position} · ${role}`;
+export const PITCH_EMPTY_SETUP =
+  'Finish setting up your preferences to see your tactic visualization';
+export const PITCH_EMPTY_ZONE = 'Pick a zone to finish setting up your tactic visualization';
 
 export const ZONE_MAP_HEADING = 'Ball zone';
 export const NO_ZONE_TITLE = 'No zone yet';

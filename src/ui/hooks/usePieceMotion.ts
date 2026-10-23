@@ -10,6 +10,7 @@ interface PieceMotionOptions {
   kind?: MotionKind;
   draggingId?: string | null;
   restartKey?: unknown;
+  enterFrom?: ReadonlyMap<string, Point>;
   onSettled?: () => void;
 }
 
@@ -21,11 +22,12 @@ function visiblePositions(
   rendered: ReadonlyMap<string, Point>,
   targets: ReadonlyMap<string, Point>,
   draggingId: string | null,
+  enterFrom: ReadonlyMap<string, Point> | undefined,
 ): Map<string, Point> {
   return new Map(
     Array.from(targets, ([id, target]) => [
       id,
-      id === draggingId ? target : (rendered.get(id) ?? target),
+      id === draggingId ? target : (rendered.get(id) ?? enterFrom?.get(id) ?? target),
     ]),
   );
 }
@@ -35,9 +37,12 @@ export function usePieceMotion({
   kind = 'piece',
   draggingId = null,
   restartKey,
+  enterFrom,
   onSettled,
 }: PieceMotionOptions): ReadonlyMap<string, Point> {
-  const [rendered, setRendered] = useState<ReadonlyMap<string, Point>>(targets);
+  const [rendered, setRendered] = useState<ReadonlyMap<string, Point>>(() =>
+    visiblePositions(new Map(), targets, null, enterFrom),
+  );
   const renderedRef = useRef(rendered);
   const settledRef = useRef(onSettled);
   useEffect(() => {
@@ -45,7 +50,7 @@ export function usePieceMotion({
   });
 
   useEffect(() => {
-    const from = visiblePositions(renderedRef.current, targets, draggingId);
+    const from = visiblePositions(renderedRef.current, targets, draggingId, enterFrom);
     const settle = (positions: ReadonlyMap<string, Point>) => {
       renderedRef.current = positions;
       setRendered(positions);
@@ -75,7 +80,7 @@ export function usePieceMotion({
     };
     handle = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(handle);
-  }, [targets, kind, draggingId, restartKey]);
+  }, [targets, kind, draggingId, restartKey, enterFrom]);
 
-  return visiblePositions(rendered, targets, draggingId);
+  return visiblePositions(rendered, targets, draggingId, enterFrom);
 }

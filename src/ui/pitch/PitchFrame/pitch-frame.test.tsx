@@ -75,3 +75,36 @@ describe('PitchFrame inset', () => {
     expect(frame.firstElementChild).toBe(pitch);
   });
 });
+
+describe('PitchFrame solo and notice', () => {
+  it('shows only the attacking row and no Defending label when solo', () => {
+    render(
+      <PitchFrame attacking="mine" mine="Harbour FC" opponent="Rovers" solo>
+        <div data-testid="pitch" />
+      </PitchFrame>,
+    );
+    expect(screen.getAllByRole('group')).toHaveLength(1);
+    expect(screen.queryByText('Rovers')).toBeNull();
+    expect(screen.queryByText('Defending')).toBeNull();
+    expect(screen.getByText('Attacking ↑')).toBeInTheDocument();
+  });
+
+  it('keeps a single label when solo and inset', () => {
+    render(
+      <PitchFrame attacking="mine" mine="Harbour FC" opponent="Rovers" solo inset>
+        <div data-testid="pitch" />
+      </PitchFrame>,
+    );
+    expect(screen.getAllByRole('group')).toHaveLength(1);
+    expect(screen.queryByText('Defending')).toBeNull();
+  });
+
+  it('renders the notice as a plate over the pitch', () => {
+    render(
+      <PitchFrame attacking="mine" mine="Harbour FC" opponent="Rovers" notice="Pick a zone">
+        <div data-testid="pitch" />
+      </PitchFrame>,
+    );
+    expect(screen.getByText('Pick a zone')).toBeInTheDocument();
+  });
+});

@@ -53,13 +53,6 @@
     background: var(--surface-panel);
 }
 
-.picker {
-    position: fixed;
-    z-index: 20;
-    width: 380px;
-    max-height: calc(100vh - 16px);
-}
-
 .board[data-layout='two'] {
     .main {
         grid-template-columns: var(--gp-pitch-w) var(--board-column);

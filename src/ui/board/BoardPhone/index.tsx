@@ -34,6 +34,7 @@ import {
   RESET_LABEL,
   THEME_DARK_LABEL,
   THEME_LIGHT_LABEL,
+  TOKEN_TOOLTIP,
 } from '../../copy';
 import { Button } from '../../controls/Button';
 import { BallCard } from '../../instrument/BallCard';
@@ -51,6 +52,7 @@ import { BALL_PIECE_ID } from '../../hooks/usePitchMotion';
 import { tokenKeyCommand } from '../token-keys';
 import { useBoardDrag } from '../use-board-drag';
 import { useBoardMetrics } from '../use-board-metrics';
+import { fmPitchNotice, opponentOnPitch } from '../fm-pieces';
 import { useBoardPieces } from '../use-board-pieces';
 import styles from './board-phone.module.scss';
 
@@ -135,8 +137,8 @@ export function BoardPhone({ store }: BoardPhoneProps) {
     store.getState().dispatch({ type: 'placeBall', point: next });
   };
   const pitchStyle = { width: `${metrics.pitchW}px` };
-  const piecesOnPitch = doc.players.filter(
-    (player) => player.base !== undefined || player.id === draggedPlayerId,
+  const piecesOnPitch = view.doc.players.filter((player) =>
+    fm ? view.pieces.has(player.id) : player.base !== undefined || player.id === draggedPlayerId,
   );
   const onTokenKey = (player: Player) => (event: KeyboardEvent<SVGGElement>) => {
     const command = tokenKeyCommand({
@@ -177,12 +179,16 @@ export function BoardPhone({ store }: BoardPhoneProps) {
         attacking={doc.attacker}
         mine={doc.teams.mine.name}
         opponent={doc.teams.opponent.name}
+        solo={fm && !opponentOnPitch(doc)}
+        notice={view.ballVisible ? undefined : fmPitchNotice(cursor)}
       >
         <Pitch label={PITCH_LABEL} svgRef={drag.svgRef}>
           {piecesOnPitch.map((player) => {
             const point = view.pieces.get(player.id);
             if (!point) return null;
-            const selected = player.id === selectedId;
+            const selected = !fm && player.id === selectedId;
+            const role = fm ? roleLabel(view.doc, player) : undefined;
+            const position = pieceLabel(view.doc, player, FM26_DATA);
             return (
               <PlayerToken
                 key={player.id}
@@ -191,10 +197,11 @@ export function BoardPhone({ store }: BoardPhoneProps) {
                 scale={pieceScale}
                 team={player.team}
                 keeper={player.isKeeper}
-                label={pieceLabel(doc, player, FM26_DATA)}
+                label={position}
                 side={playerSide(player)}
-                role={fm ? roleLabel(doc, player) : undefined}
-                showRole={fm && selected}
+                role={role}
+                title={role ? TOKEN_TOOLTIP(position, role) : undefined}
+                fixed={fm}
                 selected={selected}
                 dragging={draggedPlayerId === player.id}
                 onPointerDown={(event) => {
@@ -205,16 +212,18 @@ export function BoardPhone({ store }: BoardPhoneProps) {
               />
             );
           })}
-          <Ball
-            x={view.ball.x}
-            y={view.ball.y}
-            scale={pieceScale}
-            title={fm ? undefined : BALL_TOOLTIP}
-            fixed={fm}
-            dragging={ui.drag?.target.kind === 'ball'}
-            onPointerDown={drag.startDrag(BALL_PIECE_ID)}
-            onKeyDown={onBallKey}
-          />
+          {view.ballVisible ? (
+            <Ball
+              x={view.ball.x}
+              y={view.ball.y}
+              scale={pieceScale}
+              title={fm ? undefined : BALL_TOOLTIP}
+              fixed={fm}
+              dragging={ui.drag?.target.kind === 'ball'}
+              onPointerDown={drag.startDrag(BALL_PIECE_ID)}
+              onKeyDown={onBallKey}
+            />
+          ) : null}
         </Pitch>
       </PitchFrame>
     </div>

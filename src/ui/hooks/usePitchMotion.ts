@@ -11,6 +11,7 @@ export interface PitchMotionOptions {
   draggingId: string | null;
   cause: readonly unknown[];
   retarget?: unknown;
+  enterFrom?: ReadonlyMap<string, Point>;
   onSettled?: () => void;
 }
 
@@ -19,11 +20,11 @@ export interface PitchMotion {
   ball: Point;
 }
 
-function useMotionKind(cause: readonly unknown[], trigger: unknown): MotionKind {
+function useMotionKind(cause: readonly unknown[], trigger: unknown, entering: boolean): MotionKind {
   const last = useRef<{ cause: readonly unknown[]; trigger: unknown; kind: MotionKind }>({
     cause,
     trigger,
-    kind: 'piece',
+    kind: entering ? 'phase' : 'piece',
   });
   if (last.current.trigger !== trigger) {
     const changed = cause.some((value, index) => value !== last.current.cause[index]);
@@ -38,12 +39,20 @@ export function usePitchMotion({
   draggingId,
   cause,
   retarget,
+  enterFrom,
   onSettled,
 }: PitchMotionOptions): PitchMotion {
   const { x, y } = ball;
   const targets = useMemo(() => new Map(pieces).set(BALL_PIECE_ID, { x, y }), [pieces, x, y]);
-  const kind = useMotionKind(cause, targets);
-  const rendered = usePieceMotion({ targets, kind, draggingId, restartKey: retarget, onSettled });
+  const kind = useMotionKind(cause, targets, enterFrom !== undefined && enterFrom.size > 0);
+  const rendered = usePieceMotion({
+    targets,
+    kind,
+    draggingId,
+    restartKey: retarget,
+    enterFrom,
+    onSettled,
+  });
   return useMemo(() => {
     const renderedPieces = new Map(rendered);
     const renderedBall = renderedPieces.get(BALL_PIECE_ID) ?? { x, y };

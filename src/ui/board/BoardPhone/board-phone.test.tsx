@@ -1,10 +1,8 @@
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { FM26_DATA } from '../../../data/fm26';
 import { zoneName } from '../../../engine';
-import { activeRoleOf } from '../../../state/context';
-import { createInitialDocument, placedPlayers, type PitchDocument } from '../../../state/document';
+import { createInitialDocument } from '../../../state/document';
 import { createPitchStore } from '../../../state/store';
 import { createExampleDocument, EXAMPLE_FORMATIONS } from '../../../state/example';
 import {
@@ -27,13 +25,6 @@ beforeEach(() => {
       removeEventListener: vi.fn<() => void>(),
     }) as unknown as typeof window.matchMedia;
 });
-
-function roleNameOf(doc: PitchDocument, playerId: string) {
-  const player = doc.players.find((candidate) => candidate.id === playerId);
-  if (!player) throw new Error(`no player ${playerId}`);
-  const roleId = activeRoleOf(doc, player, FM26_DATA);
-  return FM26_DATA.roles.find((role) => role.id === roleId)?.name ?? '';
-}
 
 function pitchTokens() {
   return within(screen.getByRole('img', { name: PITCH_LABEL })).getAllByRole('button');
@@ -213,18 +204,18 @@ describe('BoardPhone board', () => {
 });
 
 describe('BoardPhone tokens', () => {
-  it('tapping a token shows its role name for that player only, with no role picker', async () => {
+  it('tapping a token in FM mode does nothing', async () => {
     const user = userEvent.setup();
     const doc = createExampleDocument();
     const store = createPitchStore({ doc, ui: { mode: 'fm' } });
     render(<BoardPhone store={store} />);
-    const [first, second] = placedPlayers(doc);
-    const tokens = pitchTokens();
-    await user.click(tokens[0]);
-    expect(shownRolePlates()).toEqual([roleNameOf(doc, first.id).replace(/\s/g, '')]);
-    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
-    await user.click(tokens[1]);
-    expect(shownRolePlates()).toEqual([roleNameOf(doc, second.id).replace(/\s/g, '')]);
+    const token = within(screen.getByRole('img', { name: PITCH_LABEL })).getAllByRole('img', {
+      name: /my team$/,
+    })[0];
+    await user.click(token);
+    expect(token).not.toHaveAttribute('aria-pressed');
+    expect(shownRolePlates()).toEqual([]);
+    expect(store.getState().ui.drag).toBeNull();
     expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
   });
 

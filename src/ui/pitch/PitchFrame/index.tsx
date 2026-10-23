@@ -8,6 +8,8 @@ export interface PitchFrameProps {
   mine: string;
   opponent: string;
   inset?: boolean;
+  solo?: boolean;
+  notice?: string;
   children?: ReactNode;
 }
 
@@ -44,24 +46,33 @@ export function PitchFrame({
   mine,
   opponent,
   inset = false,
+  solo = false,
+  notice,
   children,
 }: PitchFrameProps) {
   const defending: Side = attacking === 'mine' ? 'opponent' : 'mine';
   const names: Record<Side, string> = { mine, opponent };
+  const plate = notice ? <div className={styles.notice}>{notice}</div> : null;
+  const defendingRow = (placement?: 'top' | 'bottom') =>
+    solo ? null : (
+      <TeamRow side={defending} name={names[defending]} attacking={false} placement={placement} />
+    );
   if (inset) {
     return (
       <div className={styles.inset} data-inset="true">
         {children}
-        <TeamRow side={defending} name={names[defending]} attacking={false} placement="top" />
+        {defendingRow('top')}
         <TeamRow side={attacking} name={names[attacking]} attacking placement="bottom" />
+        {plate}
       </div>
     );
   }
   return (
     <div className={styles.frame}>
-      <TeamRow side={defending} name={names[defending]} attacking={false} />
+      {defendingRow()}
       {children}
       <TeamRow side={attacking} name={names[attacking]} attacking />
+      {plate}
     </div>
   );
 }

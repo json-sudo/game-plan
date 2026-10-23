@@ -1,15 +1,8 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
-import {
-  createInitialDocument,
-  placedPlayers,
-  playerSide,
-  type Player,
-} from '../../../state/document';
-import { pieceLabel } from '../../../state/bench-pieces';
+import { createInitialDocument, placedPlayers } from '../../../state/document';
 import { createExampleDocument, EXAMPLE_FORMATIONS } from '../../../state/example';
 import { createPitchStore, type PitchStore } from '../../../state/store';
 import {
@@ -19,10 +12,6 @@ import {
   SETUP_STEP_WHO_ATTACKS,
   SETUP_COLUMN_LABEL,
   UNDO_DISABLED_REASON,
-  ROLE_CURRENT_MARK,
-  ROLE_PHASE_LABELS,
-  roleCount,
-  tokenSideLabel,
 } from '../../copy';
 import { BoardDesktop } from '.';
 
@@ -35,15 +24,6 @@ function exampleSlotId(team: string, slot: string): string {
 const MINE_AMCL = exampleSlotId('mine', 'AMCL');
 const MINE_ST = exampleSlotId('mine', 'ST');
 const OPPONENT_AMC = exampleSlotId('opponent', 'AMC');
-
-function playerLabel(player: Player): string {
-  return pieceLabel(createExampleDocument(), player, FM26_DATA);
-}
-
-function labelWithSide(player: Player): string {
-  const side = playerSide(player);
-  return [playerLabel(player), side ? tokenSideLabel(side) : null].filter(Boolean).join(', ');
-}
 
 function stubSvg(svg: Element) {
   const scale = 2;
@@ -202,16 +182,16 @@ describe('desktop board', () => {
     const oppStriker = doc.players.find((player) => player.id === OPPONENT_AMC)!;
     const mineRole = FM26_DATA.roles.find((role) => role.id === mineWide.role)!.name;
     const oppRole = FM26_DATA.roles.find((role) => role.id === oppStriker.role)!.name;
-    const mineToken = screen.getByRole('button', {
+    const mineToken = screen.getByRole('img', {
       name: `AM(L), left side, ${mineRole}, my team`,
     });
-    const oppToken = screen.getByRole('button', { name: `AM(C), ${oppRole}, opponent` });
+    const oppToken = screen.getByRole('img', { name: `AM(C), ${oppRole}, opponent` });
     expect(mineToken).toHaveTextContent('AM(L)');
     expect(plateText(mineToken)).toContain(mineRole.replaceAll(' ', ''));
     expect(oppToken).toHaveTextContent('AM(C)');
     expect(plateText(oppToken)).toContain(oppRole.replaceAll(' ', ''));
-    expect(screen.getAllByRole('button', { name: /my team$/ })).toHaveLength(11);
-    expect(screen.getAllByRole('button', { name: /opponent$/ })).toHaveLength(11);
+    expect(screen.getAllByRole('img', { name: /my team$/ })).toHaveLength(11);
+    expect(screen.getAllByRole('img', { name: /opponent$/ })).toHaveLength(11);
   });
 
   it('shows the zone map only in FM mode and the bench only in Open pitch', () => {
@@ -373,7 +353,7 @@ describe('setup', () => {
       team: 'mine',
       formationId: '4_4_2_diamond_narrow',
     });
-    expect(screen.getByRole('button', { name: 'GK, my team' })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'GK, my team' })).toBeNull();
 
     const attacking = exampleStore({ setupStep: 2 });
     const attackDispatch = vi.spyOn(attacking.getState(), 'dispatch');
@@ -400,109 +380,29 @@ describe('setup', () => {
       playerId: MINE_ST,
       roleId: nextRole.id,
     });
-    const token = screen.getByRole('button', { name: `ST, ${nextRole.name}, my team` });
+    const token = screen.getByRole('img', { name: `ST, ${nextRole.name}, my team` });
     expect(plateText(token)).toContain(nextRole.name.replaceAll(' ', ''));
   });
 });
-
-function widePlayer(store: StoreApi<PitchStore>) {
-  const player = store.getState().doc.players.find((item) => item.id === MINE_AMCL);
-  if (!player?.slot || !player.family || !player.role)
-    throw new Error('example wide player missing');
-  return player;
-}
-
-function validRoles(player: ReturnType<typeof widePlayer>) {
-  return FM26_DATA.roles.filter(
-    (role) => role.possession === 'in' && role.families.includes(player.family!),
-  );
-}
-
-function radioName(name: string) {
-  return new RegExp(`^${name}(\\s*${ROLE_CURRENT_MARK})?$`);
-}
 
 function silencePitchMatrix() {
   const svg = screen.getByRole('img', { name: 'Pitch' });
   Object.defineProperty(svg, 'getScreenCTM', { configurable: true, value: () => null });
 }
 
-describe('role picker anchor', () => {
-  it('opens beside a token in FM mode with the slot heading, and stays closed in Open pitch', async () => {
-    const user = userEvent.setup();
+describe('FM tokens are display only', () => {
+  it('starts no drag and selects nothing on a pointer down, and opens no role picker', () => {
     const store = exampleStore();
-    const player = widePlayer(store);
-    const roles = validRoles(player);
-    const current = roles.find((role) => role.id === player.role)!;
+    const before = store.getState().doc;
     render(<BoardDesktop store={store} />);
     silencePitchMatrix();
-
-    await user.click(
-      screen.getByRole('button', { name: `${labelWithSide(player)}, ${current.name}, my team` }),
-    );
-
-    const picker = screen.getByRole('region', { name: playerLabel(player) });
-    expect(screen.getByRole('heading', { name: playerLabel(player) })).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        [ROLE_PHASE_LABELS.IP, tokenSideLabel('left'), roleCount(roles.length)].join(' · '),
-      ),
-    ).toBeInTheDocument();
-    const compact = (value: string | null | undefined) => (value ?? '').replace(/\s+/g, '');
-    expect(
-      within(picker)
-        .getAllByRole('radio')
-        .map((input) => compact(input.closest('label')?.textContent)),
-    ).toEqual(
-      roles.map((role) =>
-        compact(role.id === current.id ? `${role.name} ${ROLE_CURRENT_MARK}` : role.name),
-      ),
-    );
-    expect(
-      within(
-        within(picker)
-          .getByRole('radio', { name: radioName(current.name) })
-          .closest('label')!,
-      ).getByText(ROLE_CURRENT_MARK),
-    ).toBeInTheDocument();
-
-    act(() => {
-      store.getState().setMode('openPitch');
-      store
-        .getState()
-        .dispatch({ type: 'applyFormation', team: 'mine', formationId: '4_3_3_dm_wide' });
-    });
-    expect(screen.queryByRole('region', { name: playerLabel(player) })).not.toBeInTheDocument();
-    silencePitchMatrix();
-    await user.click(screen.getByRole('button', { name: `${labelWithSide(player)}, my team` }));
-    expect(screen.queryByRole('region', { name: playerLabel(player) })).not.toBeInTheDocument();
-  });
-
-  it('dispatches setRole for the chosen row, and Escape closes the picker and returns focus to the token', async () => {
-    const user = userEvent.setup();
-    const store = exampleStore();
-    const player = widePlayer(store);
-    const next = validRoles(player).find((role) => role.id !== player.role)!;
-    const current = FM26_DATA.roles.find((role) => role.id === player.role)!;
-    render(<BoardDesktop store={store} />);
-    silencePitchMatrix();
-    const token = screen.getByRole('button', {
-      name: `${labelWithSide(player)}, ${current.name}, my team`,
-    });
-    await user.click(token);
-    const dispatch = vi.spyOn(store.getState(), 'dispatch');
-    await user.click(screen.getByRole('radio', { name: radioName(next.name) }));
-    expect(dispatch).toHaveBeenCalledWith({
-      type: 'setRole',
-      playerId: player.id,
-      roleId: next.id,
-    });
-    const updated = screen.getByRole('button', {
-      name: `${labelWithSide(player)}, ${next.name}, my team`,
-    });
-    expect(plateText(updated)).toContain(next.name.replaceAll(' ', ''));
-    await user.keyboard('{Escape}');
-    expect(screen.queryByRole('region', { name: playerLabel(player) })).not.toBeInTheDocument();
-    expect(updated).toHaveFocus();
+    const token = screen.getByRole('img', { name: /^AM\(L\), left side, .*my team$/ });
+    fireEvent.pointerDown(token, { clientX: 20, clientY: 20 });
+    expect(store.getState().ui.drag).toBeNull();
+    fireEvent.pointerMove(window, { clientX: 90, clientY: 90 });
+    fireEvent.pointerUp(window, { clientX: 90, clientY: 90 });
+    expect(store.getState().doc).toBe(before);
+    expect(token).not.toHaveAttribute('aria-pressed');
+    expect(screen.queryByRole('region', { name: 'AM(L)' })).toBeNull();
   });
 });

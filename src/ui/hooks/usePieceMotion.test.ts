@@ -32,6 +32,7 @@ interface Props {
   targets: ReadonlyMap<string, Point>;
   kind?: MotionKind;
   draggingId?: string | null;
+  enterFrom?: ReadonlyMap<string, Point>;
   onSettled?: () => void;
 }
 
@@ -59,6 +60,29 @@ describe('usePieceMotion', () => {
   it('starts at the given positions', () => {
     const { result } = setup({ targets: new Map([['p', A]]) });
     expect(result.current.get('p')).toEqual(A);
+  });
+
+  it('starts a piece that has no position yet from its entry point instead of in place', () => {
+    const entry = new Map([['q', A]]);
+    const { result, rerender } = renderHook((props: Props) => usePieceMotion(props), {
+      initialProps: { targets: new Map([['p', A]]), kind: 'phase' } as Props,
+    });
+    rerender({
+      targets: new Map([
+        ['p', A],
+        ['q', B],
+      ]),
+      kind: 'phase',
+      enterFrom: entry,
+    });
+    expect(result.current.get('q')).toEqual(A);
+    stepTo(0);
+    stepTo(MOTION_DURATIONS_MS.phase / 2);
+    const mid = result.current.get('q')!;
+    expect(mid.y).toBeGreaterThan(A.y);
+    expect(mid.y).toBeLessThan(B.y);
+    stepTo(MOTION_DURATIONS_MS.phase);
+    expect(result.current.get('q')).toEqual(B);
   });
 
   it('travels between start and target and lands on the target', () => {

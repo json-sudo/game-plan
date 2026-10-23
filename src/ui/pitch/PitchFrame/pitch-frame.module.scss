@@ -1,4 +1,20 @@
+.notice {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: min(280px, calc(100% - 48px));
+    padding: var(--space-4);
+    transform: translate(-50%, -50%);
+    border-radius: var(--radius-lg);
+    background: var(--pitch-label-plate);
+    color: var(--pitch-label-text);
+    font: 500 14px/20px var(--font-ui);
+    text-align: center;
+    pointer-events: none;
+}
+
 .frame {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--space-2);

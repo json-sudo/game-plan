@@ -10,21 +10,17 @@ interface Gesture {
   moved: boolean;
 }
 
-export function useBoardDrag(store: StoreApi<PitchStore>, onTap?: (playerId: string) => void) {
+export function useBoardDrag(store: StoreApi<PitchStore>) {
   const gesture = useRef<Gesture | null>(null);
   const dragged = useRef(false);
 
   const endGesture = () => {
-    const tap = gesture.current && !gesture.current.moved ? gesture.current.id : null;
+    const tap = gesture.current && !gesture.current.moved;
     gesture.current = null;
     setTimeout(() => {
       dragged.current = false;
     }, 0);
     return tap;
-  };
-
-  const reportTap = (tap: string | null) => {
-    if (tap && tap !== BALL_PIECE_ID && store.getState().ui.mode === 'fm') onTap?.(tap);
   };
 
   const drag = usePitchDrag({
@@ -51,7 +47,6 @@ export function useBoardDrag(store: StoreApi<PitchStore>, onTap?: (playerId: str
       const state = store.getState();
       if (tap) {
         state.cancelDrag();
-        reportTap(tap);
         return;
       }
       state.updateDrag(point);
@@ -64,9 +59,8 @@ export function useBoardDrag(store: StoreApi<PitchStore>, onTap?: (playerId: str
       if (id !== BALL_PIECE_ID) state.dispatch({ type: 'benchPlayer', playerId: id });
     },
     onCancel: () => {
-      const tap = endGesture();
+      endGesture();
       store.getState().cancelDrag();
-      reportTap(tap);
     },
   });
 

@@ -3,6 +3,10 @@
     touch-action: none;
     outline: none;
 
+    &[data-fixed] {
+        cursor: default;
+    }
+
     &[data-ghost] {
         opacity: 0.45;
     }
