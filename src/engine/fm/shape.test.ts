@@ -12,7 +12,7 @@ import { ZONE_IDS, type ZoneId } from '../../data/zones';
 import { PITCH_W } from '../geometry/pitch';
 import { layoutFormation, mirrorPoint } from '../layout/formations';
 import { MIN_TOKEN_SPACING, minSpacingOf } from '../layout/spacing';
-import type { PhasePlayer } from './phases';
+import type { FmPlayer } from './player';
 import { SHAPE_MARGIN, computeZoneShape } from './shape';
 import { zoneCentre } from './zones';
 
@@ -29,7 +29,7 @@ function firstRole(family: string, possession: 'in' | 'out'): RoleDef {
   return role;
 }
 
-function squad(formation: FormationDef, team: Side, possession: 'in' | 'out'): PhasePlayer[] {
+function squad(formation: FormationDef, team: Side, possession: 'in' | 'out'): FmPlayer[] {
   const layout = layoutFormation(formation, team);
   return formation.slots.map((slot) => ({
     id: `${team}:${slot.id}`,
@@ -40,7 +40,7 @@ function squad(formation: FormationDef, team: Side, possession: 'in' | 'out'): P
   }));
 }
 
-function pitch(attacker: Side, withDefenders = true): PhasePlayer[] {
+function pitch(attacker: Side, withDefenders = true): FmPlayer[] {
   const defender: Side = attacker === 'mine' ? 'opponent' : 'mine';
   return [
     ...squad(FORMATION, attacker, 'in'),
@@ -51,7 +51,7 @@ function pitch(attacker: Side, withDefenders = true): PhasePlayer[] {
 function shape(
   attacker: Side,
   zone: ZoneId,
-  players: readonly PhasePlayer[] = pitch(attacker),
+  players: readonly FmPlayer[] = pitch(attacker),
   carrierId: string | null = null,
 ) {
   const ball = zoneCentre(zone, attacker);
@@ -150,7 +150,7 @@ describe('computeZoneShape', () => {
       stay: { 'C-M': cell([0, 0, 0]) },
       push: { 'C-M': cell([0, 0, 6]) },
     };
-    const players: PhasePlayer[] = [
+    const players: FmPlayer[] = [
       { id: 'mine:a', team: 'mine', base: { x: 20, y: 60 }, roleId: 'stay', isKeeper: false },
       { id: 'mine:b', team: 'mine', base: { x: 60, y: 60 }, roleId: 'stay', isKeeper: false },
     ];
@@ -189,7 +189,7 @@ describe('computeZoneShape', () => {
   it('mirrors the shape when the opponent attacks down the pitch', () => {
     const zone: ZoneId = 'L-D';
     const mine = shape('mine', zone).positions;
-    const flipped: PhasePlayer[] = pitch('mine').map((player) => ({
+    const flipped: FmPlayer[] = pitch('mine').map((player) => ({
       ...player,
       team: player.team === 'mine' ? 'opponent' : 'mine',
       base: mirrorPoint(player.base),

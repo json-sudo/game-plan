@@ -59,9 +59,9 @@ describe('App', () => {
   });
 
   it('opens a new-format share link in the mode it was made in', async () => {
-    const { createExampleTactic } = await import('./state');
+    const { createExampleTactic } = await import('./state/tactic');
     const { encodeShareHash } = await import('./share');
-    const encoded = encodeShareHash({ tactic: createExampleTactic(), mode: 'openPitch' }, 'shape');
+    const encoded = encodeShareHash({ tactic: createExampleTactic(), mode: 'openPitch' });
     if (encoded.status !== 'ok') throw new Error('expected a link');
     window.location.hash = encoded.hash;
     await renderAppAt(1440);
@@ -86,9 +86,9 @@ describe('App', () => {
   });
 
   it('clears a valid share link after opening it', async () => {
-    const { createExampleTactic } = await import('./state');
+    const { createExampleTactic } = await import('./state/tactic');
     const { encodeShareHash } = await import('./share');
-    const encoded = encodeShareHash({ tactic: createExampleTactic(), mode: 'fm' }, 'shape');
+    const encoded = encodeShareHash({ tactic: createExampleTactic(), mode: 'fm' });
     if (encoded.status !== 'ok') throw new Error('expected a link');
     window.location.hash = encoded.hash;
     await renderAppAt(1440);
@@ -98,7 +98,7 @@ describe('App', () => {
 
   it('shows the skipped-saves banner for an unreadable save', async () => {
     localStorage.setItem('game-plan:visited', '1');
-    localStorage.setItem('gameplan:tactics', JSON.stringify({ version: 4, slots: [{ nope: 1 }] }));
+    localStorage.setItem('gameplan:tactics', JSON.stringify({ version: 5, slots: [{ nope: 1 }] }));
     await renderAppAt(1440);
     expect(screen.getByRole('alert')).toHaveTextContent('1 saved tactic was skipped.');
   });

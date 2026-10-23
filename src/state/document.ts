@@ -34,7 +34,7 @@ export interface Player {
 
 export interface Scenario {
   zone: ZoneId;
-  carrierId: string;
+  sequenceIndex: number;
 }
 
 export interface PitchDocument {
@@ -116,6 +116,15 @@ export function keeperOf(doc: PitchDocument, team: Side): Player | undefined {
 
 export function placedPlayers(doc: PitchDocument): Player[] {
   return doc.players.filter((player) => player.base !== undefined);
+}
+
+export function isSetupComplete(doc: PitchDocument): boolean {
+  const placed = placedPlayers(doc);
+  return (
+    doc.teams.mine.formationId !== null &&
+    placed.length > 0 &&
+    placed.every((player) => player.role !== undefined)
+  );
 }
 
 export function defaultRoleFor(

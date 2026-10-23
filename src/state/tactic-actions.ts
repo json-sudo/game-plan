@@ -1,27 +1,25 @@
 import { FM26_DATA } from '../data/fm26';
-import type { DataSet, Side } from '../data/types';
+import type { DataSet, Point, Side } from '../data/types';
 import { applyAction, type Action } from './actions';
 import {
   SIDES,
   formationOf,
   playersOf,
   replaceTeamPlayers,
+  roundPoint,
   type PitchDocument,
   type Player,
   type SquadSize,
 } from './document';
-import { benchedPlayer, isRemovable, setSquadSize } from './layout-actions';
+import { benchedPlayer, isRemovable, resetFm, setSquadSize } from './layout-actions';
+import { wrapSequenceIndex } from './visualization';
 import { syncRoster } from './tactic-sync';
 import { otherMode, type Mode, type Tactic } from './tactic';
 
 const FM_ONLY_ACTIONS: ReadonlySet<Action['type']> = new Set([
   'tapZone',
-  'setCarrier',
-  'pass',
-  'dribble',
   'setRole',
   'fillDefaultRoles',
-  'clearScenario',
 ]);
 
 function applyToLayout(
@@ -31,7 +29,10 @@ function applyToLayout(
   data: DataSet,
 ): PitchDocument {
   if (mode === 'openPitch' && FM_ONLY_ACTIONS.has(action.type)) return doc;
-  return applyAction(doc, action, data);
+  if (mode === 'fm' && action.type === 'clearPitch') return doc;
+  if (mode === 'fm' && action.type === 'reset') return resetFm(doc);
+  const next = applyAction(doc, action, data);
+  return mode === 'fm' ? wrapSequenceIndex(next) : next;
 }
 
 function applyToTacticLayout(
@@ -79,14 +80,14 @@ function benchedEverywhere(doc: PitchDocument, team: Side): PitchDocument {
   return { ...doc, players: replaceTeamPlayers(doc, team, players) };
 }
 
-function starterOf(player: Player, starter: Player): Player {
+function starterOf(player: Player, starter: Player, at: Point): Player {
   return {
     id: player.id,
     team: player.team,
     family: starter.family,
     slot: starter.slot,
     isKeeper: starter.isKeeper,
-    base: starter.base,
+    base: roundPoint(at),
     ...(player.customName ? { customName: player.customName } : {}),
   };
 }
@@ -95,20 +96,22 @@ function copyTeam(
   openPitch: PitchDocument,
   fm: PitchDocument,
   team: Side,
+  positions: ReadonlyMap<string, Point>,
   data: DataSet,
 ): PitchDocument {
   const formationId = fm.teams[team].formationId;
   const starters = new Map(
-    playersOf(fm, team)
-      .filter((player) => player.slot !== null && player.base !== undefined)
-      .map((player) => [player.id, player]),
+    playersOf(fm, team).flatMap((player) => {
+      const at = positions.get(player.id);
+      return player.slot !== null && at ? [[player.id, { player, at }] as const] : [];
+    }),
   );
   if (!formationOf(data, formationId) || starters.size === 0) {
     return benchedEverywhere(openPitch, team);
   }
   const players = playersOf(openPitch, team).map((player) => {
     const starter = starters.get(player.id);
-    return starter ? starterOf(player, starter) : benchedPlayer(player);
+    return starter ? starterOf(player, starter.player, starter.at) : benchedPlayer(player);
   });
   const meta = openPitch.teams[team];
   return {
@@ -130,10 +133,14 @@ function sameLayout(a: PitchDocument, b: PitchDocument): boolean {
   return JSON.stringify([a.teams, a.players]) === JSON.stringify([b.teams, b.players]);
 }
 
-export function copyFmPositions(tactic: Tactic, data: DataSet = FM26_DATA): Tactic {
+export function copyFmPositions(
+  tactic: Tactic,
+  positions: ReadonlyMap<string, Point>,
+  data: DataSet = FM26_DATA,
+): Tactic {
   const { fm, openPitch } = tactic;
-  if (!fm.players.some((player) => player.base !== undefined)) return tactic;
-  const copied = SIDES.reduce((doc, team) => copyTeam(doc, fm, team, data), openPitch);
+  if (!fm.players.some((player) => positions.has(player.id))) return tactic;
+  const copied = SIDES.reduce((doc, team) => copyTeam(doc, fm, team, positions, data), openPitch);
   if (sameLayout(copied, openPitch)) return tactic;
   return syncRoster(tactic, 'openPitch', copied) ?? tactic;
 }

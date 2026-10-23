@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useStore, type StoreApi } from 'zustand';
 import { FM26_DATA } from '../../../data/fm26';
-import { MOTION_DURATIONS_MS, PHASES, zoneName, zoneOf, type Phase } from '../../../engine';
+import { zoneOf } from '../../../engine';
 import { benchPieces, pieceLabel } from '../../../state/bench-pieces';
 import { activeRoleOf } from '../../../state/context';
 import {
@@ -14,13 +14,11 @@ import {
   type PitchDocument,
   type Player,
 } from '../../../state/document';
-import { createExampleDocument } from '../../../state/example';
 import { canSetSquadSize } from '../../../state/tactic-actions';
 import { benchPlacementPoint } from '../../../state/placement';
-import { selectCanUndo, selectUnfinishedZones } from '../../../state/selectors';
+import { selectCanUndo } from '../../../state/selectors';
 import type { PitchStore } from '../../../state/store';
 import { PhoneMenu, type PhoneMenuEntry } from '../../chrome/PhoneMenu';
-import { FirstRunHint } from '../../feedback/FirstRunHint';
 import { UndoControl } from '../../chrome/UndoControl';
 import { BenchDropZone } from '../../bench/BenchDropZone';
 import { BenchSheet } from '../../bench/BenchSheet';
@@ -39,10 +37,7 @@ import {
 } from '../../copy';
 import { Button } from '../../controls/Button';
 import { BallCard } from '../../instrument/BallCard';
-import { CarrierPicker } from '../../instrument/CarrierPicker';
 import { Instrument } from '../../instrument/Instrument';
-import { PassControl } from '../../instrument/PassControl';
-import { TransportBar } from '../../instrument/TransportBar';
 import { ZoneMap } from '../../instrument/ZoneMap';
 import { SetupFlow } from '../../setup/SetupFlow';
 import { MatchupSheet } from '../../setup/MatchupSheet';
@@ -53,8 +48,6 @@ import { Pitch } from '../../pitch/Pitch';
 import { PitchFrame } from '../../pitch/PitchFrame';
 import { PlayerToken } from '../../pitch/PlayerToken';
 import { BALL_PIECE_ID } from '../../hooks/usePitchMotion';
-import { carrierOptionsOf } from '../carrier-options';
-import { passOptionsOf } from '../pass-options';
 import { tokenKeyCommand } from '../token-keys';
 import { useBoardDrag } from '../use-board-drag';
 import { useBoardMetrics } from '../use-board-metrics';
@@ -64,7 +57,6 @@ import styles from './board-phone.module.scss';
 const MODE_ITEM_PREFIX = 'Mode: ';
 const MENU_LABEL = 'Menu';
 const PHONE_HIT_PX = 44;
-const PHASE_INDEX: Record<Phase, 0 | 1 | 2> = { shape: 0, runs: 1, final: 2 };
 
 export interface BoardPhoneProps {
   store: StoreApi<PitchStore>;
@@ -86,9 +78,6 @@ export function BoardPhone({ store }: BoardPhoneProps) {
   const [benchOpen, setBenchOpen] = useState(false);
   const [matchupOpen, setMatchupOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showHint, setShowHint] = useState(
-    () => JSON.stringify(store.getState().doc) === JSON.stringify(createExampleDocument()),
-  );
   const menuSlot = useRef<HTMLDivElement>(null);
   const benchSlot = useRef<HTMLDivElement>(null);
   const matchupSlot = useRef<HTMLDivElement>(null);
@@ -96,12 +85,8 @@ export function BoardPhone({ store }: BoardPhoneProps) {
   const fm = ui.mode === 'fm';
   const dark = ui.theme === 'dark';
   const cursor = setupCursor(doc, ui.setupStep);
-  const carrier = doc.players.find((player) => player.id === doc.scenario?.carrierId);
-  const acting = ui.action !== null;
   const ballZone = zoneOf(doc.ball, doc.attacker);
   const hasAttackerFormation = formationOf(FM26_DATA, doc.teams[doc.attacker].formationId) !== null;
-  const carrierOptions = useMemo(() => (fm ? carrierOptionsOf(doc, FM26_DATA) : []), [fm, doc]);
-  const passOptions = useMemo(() => (fm ? passOptionsOf(doc, FM26_DATA) : []), [fm, doc]);
   const drag = useBoardDrag(store);
   const draggedPlayerId = ui.drag?.target.kind === 'player' ? ui.drag.target.id : null;
   const draggingFromPitch = !fm && doc.players.some((p) => p.id === draggedPlayerId && p.base);
@@ -109,17 +94,6 @@ export function BoardPhone({ store }: BoardPhoneProps) {
   useEffect(() => {
     document.documentElement.dataset.theme = ui.theme;
   }, [ui.theme]);
-
-  useEffect(() => {
-    if (!ui.playing) return;
-    const index = PHASE_INDEX[ui.phase];
-    const timer = window.setTimeout(() => {
-      const phase = PHASES[index + 1];
-      if (!phase) return;
-      store.getState().patchUi({ phase, playing: phase !== 'final' });
-    }, MOTION_DURATIONS_MS.cadence);
-    return () => window.clearTimeout(timer);
-  }, [store, ui.phase, ui.playing]);
 
   const choose = (action: () => void) => () => {
     setMenuOpen(false);
@@ -143,7 +117,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
     {
       icon: 'clear',
       label: CLEAR_LABEL,
-      onSelect: choose(() => store.getState().dispatch({ type: 'clearScenario' })),
+      onSelect: choose(() => store.getState().dispatch({ type: 'clearPitch' })),
     },
     {
       icon: dark ? 'sun' : 'moon',
@@ -273,40 +247,11 @@ export function BoardPhone({ store }: BoardPhoneProps) {
           </div>
         ) : (
           <>
-            {showHint && fm ? (
-              <div className={styles.hint}>
-                <FirstRunHint onDismiss={() => setShowHint(false)} />
-              </div>
-            ) : null}
             {pitch}
             {draggingFromPitch ? (
               <BenchDropZone dropRef={drag.benchRef} over={drag.overBench} />
             ) : null}
-            {fm ? (
-              <Instrument>
-                <TransportBar
-                  phone
-                  phase={PHASE_INDEX[ui.phase]}
-                  playing={ui.playing}
-                  onPhase={(index) => {
-                    const phase = PHASES[index];
-                    if (!phase) return;
-                    store.getState().patchUi({ phase, playing: false });
-                  }}
-                  onTogglePlay={() => {
-                    const state = store.getState();
-                    if (state.ui.playing) {
-                      state.patchUi({ playing: false });
-                      return;
-                    }
-                    state.patchUi({
-                      playing: true,
-                      phase: state.ui.phase === 'final' ? 'shape' : state.ui.phase,
-                    });
-                  }}
-                />
-              </Instrument>
-            ) : (
+            {fm ? null : (
               <>
                 <BallCard
                   zone={ballZone}
@@ -334,32 +279,9 @@ export function BoardPhone({ store }: BoardPhoneProps) {
                 <ZoneMap
                   phone
                   value={hasAttackerFormation ? ballZone : null}
-                  unfinished={selectUnfinishedZones(doc)}
-                  carrier={carrier ? pieceLabel(doc, carrier, FM26_DATA) : undefined}
                   attackerName={doc.teams[doc.attacker].name}
-                  onPick={(zone) => {
-                    if (!acting) store.getState().dispatch({ type: 'tapZone', zone });
-                  }}
+                  onPick={(zone) => store.getState().dispatch({ type: 'tapZone', zone })}
                 />
-                {hasAttackerFormation ? (
-                  <>
-                    <CarrierPicker
-                      zone={zoneName(ballZone)}
-                      options={carrierOptions}
-                      value={doc.scenario?.carrierId ?? null}
-                      onChoose={(playerId) => {
-                        if (!acting) store.getState().dispatch({ type: 'setCarrier', playerId });
-                      }}
-                    />
-                    <PassControl
-                      teammates={passOptions}
-                      busy={acting}
-                      onPass={(receiverId) =>
-                        store.getState().startAction({ type: 'pass', receiverId })
-                      }
-                    />
-                  </>
-                ) : null}
               </Instrument>
             ) : null}
           </>

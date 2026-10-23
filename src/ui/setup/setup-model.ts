@@ -1,7 +1,7 @@
 import { FM26_DATA } from '../../data/fm26';
 import {
   isRoleValidFor,
-  placedPlayers,
+  isSetupComplete,
   type PitchDocument,
   type Player,
 } from '../../state/document';
@@ -27,18 +27,13 @@ export function formationSummary(doc: PitchDocument) {
   return `${mine} ${VERSUS_LABEL} ${opponent}`;
 }
 
-export function setupComplete(doc: PitchDocument) {
-  const placed = placedPlayers(doc);
-  return (
-    doc.teams.mine.formationId !== null &&
-    doc.teams.opponent.formationId !== null &&
-    placed.length > 0 &&
-    placed.every((player) => player.role !== undefined)
-  );
+export function setupStepNumbers(doc: PitchDocument): Array<1 | 2 | 3> {
+  return doc.teams.opponent.formationId === null ? [1, 3] : [1, 2, 3];
 }
 
 export function setupCursor(doc: PitchDocument, setupStep: SetupCursor | undefined): SetupCursor {
-  return setupStep ?? (setupComplete(doc) ? null : 1);
+  if (setupStep && setupStepNumbers(doc).includes(setupStep)) return setupStep;
+  return isSetupComplete(doc) ? null : 1;
 }
 
 export function stepMark(

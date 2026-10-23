@@ -33,42 +33,20 @@ describe('ZoneMap', () => {
   });
 
   it('shows the full name and the ball for the selected zone', () => {
-    render(<ZoneMap value="RH-F" carrier="ST" attackerName="Blue" />);
+    render(<ZoneMap value="RH-F" attackerName="Blue" />);
     expect(
       screen.getByText('Right half-space - final third', { selector: 'p' }),
     ).toBeInTheDocument();
     const cell = screen.getByRole('button', { name: 'Right half-space - final third' });
     expect(cell).toHaveAttribute('aria-pressed', 'true');
     expect(cell.querySelector('svg')).toBeInTheDocument();
-    expect(screen.getByText('On the ball: ST')).toBeInTheDocument();
     expect(screen.getByText(/Blue/)).toBeInTheDocument();
-  });
-
-  it('marks a picked carrier', () => {
-    render(<ZoneMap value="C-M" carrier="ST" carrierChanged />);
-    expect(screen.getByText('On the ball: ST (you picked)')).toBeInTheDocument();
   });
 
   it('shows the no-zone copy', () => {
     render(<ZoneMap value={null} />);
     expect(screen.getByText('No zone yet')).toBeInTheDocument();
     expect(screen.getByText('Tap a zone to put the ball there.')).toBeInTheDocument();
-  });
-
-  it('hatches unfinished zones and explains when one is picked', () => {
-    const { rerender } = render(<ZoneMap unfinished={['C-D']} value="C-M" />);
-    const cell = screen.getByRole('button', {
-      name: 'Centre - defensive third, setup not finished',
-    });
-    expect(cell).toHaveAttribute('data-unfinished', 'true');
-    expect(screen.getByRole('button', { name: 'Centre - middle third' })).not.toHaveAttribute(
-      'data-unfinished',
-    );
-    expect(
-      screen.queryByText('Finish setting up your tactic to see the runs.'),
-    ).not.toBeInTheDocument();
-    rerender(<ZoneMap unfinished={['C-D']} value="C-D" />);
-    expect(screen.getByText('Finish setting up your tactic to see the runs.')).toBeInTheDocument();
   });
 
   it('reaches every cell by keyboard', async () => {

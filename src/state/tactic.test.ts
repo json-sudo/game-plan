@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FM26_DATA } from '../data/fm26';
 import { BALL_START, keeperOf, placedPlayers, playersOf, type PitchDocument } from './document';
 import { createExampleDocument } from './example';
+import { selectBasePositions } from './selectors';
 import { createPitchStore } from './store';
 import { canSetSquadSize, copyFmPositions } from './tactic-actions';
 import { createExampleTactic, createInitialTactic, tacticFromDocument } from './tactic';
@@ -13,7 +14,6 @@ function exampleSlotId(team: string, slot: string): string {
   return found.id;
 }
 
-const MINE_DL = exampleSlotId('mine', 'DL');
 const MINE_ST = exampleSlotId('mine', 'ST');
 
 function exampleStore() {
@@ -90,8 +90,6 @@ describe('independent layouts', () => {
     const before = store.getState().tactic;
     const { dispatch } = store.getState();
     dispatch({ type: 'tapZone', zone: 'L-D' });
-    dispatch({ type: 'setCarrier', playerId: MINE_ST });
-    dispatch({ type: 'dribble', direction: 'forward' });
     dispatch({ type: 'fillDefaultRoles' });
     dispatch({ type: 'setRole', playerId: MINE_ST, roleId: null });
     expect(store.getState().tactic).toBe(before);
@@ -309,21 +307,28 @@ describe('patchUi', () => {
 });
 
 describe('copyFmPositions', () => {
+  function shifted(doc: PitchDocument) {
+    return new Map(
+      [...selectBasePositions(doc)].map(([id, point]) => [
+        id,
+        { x: Math.round((point.x + 1) * 100) / 100, y: point.y },
+      ]),
+    );
+  }
+
   function copiedStore() {
     const store = exampleStore();
     store.getState().dispatch({ type: 'tapZone', zone: 'L-D' });
-    store.getState().dispatch({ type: 'setCarrier', playerId: MINE_DL });
     store.getState().setMode('openPitch');
     store.getState().dispatch({ type: 'placeBall', point: { x: 55, y: 12 } });
     store.getState().dispatch({ type: 'setSquadSize', team: 'mine', size: 20 });
-    store.getState().copyFmPositions();
+    store.getState().copyFmPositions(shifted(store.getState().tactic.fm));
     return store;
   }
 
-  it('places the FM starting XI at its base positions, not zone destinations', () => {
+  it('places exactly the given positions', () => {
     const { tactic } = copiedStore().getState();
-    const fmBases = tactic.fm.players.flatMap((p) => (p.base ? [[p.id, p.base]] : []));
-    expect(positions(tactic.openPitch)).toEqual(fmBases);
+    expect(positions(tactic.openPitch)).toEqual([...shifted(tactic.fm)]);
     expect(tactic.openPitch.players.every((p) => p.role === undefined)).toBe(true);
   });
 
@@ -350,7 +355,7 @@ describe('copyFmPositions', () => {
     store.getState().dispatch({ type: 'movePlayer', playerId: MINE_ST, point: { x: 3, y: 3 } });
     const before = store.getState().tactic;
     const past = store.getState().history.past.length;
-    store.getState().copyFmPositions();
+    store.getState().copyFmPositions(shifted(before.fm));
     expect(store.getState().history.past).toHaveLength(past + 1);
     expect(store.getState().tactic.openPitch.teams.mine.formationId).toBe('4_3_3_dm_wide');
     store.getState().undo();
@@ -364,7 +369,7 @@ describe('copyFmPositions', () => {
     const spare = playersOf(store.getState().tactic.fm, 'mine').find((p) => !p.base)!;
     store.getState().dispatch({ type: 'setPieceName', playerId: spare.id, name: 'Sub' });
     const roster = rosterOf(store.getState().tactic.openPitch);
-    store.getState().copyFmPositions();
+    store.getState().copyFmPositions(shifted(store.getState().tactic.fm));
     const { openPitch, fm } = store.getState().tactic;
     expect(rosterOf(openPitch)).toEqual(roster);
     expect(openPitch.players.find((p) => p.id === spare.id)).toMatchObject({ customName: 'Sub' });
@@ -374,13 +379,13 @@ describe('copyFmPositions', () => {
 
   it('does nothing when the FM layout has no placed players', () => {
     const tactic = createInitialTactic();
-    expect(copyFmPositions(tactic)).toBe(tactic);
+    expect(copyFmPositions(tactic, new Map())).toBe(tactic);
   });
 
   it('does nothing when the open pitch already matches', () => {
     const store = copiedStore();
     const past = store.getState().history.past.length;
-    store.getState().copyFmPositions();
+    store.getState().copyFmPositions(shifted(store.getState().tactic.fm));
     expect(store.getState().history.past).toHaveLength(past);
   });
 });
@@ -415,12 +420,10 @@ describe('loadTactic', () => {
 
   it('resets the transient ui when a tactic is loaded', () => {
     const store = exampleStore();
-    store.getState().patchUi({ selectedPlayerId: MINE_ST, phase: 'final', playing: true });
-    store.getState().loadTactic(createExampleTactic(), { mode: 'fm', phase: 'runs' });
+    store.getState().patchUi({ selectedPlayerId: MINE_ST });
+    store.getState().loadTactic(createExampleTactic(), { mode: 'fm' });
     expect(store.getState().ui).toMatchObject({
       selectedPlayerId: null,
-      playing: false,
-      phase: 'runs',
       drag: null,
     });
   });

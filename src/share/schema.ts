@@ -9,7 +9,6 @@ const teamName = z.string().min(1).max(TEAM_NAME_MAX_LENGTH);
 const formationId = z.union([z.literal(0), z.string().min(1).max(64)]);
 const squadSize = z.union([z.literal(11), z.literal(20), z.literal(26)]);
 const applied = z.union([z.literal(0), z.literal(1), z.literal(2)]);
-const phase = z.union([z.literal(0), z.literal(1), z.literal(2)]);
 
 const playerTuple = z.tuple([
   z.string().min(1).max(64),
@@ -29,13 +28,13 @@ const layoutTuple = z.tuple([
   z.tuple([applied, applied]),
   z.array(playerTuple).max(54),
   z.tuple([int, int]),
-  z.union([z.literal(0), z.tuple([zoneIdSchema, z.string().min(1).max(64)])]),
+  z.union([z.literal(0), zoneIdSchema]),
+  int.min(0),
 ]);
 
 export const sharePayloadSchema = z.tuple([
   z.string().min(1).max(32),
   flag,
-  phase,
   z.tuple([teamName, teamName]),
   z.tuple([squadSize, squadSize]),
   layoutTuple,
@@ -43,5 +42,5 @@ export const sharePayloadSchema = z.tuple([
 ]);
 
 export type SharePayload = z.infer<typeof sharePayloadSchema>;
-export type ShareLayoutTuple = SharePayload[5];
+export type ShareLayoutTuple = SharePayload[4];
 export type SharePlayerTuple = ShareLayoutTuple[4][number];

@@ -8,7 +8,7 @@ import {
 } from '../state';
 
 export const TACTICS_STORAGE_KEY = 'gameplan:tactics';
-export const CURRENT_TACTICS_VERSION = 4;
+export const CURRENT_TACTICS_VERSION = 5;
 export const MAX_TACTICS_STORAGE_CHARS = 262144;
 export const MAX_SLOTS = 2;
 export const SLOT_NAME_MAX_LENGTH = 24;
@@ -39,7 +39,7 @@ export const documentSchema = z.object({
   teams: z.object({ mine: teamSchema, opponent: teamSchema }),
   players: z.array(playerSchema).max(54),
   ball: pointSchema,
-  scenario: z.object({ zone: zoneIdSchema, carrierId: z.string().min(1).max(64) }).nullable(),
+  scenario: z.object({ zone: zoneIdSchema, sequenceIndex: z.number().int().min(0) }).nullable(),
 }) satisfies z.ZodType<PitchDocument>;
 
 export const tacticSchema = z.object({

@@ -22,7 +22,7 @@ describe('engine purity', () => {
       'zoneOf',
       'eligibleCarrierIds',
       'targetFor',
-      'computePhases',
+      'computeZoneShape',
       'positionAt',
     ]) {
       expect(typeof (api as Record<string, unknown>)[name]).toBe('function');

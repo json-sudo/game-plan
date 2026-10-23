@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   applyTacticAction,
   copyFmPositions,
+  selectBasePositions,
   createExampleDocument,
-  createExampleTactic,
   createInitialTactic,
   type Tactic,
   type TacticSnapshot,
 } from '../state';
+import { createExampleTactic } from '../state/tactic';
 import {
   TACTICS_STORAGE_KEY,
   CURRENT_TACTICS_VERSION,
@@ -31,7 +32,6 @@ function exampleSlotId(team: string, slot: string): string {
   return found.id;
 }
 
-const MINE_DL = exampleSlotId('mine', 'DL');
 const MINE_ST = exampleSlotId('mine', 'ST');
 
 function memoryStorage(initial: Record<string, string> = {}): Storage {
@@ -119,7 +119,7 @@ describe('loadTactics', () => {
     const raw = (value: string) => memoryStorage({ [TACTICS_STORAGE_KEY]: value });
     expect(loadTactics(raw('{not json'))).toEqual({ status: 'corrupt' });
     expect(loadTactics(raw('"text"'))).toEqual({ status: 'corrupt' });
-    expect(loadTactics(storedWith({ version: 4, slots: 'no' }))).toEqual({ status: 'corrupt' });
+    expect(loadTactics(storedWith({ version: 5, slots: 'no' }))).toEqual({ status: 'corrupt' });
     expect(loadTactics(storedWith({ version: 999, slots: [] }))).toEqual({ status: 'corrupt' });
     expect(loadTactics(storedWith({ version: 0, slots: [] }))).toEqual({ status: 'corrupt' });
   });
@@ -131,14 +131,14 @@ describe('loadTactics', () => {
 
   it('skips and counts entries that fail the schema', () => {
     const good = slot('a', 1);
-    const result = loadTactics(storedWith({ version: 4, slots: [good, { nope: true }] }));
+    const result = loadTactics(storedWith({ version: 5, slots: [good, { nope: true }] }));
     expect(result).toEqual({ status: 'ok', wrapper: wrapperOf(good), skipped: 1 });
   });
 
   it('skips entries whose tactic breaks a data rule', () => {
     const broken: Tactic = {
       ...exampleTactic,
-      fm: { ...exampleTactic.fm, scenario: { zone: 'C-F', carrierId: 'ghost' } },
+      fm: { ...exampleTactic.fm, scenario: { zone: 'C-F', sequenceIndex: -1 } },
     };
     const result = loadTactics(storedWith(wrapperOf(slot('a', 1), slot('b', 2, broken))));
     expect(result).toMatchObject({ status: 'ok', skipped: 1, wrapper: { slots: [{ id: 'a' }] } });
@@ -146,7 +146,7 @@ describe('loadTactics', () => {
 
   it('skips every entry beyond the slot limit', () => {
     const result = loadTactics(
-      storedWith({ version: 4, slots: [slot('a', 1), slot('b', 2), slot('c', 3)] }),
+      storedWith({ version: 5, slots: [slot('a', 1), slot('b', 2), slot('c', 3)] }),
     );
     expect(result).toMatchObject({ status: 'ok', skipped: 1 });
   });
@@ -166,6 +166,18 @@ describe('loadTactics', () => {
         tactic: exampleTactic,
       }),
     });
+  });
+
+  it('round-trips an FM zone with sequence index 2', () => {
+    const tactic: Tactic = {
+      ...exampleTactic,
+      fm: { ...exampleTactic.fm, scenario: { zone: 'L-D', sequenceIndex: 2 } },
+    };
+    const storage = memoryStorage();
+    saveSlot(null, null, 'Alpha', { tactic, mode: 'fm' }, storage, 100);
+    const loaded = loadTactics(storage);
+    if (loaded.status !== 'ok') throw new Error('expected ok');
+    expect(loaded.wrapper.slots[0].tactic.fm.scenario).toEqual({ zone: 'L-D', sequenceIndex: 2 });
   });
 
   it('keeps custom piece names through a save', () => {
@@ -225,7 +237,7 @@ describe('saveSlot', () => {
   it('refuses a pitch that breaks a data rule', () => {
     const broken: Tactic = {
       ...exampleTactic,
-      fm: { ...exampleTactic.fm, scenario: { zone: 'C-F', carrierId: 'ghost' } },
+      fm: { ...exampleTactic.fm, scenario: { zone: 'C-F', sequenceIndex: -1 } },
     };
     expect(
       saveSlot(null, null, 'X', { tactic: broken, mode: 'fm' }, memoryStorage()),
@@ -265,7 +277,7 @@ describe('new-format only', () => {
 
   it('skips a v3-shaped slot inside a v4 wrapper without partially applying it', () => {
     const legacySlot = { id: 'a', name: 'Old', savedAt: 5, tactic: v3Document };
-    const result = loadTactics(storedWith({ version: 4, slots: [legacySlot, slot('b', 1)] }));
+    const result = loadTactics(storedWith({ version: 5, slots: [legacySlot, slot('b', 1)] }));
     expect(result).toMatchObject({ status: 'ok', skipped: 1, wrapper: { slots: [{ id: 'b' }] } });
   });
 
@@ -292,21 +304,20 @@ describe('new-format only', () => {
   });
 
   it('refuses stored data over the size limit', () => {
-    const padded = { version: 4, slots: [], padding: 'x'.repeat(MAX_TACTICS_STORAGE_CHARS) };
+    const padded = { version: 5, slots: [], padding: 'x'.repeat(MAX_TACTICS_STORAGE_CHARS) };
     expect(loadTactics(storedWith(padded))).toEqual({ status: 'corrupt' });
   });
 });
 
 describe('both layouts in a save', () => {
   function arranged(): Tactic {
-    const placed = copyFmPositions(exampleTactic);
+    const placed = copyFmPositions(exampleTactic, selectBasePositions(exampleTactic.fm));
     const moved = applyTacticAction(placed, 'openPitch', {
       type: 'movePlayer',
       playerId: MINE_ST,
       point: { x: 11, y: 22 },
     });
-    const zoned = applyTacticAction(moved, 'fm', { type: 'tapZone', zone: 'L-D' });
-    return applyTacticAction(zoned, 'fm', { type: 'setCarrier', playerId: MINE_DL });
+    return applyTacticAction(moved, 'fm', { type: 'tapZone', zone: 'L-D' });
   }
 
   it('saves and reloads both layouts independently, with the mode it was saved in', () => {
@@ -347,7 +358,7 @@ describe('both layouts in a save', () => {
 
   it('autoloads the newest valid slot and skips an invalid newer one', () => {
     const broken = { ...slot('new', 900), tactic: { openPitch: {}, fm: {} } };
-    const result = loadTactics(storedWith({ version: 4, slots: [slot('old', 100), broken] }));
+    const result = loadTactics(storedWith({ version: 5, slots: [slot('old', 100), broken] }));
     if (result.status !== 'ok') throw new Error('expected ok');
     expect(result.skipped).toBe(1);
     expect(pickAutoLoadSlot(result.wrapper)?.id).toBe('old');

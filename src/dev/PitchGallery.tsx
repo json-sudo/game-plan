@@ -11,7 +11,6 @@ import { ZoneMap } from '../ui/instrument/ZoneMap';
 import { Arrow } from '../ui/pitch/Arrow';
 import { Ball } from '../ui/pitch/Ball';
 import { BallGlyph } from '../ui/pitch/BallGlyph';
-import { DribbleControl } from '../ui/pitch/DribbleControl';
 import { Pitch } from '../ui/pitch/Pitch';
 import { PitchFrame } from '../ui/pitch/PitchFrame';
 import { PlayerToken } from '../ui/pitch/PlayerToken';
@@ -51,7 +50,6 @@ const ROLES = [
 ];
 
 const WINGER_ROLE = 'Winger';
-const CARRIER = { x: 38, y: 60 };
 const PREVIEW_ZONE: ZoneId = 'R-F';
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
@@ -123,17 +121,12 @@ export function PitchGallery() {
         </div>
       </Section>
 
-      <Section id="arrows-title" title="Arrows and dribble">
+      <Section id="arrows-title" title="Arrows">
         <div className={styles.gallery__showcase}>
           <PitchSample label="Pitch with arrows">
             <Arrow from={{ x: 20, y: 70 }} to={{ x: 30, y: 40 }} />
             <Arrow from={{ x: 56, y: 30 }} to={{ x: 50, y: 60 }} team="opponent" dim />
             <Arrow from={{ x: 38, y: 80 }} to={{ x: 38, y: 55 }} ring={false} />
-          </PitchSample>
-          <PitchSample label="Pitch with dribble control">
-            <DribbleControl x={CARRIER.x} y={CARRIER.y}>
-              <PlayerToken x={CARRIER.x} y={CARRIER.y} team="mine" label="10" />
-            </DribbleControl>
           </PitchSample>
         </div>
       </Section>
@@ -141,17 +134,10 @@ export function PitchGallery() {
       <Section id="zone-map-title" title="Zone map">
         <div className={styles.gallery__columns}>
           <Instrument>
-            <ZoneMap
-              value={zone}
-              onPick={setZone}
-              unfinished={['L-D', 'C-M']}
-              carrier="Right back"
-              attackerName="Wing-back"
-              presets
-            />
+            <ZoneMap value={zone} onPick={setZone} attackerName="Wing-back" presets />
           </Instrument>
           <Instrument>
-            <ZoneMap value={null} carrier="Right back" carrierChanged phone />
+            <ZoneMap value={null} phone />
           </Instrument>
         </div>
       </Section>

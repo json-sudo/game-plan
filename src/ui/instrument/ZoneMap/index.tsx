@@ -1,15 +1,11 @@
 import { zoneBounds, zoneName } from '../../../engine';
 import { GRID, type ZoneId } from '../../../data/zones';
 import {
-  CARRIER_PICKED_SUFFIX,
   NO_ZONE_HINT,
   NO_ZONE_TITLE,
   ATTACKING_TAG,
   ZONE_MAP_HEADING,
   ZONE_PRESETS,
-  ZONE_UNFINISHED_MESSAGE,
-  ZONE_UNFINISHED_SUFFIX,
-  carrierLine,
 } from '../../copy';
 import { Button } from '../../controls/Button';
 import { BallGlyph } from '../../pitch/BallGlyph';
@@ -18,9 +14,6 @@ import styles from './zone-map.module.scss';
 export interface ZoneMapProps {
   value?: ZoneId | null;
   onPick?: (zone: ZoneId) => void;
-  unfinished?: readonly ZoneId[];
-  carrier?: string;
-  carrierChanged?: boolean;
   attackerName?: string;
   presets?: boolean;
   phone?: boolean;
@@ -36,18 +29,7 @@ const laneWidths = GRID.lanes.map((lane) => {
 });
 const COLUMNS = laneWidths.map((width) => `${width}fr`).join(' ');
 
-export function ZoneMap({
-  value = null,
-  onPick,
-  unfinished = [],
-  carrier,
-  carrierChanged,
-  attackerName,
-  presets,
-  phone,
-}: ZoneMapProps) {
-  const selectedUnfinished = value !== null && unfinished.includes(value);
-
+export function ZoneMap({ value = null, onPick, attackerName, presets, phone }: ZoneMapProps) {
   return (
     <section className={styles.map} data-phone={phone ? 'true' : undefined}>
       <h2 className={styles.heading}>{ZONE_MAP_HEADING}</h2>
@@ -55,7 +37,6 @@ export function ZoneMap({
         {ROWS.flatMap((third) =>
           GRID.lanes.map((lane) => {
             const zone: ZoneId = `${lane}-${third}`;
-            const isUnfinished = unfinished.includes(zone);
             const selected = zone === value;
             return (
               <button
@@ -65,9 +46,8 @@ export function ZoneMap({
                 data-lane={lane}
                 data-half-space={HALF_SPACE_LANES.includes(lane) ? 'true' : undefined}
                 data-selected={selected ? 'true' : undefined}
-                data-unfinished={isUnfinished ? 'true' : undefined}
                 aria-pressed={selected}
-                aria-label={`${zoneName(zone)}${isUnfinished ? ZONE_UNFINISHED_SUFFIX : ''}`}
+                aria-label={zoneName(zone)}
                 onClick={() => onPick?.(zone)}
               >
                 {selected ? <BallGlyph size={BALL_GLYPH_SIZE} /> : null}
@@ -89,16 +69,9 @@ export function ZoneMap({
       ) : (
         <div>
           <p className={styles.name}>{zoneName(value)}</p>
-          {selectedUnfinished ? <p className={styles.note}>{ZONE_UNFINISHED_MESSAGE}</p> : null}
         </div>
       )}
       <p className={styles.tag}>{attackerName ? `${attackerName} ↑` : ATTACKING_TAG}</p>
-      {carrier ? (
-        <p className={styles.note}>
-          {carrierLine(carrier)}
-          {carrierChanged ? ` ${CARRIER_PICKED_SUFFIX}` : ''}
-        </p>
-      ) : null}
       {presets ? (
         <div className={styles.presets}>
           {ZONE_PRESETS.map(({ label, zone }) => (

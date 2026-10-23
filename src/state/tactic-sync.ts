@@ -36,11 +36,7 @@ function swapPlacements(doc: PitchDocument, a: Player, b: Player): PitchDocument
         ? withPlacementOf(player, a)
         : player,
   );
-  const carrierId = doc.scenario?.carrierId;
-  const swappedCarrier = carrierId === a.id ? b.id : carrierId === b.id ? a.id : null;
-  const scenario =
-    doc.scenario && swappedCarrier ? { ...doc.scenario, carrierId: swappedCarrier } : doc.scenario;
-  return { ...doc, players, scenario };
+  return { ...doc, players };
 }
 
 function adoptKeepers(source: PitchDocument, target: PitchDocument): PitchDocument {

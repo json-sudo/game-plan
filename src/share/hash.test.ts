@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { createExampleTactic } from '../state';
+import { createExampleTactic } from '../state/tactic';
 import { encodeShareHash } from './codec';
 import { clearShareHash, readShareFromLocation } from './hash';
 
@@ -16,10 +16,10 @@ describe('readShareFromLocation', () => {
 
   it('decodes a share hash in the address', () => {
     const tactic = createExampleTactic();
-    const encoded = encodeShareHash({ tactic, mode: 'fm' }, 'runs');
+    const encoded = encodeShareHash({ tactic, mode: 'fm' });
     if (encoded.status !== 'ok') throw new Error('expected a link');
     window.location.hash = encoded.hash;
-    expect(readShareFromLocation()).toEqual({ status: 'ok', tactic, phase: 'runs', mode: 'fm' });
+    expect(readShareFromLocation()).toEqual({ status: 'ok', tactic, mode: 'fm' });
   });
 
   it('returns the error value for a v1 link', () => {

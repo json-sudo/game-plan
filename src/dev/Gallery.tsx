@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Banner } from '../ui/feedback/Banner';
 import { Dialog } from '../ui/feedback/Dialog';
 import { EmptyState } from '../ui/feedback/EmptyState';
-import { FirstRunHint } from '../ui/feedback/FirstRunHint';
 import { SlotListItem } from '../ui/feedback/SlotListItem';
 import { Button } from '../ui/controls/Button';
 import { ICON_NAMES, Icon } from '../ui/controls/Icon';
@@ -159,7 +158,6 @@ export default function Gallery() {
               Your pitch has not changed.
             </Banner>
             <EmptyState title="No saved tactics yet">Save one from the top bar.</EmptyState>
-            <FirstRunHint />
           </div>
           <div className={styles.gallery__stack}>
             <SlotListItem slot={1} name="My tactic" meta="FM mode · saved 10 Oct, 21:14" selected />

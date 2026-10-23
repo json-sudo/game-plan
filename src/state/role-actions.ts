@@ -6,7 +6,7 @@ import {
   type PitchDocument,
   type Player,
 } from './document';
-import { recheckCarrier, refreshScenario } from './scenario-actions';
+import { refreshScenario } from './scenario-actions';
 
 function withRole(player: Player, role: string | undefined): Player {
   const { role: _previous, ...rest } = player;
@@ -45,13 +45,13 @@ export function setRole(
   const target = doc.players.find((player) => player.id === playerId);
   if (!target) return doc;
   if (roleId !== null && !isRoleValidFor(doc, data, target, roleId)) return doc;
-  const next = mapPlayers(doc, (player) =>
+  return mapPlayers(doc, (player) =>
     player === target ? withRole(player, roleId ?? undefined) : player,
   );
-  return target.id === doc.scenario?.carrierId ? recheckCarrier(next, data) : next;
 }
 
 export function setAttacker(doc: PitchDocument, attacker: Side, data: DataSet): PitchDocument {
   if (doc.attacker === attacker) return doc;
+  if (attacker === 'opponent' && doc.teams.opponent.formationId === null) return doc;
   return refreshScenario(reconcileRoles({ ...doc, attacker }, data));
 }

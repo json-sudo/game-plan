@@ -1,6 +1,6 @@
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FM26_DATA } from '../../../data/fm26';
 import { zoneName } from '../../../engine';
 import { activeRoleOf } from '../../../state/context';
@@ -17,12 +17,6 @@ import {
   ZONE_MAP_HEADING,
 } from '../../copy';
 import { BoardPhone } from '.';
-
-function exampleSlotId(team: string, slot: string): string {
-  const found = createExampleDocument().players.find((p) => p.team === team && p.slot === slot);
-  if (!found) throw new Error(`no example ${team} player at ${slot}`);
-  return found.id;
-}
 
 beforeEach(() => {
   window.matchMedia = vi
@@ -177,24 +171,16 @@ describe('BoardPhone bench sheet', () => {
 });
 
 describe('BoardPhone board', () => {
-  it('renders the transport bar in FM mode only, and the bench in-page in neither mode', () => {
+  it('renders the zone map in FM mode only, and the bench in-page in neither mode', () => {
     const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
     render(<BoardPhone store={store} />);
-    expect(screen.getByRole('button', { name: TRANSPORT_PLAY_LABEL })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: ZONE_MAP_HEADING })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: BENCH_HEADING })).not.toBeInTheDocument();
     act(() => {
       store.getState().setMode('openPitch');
     });
-    expect(screen.queryByRole('button', { name: TRANSPORT_PLAY_LABEL })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: ZONE_MAP_HEADING })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: BENCH_HEADING })).not.toBeInTheDocument();
-  });
-
-  it('renders the zone map below the transport bar in FM mode', () => {
-    const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
-    render(<BoardPhone store={store} />);
-    const play = screen.getByRole('button', { name: TRANSPORT_PLAY_LABEL });
-    const zoneMap = screen.getByRole('heading', { name: ZONE_MAP_HEADING });
-    expect(play.compareDocumentPosition(zoneMap) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('renders the framed pitch below the top bar', () => {
@@ -205,53 +191,24 @@ describe('BoardPhone board', () => {
     expect(menu.compareDocumentPosition(pitch) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('picking a zone puts the ball there and offers only the eligible players', async () => {
+  it('picking a zone puts the ball there and records only the zone', async () => {
     const user = userEvent.setup();
     const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
     render(<BoardPhone store={store} />);
     await user.click(screen.getByRole('button', { name: zoneName('C-F') }));
     expect(store.getState().doc.ball.y).toBeLessThan(35);
-    expect(store.getState().doc.scenario).toBeNull();
-    const picker = screen.getByRole('group', { name: 'Who has the ball?' });
-    expect(
-      within(picker)
-        .getAllByRole('radio')
-        .map((r) => r.getAttribute('aria-label')),
-    ).toEqual(['ST - Deep-Lying Forward']);
-    await user.click(within(picker).getByRole('radio', { name: 'ST - Deep-Lying Forward' }));
-    expect(store.getState().doc.scenario).toEqual({
-      zone: 'C-F',
-      carrierId: exampleSlotId('mine', 'ST'),
-    });
+    expect(store.getState().doc.scenario).toEqual({ zone: 'C-F', sequenceIndex: 0 });
   });
 
-  it('shows the carrier choice and pass control below the zone map in FM mode only', () => {
+  it('shows no playback, carrier choice, pass control or first-run hint in FM mode', () => {
     const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
     render(<BoardPhone store={store} />);
-    const zoneMap = screen.getByRole('heading', { name: ZONE_MAP_HEADING });
-    const picker = screen.getByRole('group', { name: 'Who has the ball?' });
-    const pass = screen.getByRole('combobox', { name: 'Pass to' });
-    expect(zoneMap.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(picker.compareDocumentPosition(pass) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    act(() => store.getState().setMode('openPitch'));
+    expect(screen.queryByRole('button', { name: TRANSPORT_PLAY_LABEL })).not.toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Who has the ball?' })).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: 'Pass to' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: ZONE_MAP_HEADING })).not.toBeInTheDocument();
-  });
-
-  it('starts a pass from the pass control', async () => {
-    const user = userEvent.setup();
-    const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
-    render(<BoardPhone store={store} />);
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Pass to' }),
-      exampleSlotId('mine', 'DR'),
-    );
-    await user.click(screen.getByRole('button', { name: 'Pass' }));
-    expect(store.getState().ui.action).toEqual({
-      type: 'pass',
-      receiverId: exampleSlotId('mine', 'DR'),
-    });
+    expect(
+      screen.queryByRole('complementary', { name: 'How to use the example' }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -280,51 +237,5 @@ describe('BoardPhone tokens', () => {
     await user.click(token);
     expect(token).toHaveAttribute('aria-pressed', 'true');
     expect(shownRolePlates()).toEqual([]);
-  });
-});
-
-describe('BoardPhone first-run hint', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  const hintName = { name: 'How to use the example' };
-
-  it('shows above the pitch with the phone wording', () => {
-    const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
-    render(<BoardPhone store={store} />);
-    const hint = screen.getByRole('complementary', hintName);
-    expect(
-      within(hint).getByText('Step through with Next, or tap a player to see its role.'),
-    ).toBeInTheDocument();
-    const pitch = screen.getByRole('img', { name: PITCH_LABEL });
-    expect(hint.compareDocumentPosition(pitch) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it('Got it dismisses it without writing to localStorage or touching the document or history', async () => {
-    const user = userEvent.setup();
-    const setItem = vi.spyOn(Storage.prototype, 'setItem');
-    const pushState = vi.spyOn(window.history, 'pushState');
-    const replaceState = vi.spyOn(window.history, 'replaceState');
-    const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
-    const before = store.getState().doc;
-    render(<BoardPhone store={store} />);
-    await user.click(screen.getByRole('button', { name: 'Got it' }));
-    expect(screen.queryByRole('complementary', hintName)).not.toBeInTheDocument();
-    expect(store.getState().doc).toBe(before);
-    expect(setItem).not.toHaveBeenCalled();
-    expect(pushState).not.toHaveBeenCalled();
-    expect(replaceState).not.toHaveBeenCalled();
-  });
-
-  it('returns on the next load', () => {
-    const first = render(
-      <BoardPhone store={createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } })} />,
-    );
-    first.unmount();
-    render(
-      <BoardPhone store={createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } })} />,
-    );
-    expect(screen.getByRole('complementary', hintName)).toBeInTheDocument();
   });
 });

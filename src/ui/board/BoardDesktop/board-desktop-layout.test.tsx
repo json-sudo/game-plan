@@ -51,11 +51,10 @@ describe('BoardDesktop Open pitch', () => {
     expect(screen.queryByRole('button', { name: 'Play' })).not.toBeInTheDocument();
   });
 
-  it('shows the zone map and transport in FM mode instead', () => {
+  it('shows the zone map in FM mode instead', () => {
     const store = createPitchStore({ doc: createExampleDocument(), ui: { mode: 'fm' } });
     render(<BoardDesktop store={store} />);
     expect(screen.getByRole('heading', { name: 'Ball zone' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Matchup' })).not.toBeInTheDocument();
   });
 
