@@ -12,7 +12,14 @@ export { lineShift } from './fm/lineShift';
 export { PITCH_TARGET_MARGIN, ballSideOf, offsetFor, targetFor } from './fm/movement';
 export type { BallSide, MovementTables, TargetInput } from './fm/movement';
 export { PHASES, PHASE_PROGRESS, computePhases } from './fm/phases';
-export { visualizationStarters } from './fm/visualization';
+export { buildVisualization, visualizationStarters, visualizationsFor } from './fm/visualization';
+export type {
+  Pass,
+  Visualization,
+  VisualizationFrame,
+  VisualizationInput,
+} from './fm/visualization';
+export { chooseReceiver } from './fm/receiver';
 export { PROVISIONAL_POSITION_ENGINE } from './fm/position-engine';
 export type { PositionEngine } from './fm/position-engine';
 export type {

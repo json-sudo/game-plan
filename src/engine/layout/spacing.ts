@@ -29,6 +29,10 @@ function clamp(value: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, value));
 }
 
+function towardCentre(value: number, length: number): number {
+  return value <= length / 2 ? 1 : -1;
+}
+
 export function enforceSpacing(
   tokens: readonly SpacingToken[],
   options: SpacingOptions = {},
@@ -38,9 +42,13 @@ export function enforceSpacing(
   const mobility = tokens.map(mobilityOf);
   const place = (index: number, x: number, y: number) => {
     if (mobility[index] === 0) return;
+    const clampedX = clamp(x, margin, PITCH_W - margin);
+    const clampedY = clamp(y, margin, PITCH_H - margin);
+    const slideX = Math.abs(y - clampedY) * towardCentre(clampedX, PITCH_W);
+    const slideY = Math.abs(x - clampedX) * towardCentre(clampedY, PITCH_H);
     points[index] = {
-      x: clamp(x, margin, PITCH_W - margin),
-      y: clamp(y, margin, PITCH_H - margin),
+      x: clamp(clampedX + slideX, margin, PITCH_W - margin),
+      y: clamp(clampedY + slideY, margin, PITCH_H - margin),
     };
   };
 
