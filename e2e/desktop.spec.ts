@@ -146,11 +146,12 @@ test('the first zone pick walks tokens on from the goal lines', async ({ page })
   await expect(page.getByRole('img', { name: /my team$/ })).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Right flank - final third' }).click();
-  const keeper = 'GK, No-Nonsense Goalkeeper, my team';
-  await expect(page.getByRole('img', { name: keeper, exact: true })).toBeVisible();
+  const striker = page.getByRole('img', { name: /^ST, .*my team$/ });
+  await expect(striker).toBeVisible();
   const sampled: number[] = [];
   for (let sample = 0; sample < 40; sample += 1) {
-    sampled.push((await readTranslate(page, 'img', keeper)).y);
+    const style = await striker.getAttribute('style');
+    sampled.push(Number(style?.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/)?.[2]));
     await page.waitForTimeout(30);
   }
   const first = sampled[0];

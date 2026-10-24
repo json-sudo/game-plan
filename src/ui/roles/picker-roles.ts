@@ -1,27 +1,38 @@
-import { FM26_DATA } from '../../data/fm26';
-import { targetFor } from '../../engine';
+import { formationAnchors, toDisplayFrame, type FmPlayer } from '../../engine';
 import type { PitchDocument, Player } from '../../state/document';
+import { rolesOf } from '../../state/visualization';
 import { roleOptions } from '../setup/setup-model';
 import type { RolePickerRole } from './RolePicker';
 
-function roleMovement(doc: PitchDocument, player: Player, roleId: string) {
+const keyOf = (player: Pick<Player, 'team' | 'slot'>) => `${player.team}:${player.slot}`;
+
+function fmPlayersOf(doc: PitchDocument, picked: Player, roleId: string): FmPlayer[] {
+  const roles = { ...rolesOf(doc), [keyOf(picked)]: roleId };
+  return doc.players.flatMap((player) =>
+    player.family && player.slot && player.base
+      ? [
+          {
+            id: keyOf(player),
+            team: player.team,
+            family: player.family,
+            base: player.base,
+            roleId: roles[keyOf(player)],
+            isKeeper: player.isKeeper,
+          },
+        ]
+      : [],
+  );
+}
+
+function roleAnchor(doc: PitchDocument, player: Player, roleId: string) {
   const from = player.base ?? { x: 0, y: 0 };
   if (!doc.scenario || !player.base) return { from, to: from };
-  const result = targetFor({
-    base: player.base,
-    start: player.base,
-    team: player.team,
+  const anchor = formationAnchors({
     attacker: doc.attacker,
-    roleId,
-    isKeeper: player.isKeeper,
+    players: fmPlayersOf(doc, player, roleId),
     zone: doc.scenario.zone,
-    tables: {
-      movement: FM26_DATA.movement,
-      shapeLineShift: FM26_DATA.shapeLineShift,
-      lineShift: FM26_DATA.lineShift,
-    },
-  });
-  return { from, to: result.status === 'ok' ? result.target : from };
+  }).get(keyOf(player));
+  return { from, to: anchor ? toDisplayFrame(anchor.point, doc.attacker) : from };
 }
 
 export function pickerRoles(doc: PitchDocument, player: Player): RolePickerRole[] {
@@ -29,6 +40,6 @@ export function pickerRoles(doc: PitchDocument, player: Player): RolePickerRole[
     id: role.id,
     name: role.name,
     desc: role.description,
-    ...roleMovement(doc, player, role.id),
+    ...roleAnchor(doc, player, role.id),
   }));
 }

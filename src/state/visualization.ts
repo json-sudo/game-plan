@@ -1,6 +1,7 @@
 import { FM26_DATA } from '../data/fm26';
 import type { Side } from '../data/types';
 import { visualizationsFor, type Visualization, type VisualizationFrame } from '../engine';
+import { activeRoleOf } from './context';
 import { formationOf, isSetupComplete, type PitchDocument } from './document';
 
 export interface FmVisualization {
@@ -13,11 +14,11 @@ export interface FmVisualization {
 
 const cache = new WeakMap<PitchDocument, Visualization[]>();
 
-function rolesOf(doc: PitchDocument): Record<string, string | undefined> {
+export function rolesOf(doc: PitchDocument): Record<string, string | undefined> {
   return Object.fromEntries(
     doc.players
       .filter((player) => player.slot !== null)
-      .map((player) => [`${player.team}:${player.slot}`, player.role]),
+      .map((player) => [`${player.team}:${player.slot}`, activeRoleOf(doc, player, FM26_DATA)]),
   );
 }
 
@@ -31,7 +32,6 @@ function visualizationsOf(doc: PitchDocument): Visualization[] {
     attacker: doc.attacker,
     formations: { mine: formation('mine'), opponent: formation('opponent') },
     roles: rolesOf(doc),
-    movement: FM26_DATA.movement,
   });
   cache.set(doc, computed);
   return computed;

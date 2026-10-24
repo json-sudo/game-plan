@@ -1,5 +1,5 @@
 import type { DataSet, FormationDef, Side } from '../data/types';
-import { layoutFormation, layoutMatchup, type TeamLayout } from '../engine';
+import { layoutOpenMatchup, layoutOwnHalf, type TeamLayout } from '../engine';
 import {
   BALL_START,
   SIDES,
@@ -111,21 +111,22 @@ export function applyFormation(
   team: Side,
   formationId: string,
   data: DataSet,
+  clearance: number,
 ): PitchDocument {
   const formation = formationOf(data, formationId);
   if (!formation) return doc;
   return settle(
-    placeTeam(doc, team, formation, layoutFormation(formation, team), 'formation'),
+    placeTeam(doc, team, formation, layoutOwnHalf(formation, team, clearance), 'formation'),
     data,
   );
 }
 
-export function applyMatchup(doc: PitchDocument, data: DataSet): PitchDocument {
+export function applyMatchup(doc: PitchDocument, data: DataSet, clearance: number): PitchDocument {
   const mine = formationOf(data, doc.teams.mine.formationId);
   const opponent = formationOf(data, doc.teams.opponent.formationId);
   if (!mine || !opponent) return doc;
   const formations = { mine, opponent };
-  const layouts = layoutMatchup(doc.attacker, formations);
+  const layouts = layoutOpenMatchup(formations, clearance);
   const placed = SIDES.reduce(
     (current, team) => placeTeam(current, team, formations[team], layouts[team], 'matchup'),
     doc,
@@ -142,6 +143,7 @@ export function applyMatchupChoice(
   doc: PitchDocument,
   choice: MatchupChoice,
   data: DataSet,
+  clearance: number,
 ): PitchDocument {
   const chosen: PitchDocument = {
     ...doc,
@@ -151,9 +153,8 @@ export function applyMatchupChoice(
       opponent: { ...doc.teams.opponent, formationId: choice.opponent },
     },
   };
-  const placed = applyMatchup(chosen, data);
-  if (placed === chosen) return doc;
-  return { ...placed, ball: BALL_START, scenario: null };
+  const placed = applyMatchup(chosen, data, clearance);
+  return placed === chosen ? doc : placed;
 }
 
 export function blankTeam(doc: PitchDocument, team: Side): PitchDocument {
@@ -176,14 +177,14 @@ export function resetFm(doc: PitchDocument): PitchDocument {
   return { ...SIDES.reduce(blankTeam, doc), attacker: 'mine', ball: BALL_START, scenario: null };
 }
 
-export function resetPitch(doc: PitchDocument, data: DataSet): PitchDocument {
+export function resetPitch(doc: PitchDocument, data: DataSet, clearance: number): PitchDocument {
   const cleared: PitchDocument = { ...doc, ball: BALL_START, scenario: null };
   const bothMatchup = SIDES.every((team) => doc.teams[team].applied === 'matchup');
-  if (bothMatchup) return applyMatchup(cleared, data);
+  if (bothMatchup) return applyMatchup(cleared, data, clearance);
   return SIDES.reduce((current, team) => {
     const { applied, formationId } = doc.teams[team];
     if (applied === null || formationId === null) return blankTeam(current, team);
-    return applyFormation(current, team, formationId, data);
+    return applyFormation(current, team, formationId, data, clearance);
   }, cleared);
 }
 

@@ -8,9 +8,8 @@ export {
 export { MOTION_DURATIONS_MS, MOTION_EASING, motionDurationMs } from './anim/motion';
 export { eligibleCarrierIds, isRoleAllowedInSlot } from './fm/carrier-eligibility';
 export type { CarrierPlayer, LateralSide } from './fm/carrier-eligibility';
-export { lineShift } from './fm/lineShift';
-export { PITCH_TARGET_MARGIN, ballSideOf, offsetFor, targetFor } from './fm/movement';
-export type { BallSide, MovementTables, TargetInput } from './fm/movement';
+export { formationAnchors } from './fm/formation-anchors';
+export type { Anchor, AnchorInput, SlotLine } from './fm/formation-anchors';
 export type { FmPlayer } from './fm/player';
 export { buildVisualization, visualizationStarters, visualizationsFor } from './fm/visualization';
 export type {
@@ -21,26 +20,31 @@ export type {
 } from './fm/visualization';
 export { chooseReceiver } from './fm/receiver';
 export {
+  MARKING_BOX_EDGES,
   ZONE_GRID,
-  fromAttackerFrame,
   laneOf,
   laneSignOf,
-  toAttackerFrame,
+  toDisplayFrame,
   zoneBounds,
   zoneCentre,
   zoneName,
   zoneOf,
   thirdOf,
 } from './fm/zones';
-export type { ZoneBounds, ZoneGrid } from './fm/zones';
+export type { BoxEdges, ZoneBounds, ZoneGrid } from './fm/zones';
 export { PITCH_H, PITCH_W, ballAtopPosition, clampToPitch } from './geometry/pitch';
+export { layoutFormation, mirrorPoint } from './layout/formations';
 export {
-  MATCHUP_FRONT_MARGIN,
-  MATCHUP_MAX_ADVANCE,
-  layoutFormation,
-  layoutMatchup,
-  mirrorPoint,
-} from './layout/formations';
+  DEFAULT_BODY_CLEARANCE,
+  OPEN_EDGE_MARGIN,
+  OWN_HALF_BACK_Y,
+  OWN_HALF_FRONT_Y,
+  OWN_HALF_KEEPER_Y,
+  layoutOpenMatchup,
+  layoutOwnHalf,
+  matchupAnchors,
+  ownHalfAnchors,
+} from './layout/open-pitch';
 export type { TeamLayout } from './layout/formations';
 export { MIN_TOKEN_SPACING, enforceSpacing, minSpacingOf } from './layout/spacing';
 export { SHAPE_MARGIN, computeZoneShape } from './fm/shape';

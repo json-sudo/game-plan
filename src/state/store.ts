@@ -1,5 +1,6 @@
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import type { Point } from '../data/types';
+import { DEFAULT_BODY_CLEARANCE } from '../engine';
 import type { Action } from './actions';
 import type { PitchDocument } from './document';
 import { commit, emptyHistory, redo, undo, type History } from './history';
@@ -32,6 +33,7 @@ export interface UiState {
   theme: Theme;
   drag: DragState | null;
   restartCount: number;
+  bodyClearance: number;
 }
 
 export interface LoadTacticOptions {
@@ -72,6 +74,7 @@ export function initialUi(mode: Mode): UiState {
     theme: 'light',
     drag: null,
     restartCount: 0,
+    bodyClearance: DEFAULT_BODY_CLEARANCE,
   };
 }
 
@@ -108,7 +111,7 @@ export function createPitchStore(options: PitchStoreOptions = {}): StoreApi<Pitc
     };
     const dispatch = (action: Action) => {
       const { tactic: current, ui } = get();
-      replaceTactic(applyTacticAction(current, ui.mode, action));
+      replaceTactic(applyTacticAction(current, ui.mode, action, FM26_DATA, ui.bodyClearance));
     };
     return {
       tactic,

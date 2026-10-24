@@ -54,6 +54,7 @@ import { PlayerToken } from '../../pitch/PlayerToken';
 import { tokenKeyCommand } from '../token-keys';
 import { useBoardDrag } from '../use-board-drag';
 import { useBoardMetrics } from '../use-board-metrics';
+import { useBodyClearance } from '../use-body-clearance';
 import { fmPitchNotice, opponentOnPitch, resetState, visualizationControls } from '../fm-pieces';
 import { useBoardPieces } from '../use-board-pieces';
 import styles from './board-desktop.module.scss';
@@ -82,6 +83,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
   const viz = useStore(store, selectFmVisualization);
   const view = useBoardPieces(store);
   const metrics = useBoardMetrics();
+  useBodyClearance(store, metrics);
   const compactBar = useBelowBreakpoint(TOP_BAR_COMPACT_MAX_WIDTH);
   const fm = ui.mode === 'fm';
   const reset = resetState(doc, fm);

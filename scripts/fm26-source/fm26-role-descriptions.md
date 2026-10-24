@@ -7,7 +7,7 @@ Date: 2026-10-10
 
 - **fmsidekick.com** (74 roles). The role index `https://fmsidekick.com/database/roles/all` lists every role. Each role record is at `https://fmsidekick.com/api/roles/<id>`, and each row below cites its own record. The drafts paraphrase the record's `description` and `short_description` tags.
 - **sortitoutsi.net** (`https://sortitoutsi.net/tools/player-roles`) was **not read**. Repeated attempts on 2026-10-10 stopped at a Cloudflare security check, which was not passed, so no sortitoutsi role data is in this file. Its roles could not be cross-checked.
-- Count: 75 roles in total. 40 in possession (IP) and 35 out of possession (OOP). The earlier spike notes said about 38 IP and 35 OOP names, so the IP count has moved. `wide_centre_back_ip` is a captain-defined role with no fmsidekick record; its positioning targets are still pending.
+- Count: 76 roles in total. 41 in possession (IP) and 35 out of possession (OOP). `overlapping_centre_back_ip` is the captain-defined addition after the 75 sourced roles. The earlier spike notes said about 38 IP and 35 OOP names, so the IP count has moved. `wide_centre_back_ip` is a captain-defined role with no fmsidekick record; its positioning targets are still pending.
 - Positions are written as the source prints them. `AM(L/R)` is a left or right attacking midfielder. `M(L/R)` is a wide midfielder. Section 2 of `fm26-formations.md` lists the slot families they match.
 
 ## In possession (IP)
@@ -54,6 +54,7 @@ Date: 2026-10-10
 | `ball_playing_goalkeeper_ip` | Ball-Playing Goalkeeper | GK | This keeper functions as a vital link in the team's build-up strategy, frequently advancing from the goal line to offer a passing outlet and dictate tempo from the back. | fmsidekick `/api/roles/ball_playing_goalkeeper_ip` |
 | `goalkeeper_ip` | Goalkeeper | GK | This role dictates how the player manages distribution when In Possession (IP), adapting their passing methodology to align with the overarching build-up strategy. | fmsidekick `/api/roles/goalkeeper_ip` |
 | `wide_centre_back_ip` | Wide Centre-Back | D(C) | Follows the Overlapping Centre-Back rules but never overlaps, staying in the wide half-space or flank when the ball is near its side. | captain (Game Plan v2 `gp-ui-pitch.md` carrier eligibility) |
+| `overlapping_centre_back_ip` | Overlapping Centre-Back | D(C) | Offered only to an outermost centre-back in a formation with at least three centre-backs. Starts in the wide half-space and overlaps along the flank as play advances. | captain (PRD overlapping centre-back; visualization-fix-1 role regions) |
 
 ## Out of possession (OOP)
 

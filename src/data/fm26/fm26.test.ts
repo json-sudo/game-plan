@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { dataSetSchema } from '../schemas';
 import { FAMILIES, SLOT_IDS, type Family, type SlotId } from '../types';
-import { ZONE_IDS } from '../zones';
-import { DATA_VERSION, FM26_DATA, FORMATIONS, LINE_SHIFT, MOVEMENT, ROLES } from './index';
+import { DATA_VERSION, FM26_DATA, FORMATIONS, ROLES } from './index';
 
 const PITCH_W = 76.19;
 
@@ -48,12 +47,16 @@ describe('data set', () => {
     expect(FM26_DATA.version).toBe(DATA_VERSION);
     expect(dataSetSchema.safeParse(FM26_DATA).success).toBe(true);
   });
+
+  it('carries no legacy movement or line shift tables', () => {
+    expect(Object.keys(FM26_DATA).sort()).toEqual(['formations', 'roles', 'version']);
+  });
 });
 
 describe('roles', () => {
-  it('has 75 roles, 40 in possession and 35 out of possession', () => {
-    expect(ROLES).toHaveLength(75);
-    expect(ROLES.filter((role) => role.possession === 'in')).toHaveLength(40);
+  it('has 76 roles, 41 in possession and 35 out of possession', () => {
+    expect(ROLES).toHaveLength(76);
+    expect(ROLES.filter((role) => role.possession === 'in')).toHaveLength(41);
     expect(ROLES.filter((role) => role.possession === 'out')).toHaveLength(35);
   });
 
@@ -187,135 +190,9 @@ describe('formations', () => {
   });
 });
 
-// Roles whose positioning targets await the positioning interview.
-const POSITIONING_PENDING_ROLE_IDS = ['wide_centre_back_ip'];
-const POSITIONED_ROLES = ROLES.filter((role) => !POSITIONING_PENDING_ROLE_IDS.includes(role.id));
-
-describe('movement table', () => {
-  const roleIds = new Set(ROLES.map((role) => role.id));
-
-  it('only keys real roles and real zones', () => {
-    const unknownRoles = Object.keys(MOVEMENT).filter((roleId) => !roleIds.has(roleId));
-    const unknownZones = Object.values(MOVEMENT)
-      .flatMap((zones) => Object.keys(zones ?? {}))
-      .filter((zone) => !ZONE_IDS.some((id) => id === zone));
-    expect(unknownRoles).toEqual([]);
-    expect(unknownZones).toEqual([]);
-  });
-
-  it('has an entry for every positioned role in all 15 zones, with both sides and provenance', () => {
-    const problems = POSITIONED_ROLES.flatMap((role) =>
-      ZONE_IDS.filter((zone) => {
-        const cell = MOVEMENT[role.id]?.[zone];
-        const provenance = ['spike', 'initial'];
-        return !(
-          cell &&
-          provenance.includes(cell.from.ball) &&
-          provenance.includes(cell.from.far) &&
-          cell.ball.every(Number.isInteger) &&
-          cell.far.every(Number.isInteger)
-        );
-      }).map((zone) => `${role.id} ${zone}`),
-    );
-    expect(problems).toEqual([]);
-  });
-
-  it('has no movement entry for roles awaiting positioning', () => {
-    for (const roleId of POSITIONING_PENDING_ROLE_IDS) {
-      expect(roleIds.has(roleId)).toBe(true);
-      expect(MOVEMENT[roleId]).toBeUndefined();
-    }
-  });
-
-  it('keeps the spike values for the three spike zones of spike roles', () => {
-    expect(MOVEMENT.winger_ip?.['R-F']?.ball).toEqual([3, 0, 6]);
-    expect(MOVEMENT.winger_ip?.['R-F']?.from.ball).toBe('spike');
-    expect(MOVEMENT.winger_ip?.['C-M']?.ball).toEqual([0, 2, 3]);
-    expect(MOVEMENT.winger_ip?.['C-D']?.ball).toEqual([0, 2, -3]);
-    expect(MOVEMENT.sweeper_keeper_oop?.['C-D']?.ball).toEqual([0, 0, 6]);
-    expect(MOVEMENT.stopping_centre_back_oop?.['R-F']?.ball).toEqual([3, 0, 4]);
-    expect(MOVEMENT.deep_lying_forward_ip?.['R-F']?.ball).toEqual([-4, 0, -2]);
-  });
-
-  it('marks only the three spike zones of spike roles as spike', () => {
-    const spikeCells = Object.values(MOVEMENT).flatMap((zones) =>
-      Object.entries(zones ?? {}).filter(([, cell]) => cell?.from.ball === 'spike'),
-    );
-    expect(spikeCells).toHaveLength(36 * 3);
-    expect(new Set(spikeCells.map(([zone]) => zone))).toEqual(new Set(['R-F', 'C-M', 'C-D']));
-  });
-
-  it('gives wide roles a different far side outside the centre lane', () => {
-    const winger = MOVEMENT.winger_ip;
-    expect(winger?.['R-F']?.far).not.toEqual(winger?.['R-F']?.ball);
-    expect(winger?.['L-M']?.far).not.toEqual(winger?.['L-M']?.ball);
-    expect(winger?.['C-M']?.far).toEqual(winger?.['C-M']?.ball);
-    const fullBack = MOVEMENT.full_back_oop;
-    expect(fullBack?.['R-F']?.far).not.toEqual(fullBack?.['R-F']?.ball);
-  });
-
-  it('keeps centre roles identical on both sides', () => {
-    const striker = MOVEMENT.poacher_ip;
-    for (const zone of ZONE_IDS) expect(striker?.[zone]?.far).toEqual(striker?.[zone]?.ball);
-  });
-});
-
-describe('half-space movement', () => {
-  it('derives every half-space cell from its flank and centre neighbours and marks it initial', () => {
-    for (const lane of ['LH', 'RH'] as const) {
-      const flank = lane === 'LH' ? 'L' : 'R';
-      for (const third of ['D', 'M', 'F'] as const) {
-        for (const role of POSITIONED_ROLES) {
-          const cell = MOVEMENT[role.id]?.[`${lane}-${third}`];
-          const flankCell = MOVEMENT[role.id]?.[`${flank}-${third}`];
-          expect(cell?.from).toEqual({ ball: 'initial', far: 'initial' });
-          expect(Math.abs(cell!.ball[0])).toBeLessThanOrEqual(Math.abs(flankCell!.ball[0]));
-          expect(cell!.ball[0] * flankCell!.ball[0]).toBeGreaterThanOrEqual(0);
-        }
-      }
-    }
-  });
-  it('mirrors the left half-space onto the right', () => {
-    for (const role of ROLES) {
-      for (const third of ['D', 'M', 'F'] as const) {
-        expect(MOVEMENT[role.id]?.[`RH-${third}`]?.ball).toEqual(
-          MOVEMENT[role.id]?.[`LH-${third}`]?.ball,
-        );
-      }
-    }
-  });
-});
-
-describe('line shift table', () => {
-  it('has a finite entry for every zone', () => {
-    for (const zone of ZONE_IDS) {
-      expect(Number.isFinite(LINE_SHIFT[zone].dy)).toBe(true);
-      expect(LINE_SHIFT[zone].from).toBe('initial');
-    }
-  });
-
-  it('pushes the line up when the ball is deep and drops it when the ball is high', () => {
-    expect(LINE_SHIFT['C-D'].dy).toBeGreaterThan(0);
-    expect(LINE_SHIFT['C-F'].dy).toBeLessThan(0);
-  });
-  it('sits half-spaces between the flank and the centre', () => {
-    expect(LINE_SHIFT['LH-D'].dy).toBeGreaterThan(LINE_SHIFT['L-D'].dy);
-    expect(LINE_SHIFT['LH-D'].dy).toBeLessThan(LINE_SHIFT['C-D'].dy);
-    expect(LINE_SHIFT['RH-F'].dy).toBe(LINE_SHIFT['LH-F'].dy);
-  });
-});
-
 describe('data schemas', () => {
   it('rejects a role with an unknown family', () => {
     const broken = { ...FM26_DATA, roles: [{ ...ROLES[0], families: ['XX'] }] };
-    expect(dataSetSchema.safeParse(broken).success).toBe(false);
-  });
-
-  it('rejects a movement cell with a malformed offset', () => {
-    const broken = {
-      ...FM26_DATA,
-      movement: { poacher_ip: { 'R-F': { ...MOVEMENT.poacher_ip?.['R-F'], ball: [1, 2] } } },
-    };
     expect(dataSetSchema.safeParse(broken).success).toBe(false);
   });
 });
