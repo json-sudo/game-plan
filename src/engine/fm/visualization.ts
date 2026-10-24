@@ -5,7 +5,7 @@ import { eligibleCarrierIds, type CarrierPlayer, type LateralSide } from './carr
 import type { FmPlayer } from './player';
 import { chooseReceiver } from './receiver';
 import { computeZoneShape } from './shape';
-import { laneOf, thirdOf, zoneCentre, zoneOf } from './zones';
+import { laneOf, thirdOf, toDisplayFrame, zoneCentre, zoneOf } from './zones';
 
 const UNSLOTTED = Number.POSITIVE_INFINITY;
 const SIDES: readonly Side[] = ['mine', 'opponent'];
@@ -142,6 +142,15 @@ function frameFor(
   return { positions: Object.fromEntries(positions), ball };
 }
 
+function displayFrameOf(frame: VisualizationFrame, attacker: Side): VisualizationFrame {
+  return {
+    positions: Object.fromEntries(
+      Object.entries(frame.positions).map(([id, point]) => [id, toDisplayFrame(point, attacker)]),
+    ),
+    ball: toDisplayFrame(frame.ball, attacker),
+  };
+}
+
 function isChainComplete(startZone: ZoneId, landingZone: ZoneId, count: number): boolean {
   if (thirdOf(startZone) === 'F') {
     return count >= (laneOf(startZone) === 'C' ? FINAL_CENTRE_PASSES : FINAL_FLANK_PASSES);
@@ -193,15 +202,16 @@ function visualizationWith(
     teammateIds: outfieldIds(input.attacker),
     opponentIds: outfieldIds(input.attacker === 'mine' ? 'opponent' : 'mine'),
   };
+  const passes = extendChain(context, {
+    carrierId: starterId,
+    passerId: null,
+    frame: opening,
+    passes: [],
+  });
   return {
     starterId,
-    opening,
-    passes: extendChain(context, {
-      carrierId: starterId,
-      passerId: null,
-      frame: opening,
-      passes: [],
-    }),
+    opening: displayFrameOf(opening, input.attacker),
+    passes: passes.map((pass) => ({ ...pass, frame: displayFrameOf(pass.frame, input.attacker) })),
   };
 }
 

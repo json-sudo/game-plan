@@ -1,5 +1,5 @@
 import type { Point, Side } from '../../data/types';
-import { toAttackerFrame } from './zones';
+import { toDisplayFrame } from './zones';
 
 export const RECEIVER_PROGRESS_WEIGHT = 1;
 export const RECEIVER_DISTANCE_WEIGHT = 0.25;
@@ -25,7 +25,7 @@ function pressureOn(point: Point, opponents: readonly Point[]): number {
 }
 
 function scoreOf(attacker: Side, carrier: Point, candidate: Point, opponents: readonly Point[]) {
-  const progress = toAttackerFrame(carrier, attacker).y - toAttackerFrame(candidate, attacker).y;
+  const progress = toDisplayFrame(carrier, attacker).y - toDisplayFrame(candidate, attacker).y;
   return (
     RECEIVER_PROGRESS_WEIGHT * progress -
     RECEIVER_DISTANCE_WEIGHT * distance(carrier, candidate) -

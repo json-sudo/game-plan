@@ -21,18 +21,18 @@ export type {
 } from './fm/visualization';
 export { chooseReceiver } from './fm/receiver';
 export {
+  MARKING_BOX_EDGES,
   ZONE_GRID,
-  fromAttackerFrame,
   laneOf,
   laneSignOf,
-  toAttackerFrame,
+  toDisplayFrame,
   zoneBounds,
   zoneCentre,
   zoneName,
   zoneOf,
   thirdOf,
 } from './fm/zones';
-export type { ZoneBounds, ZoneGrid } from './fm/zones';
+export type { BoxEdges, ZoneBounds, ZoneGrid } from './fm/zones';
 export { PITCH_H, PITCH_W, ballAtopPosition, clampToPitch } from './geometry/pitch';
 export {
   MATCHUP_FRONT_MARGIN,

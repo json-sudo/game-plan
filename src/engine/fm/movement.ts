@@ -2,14 +2,7 @@ import type { LineShiftTable, MovementTable, Offset, Point, Side } from '../../d
 import type { ZoneId } from '../../data/zones';
 import { PITCH_W, clampToPitch } from '../geometry/pitch';
 import { lineShift } from './lineShift';
-import {
-  ZONE_GRID,
-  fromAttackerFrame,
-  laneSignOf,
-  toAttackerFrame,
-  zoneOf,
-  type ZoneGrid,
-} from './zones';
+import { ZONE_GRID, laneSignOf, toDisplayFrame, zoneOf, type ZoneGrid } from './zones';
 
 export type BallSide = 'ball' | 'far';
 
@@ -77,8 +70,8 @@ export function targetFor(input: TargetInput): TargetResult {
   const { base, start, team, attacker, roleId, isKeeper, zone, tables, grid = ZONE_GRID } = input;
   if (isKeeper) return { status: 'ok', target: start };
   const attacking = team === attacker;
-  const frameBase = toAttackerFrame(base, attacker);
-  const frameStart = toAttackerFrame(start, attacker);
+  const frameBase = toDisplayFrame(base, attacker);
+  const frameStart = toDisplayFrame(start, attacker);
   const shift = attacking || isKeeper ? 0 : lineShift(zone, tables.lineShift);
   const offset = roleId
     ? offsetFor(tables.movement, roleId, zone, ballSideOf(frameStart, zone, grid))
@@ -89,5 +82,5 @@ export function targetFor(input: TargetInput): TargetResult {
     { x: frameStart.x + delta.x, y: frameStart.y + shift + delta.y },
     PITCH_TARGET_MARGIN,
   );
-  return { status: 'ok', target: fromAttackerFrame(target, attacker) };
+  return { status: 'ok', target: toDisplayFrame(target, attacker) };
 }

@@ -3,9 +3,8 @@ import { GRID, LANE_EDGE_FRACTIONS, ZONE_IDS } from '../../data/zones';
 import { PITCH_H, PITCH_W } from '../geometry/pitch';
 import {
   ZONE_GRID,
-  fromAttackerFrame,
   laneSignOf,
-  toAttackerFrame,
+  toDisplayFrame,
   zoneBounds,
   zoneCentre,
   zoneName,
@@ -19,28 +18,10 @@ const laneCentreX = (lane: (typeof GRID.lanes)[number]) => {
 };
 const THIRD_CENTRE_Y = { F: PITCH_H / 6, M: PITCH_H / 2, D: (PITCH_H * 5) / 6 };
 
-describe('toAttackerFrame', () => {
-  it('is the identity for my team', () => {
-    expect(toAttackerFrame({ x: 10, y: 20 }, 'mine')).toEqual({ x: 10, y: 20 });
-  });
-
-  it('rotates 180 degrees about the pitch centre for the opponent', () => {
-    const rotated = toAttackerFrame({ x: 10, y: 20 }, 'opponent');
-    expect(rotated.x).toBeCloseTo(PITCH_W - 10);
-    expect(rotated.y).toBeCloseTo(PITCH_H - 20);
-  });
-
-  it('is its own inverse', () => {
-    const point = { x: 12.3, y: 77.7 };
-    const there = toAttackerFrame(point, 'opponent');
-    const back = fromAttackerFrame(there, 'opponent');
-    expect(back.x).toBeCloseTo(point.x);
-    expect(back.y).toBeCloseTo(point.y);
-  });
-
+describe('toDisplayFrame', () => {
   it('does not mutate its input', () => {
     const point = { x: 1, y: 2 };
-    toAttackerFrame(point, 'opponent');
+    toDisplayFrame(point, 'opponent');
     expect(point).toEqual({ x: 1, y: 2 });
   });
 });
@@ -69,9 +50,41 @@ describe('zoneOf', () => {
     expect(zoneOf({ x: 38.095, y: 50 }, 'opponent')).toBe('C-M');
   });
 
-  it('puts an edge value in the lower lane and the lower y band', () => {
-    expect(zoneOf({ x: ZONE_GRID.laneEdges[0], y: ZONE_GRID.thirdEdges[0] }, 'mine')).toBe('L-F');
-    expect(zoneOf({ x: ZONE_GRID.laneEdges[1], y: ZONE_GRID.thirdEdges[1] }, 'mine')).toBe('LH-M');
+  it('puts an edge value in the interval to its right or below', () => {
+    expect(zoneOf({ x: ZONE_GRID.laneEdges[0], y: ZONE_GRID.thirdEdges[0] }, 'mine')).toBe('LH-M');
+    expect(zoneOf({ x: ZONE_GRID.laneEdges[1], y: ZONE_GRID.thirdEdges[1] }, 'mine')).toBe('C-D');
+  });
+
+  it('resolves every lane and third edge to the right or lower interval from my view', () => {
+    const insideX = laneCentreX('C');
+    ZONE_GRID.laneEdges.forEach((edge, index) => {
+      expect(zoneOf({ x: edge, y: THIRD_CENTRE_Y.M }, 'mine')).toBe(`${GRID.lanes[index + 1]}-M`);
+    });
+    expect(zoneOf({ x: insideX, y: ZONE_GRID.thirdEdges[0] }, 'mine')).toBe('C-M');
+    expect(zoneOf({ x: insideX, y: ZONE_GRID.thirdEdges[1] }, 'mine')).toBe('C-D');
+  });
+
+  it('resolves epsilon either side of every edge for both attackers', () => {
+    const EPSILON = 1e-6;
+    const insideX = laneCentreX('C');
+    const thirdsFrontToBack = ['F', 'M', 'D'];
+    for (const attacker of ['mine', 'opponent'] as const) {
+      const at = (x: number, y: number) => zoneOf(toDisplayFrame({ x, y }, attacker), attacker);
+      ZONE_GRID.laneEdges.forEach((edge, index) => {
+        expect(at(edge - EPSILON, THIRD_CENTRE_Y.M)).toBe(`${GRID.lanes[index]}-M`);
+        expect(at(edge + EPSILON, THIRD_CENTRE_Y.M)).toBe(`${GRID.lanes[index + 1]}-M`);
+      });
+      ZONE_GRID.thirdEdges.forEach((edge, index) => {
+        expect(at(insideX, edge - EPSILON)).toBe(`C-${thirdsFrontToBack[index]}`);
+        expect(at(insideX, edge + EPSILON)).toBe(`C-${thirdsFrontToBack[index + 1]}`);
+      });
+    }
+  });
+
+  it('puts the maximum edges in the last interval and the origin in the first', () => {
+    expect(zoneOf({ x: PITCH_W, y: PITCH_H }, 'mine')).toBe('R-D');
+    expect(zoneOf({ x: 0, y: 0 }, 'mine')).toBe('L-F');
+    expect(zoneOf({ x: PITCH_W, y: PITCH_H }, 'opponent')).toBe('L-F');
   });
 
   it('accepts a custom grid', () => {

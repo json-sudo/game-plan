@@ -4,14 +4,7 @@ import { PITCH_W, clampToPitch } from '../geometry/pitch';
 import { MIN_TOKEN_SPACING, enforceSpacing, type SpacingToken } from '../layout/spacing';
 import { ballSideOf, offsetDelta, offsetFor } from './movement';
 import type { FmPlayer } from './player';
-import {
-  ZONE_GRID,
-  fromAttackerFrame,
-  thirdOf,
-  toAttackerFrame,
-  zoneCentre,
-  type ZoneGrid,
-} from './zones';
+import { ZONE_GRID, thirdOf, toDisplayFrame, zoneCentre, type ZoneGrid } from './zones';
 
 export const SHAPE_MARGIN = 4;
 export const OPPONENT_HOLD_WEIGHT = 4;
@@ -69,12 +62,12 @@ function handoffPoint(
 export function computeZoneShape(input: ShapeInput): ZoneShape {
   const { attacker, players, ball, carrierId, zone, movement, grid = ZONE_GRID } = input;
   const third = thirdOf(zone);
-  const frameZone = toAttackerFrame(zoneCentre(zone, attacker, grid), attacker);
-  const frameBall = toAttackerFrame(ball, attacker);
+  const frameZone = toDisplayFrame(zoneCentre(zone, attacker, grid), attacker);
+  const frameBall = toDisplayFrame(ball, attacker);
   const hasCarrier = players.some((player) => player.team === attacker && player.id === carrierId);
   const pieces = players.map((player): SpacingToken => {
     const attacking = player.team === attacker;
-    const frameBase = toAttackerFrame(player.base, attacker);
+    const frameBase = toDisplayFrame(player.base, attacker);
     const handoff = handoffPoint(frameBase, player.isKeeper, attacking, frameZone, third);
     if (player.isKeeper) return { id: player.id, point: handoff };
     if (attacking && player.id === carrierId) {
@@ -99,8 +92,8 @@ export function computeZoneShape(input: ShapeInput): ZoneShape {
   });
   return {
     positions: new Map<string, Point>(
-      players.map((player) => [player.id, fromAttackerFrame(settled.get(player.id)!, attacker)]),
+      players.map((player) => [player.id, toDisplayFrame(settled.get(player.id)!, attacker)]),
     ),
-    ball: hasCarrier ? ball : fromAttackerFrame(settled.get(BALL_ID)!, attacker),
+    ball: hasCarrier ? ball : toDisplayFrame(settled.get(BALL_ID)!, attacker),
   };
 }

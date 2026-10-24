@@ -38,18 +38,28 @@ export const ZONE_GRID: ZoneGrid = {
   thirdEdges: evenEdges(PITCH_H, GRID.thirds.length),
 };
 
-export function toAttackerFrame(point: Point, attacker: Side): Point {
+export interface BoxEdges {
+  x0: number;
+  x1: number;
+}
+
+const [PENALTY_LEFT, SIX_YARD_LEFT, SIX_YARD_RIGHT, PENALTY_RIGHT] = ZONE_GRID.laneEdges;
+
+export const MARKING_BOX_EDGES: { penalty: BoxEdges; sixYard: BoxEdges } = {
+  penalty: { x0: PENALTY_LEFT, x1: PENALTY_RIGHT },
+  sixYard: { x0: SIX_YARD_LEFT, x1: SIX_YARD_RIGHT },
+};
+
+export function toDisplayFrame(point: Point, attacker: Side): Point {
   return attacker === 'mine' ? point : { x: PITCH_W - point.x, y: PITCH_H - point.y };
 }
 
-export const fromAttackerFrame = toAttackerFrame;
-
 function bandIndex(value: number, edges: readonly number[]): number {
-  return edges.filter((edge) => value > edge).length;
+  return edges.filter((edge) => value >= edge).length;
 }
 
 export function zoneOf(ball: Point, attacker: Side, grid: ZoneGrid = ZONE_GRID): ZoneId {
-  const frame = toAttackerFrame(ball, attacker);
+  const frame = toDisplayFrame(ball, attacker);
   const lane = GRID.lanes[bandIndex(frame.x, grid.laneEdges)];
   const third = FRONT_TO_BACK_THIRDS[bandIndex(frame.y, grid.thirdEdges)];
   return `${lane}-${third}`;
@@ -102,7 +112,7 @@ export function zoneBounds(zone: ZoneId, grid: ZoneGrid = ZONE_GRID): ZoneBounds
 
 export function zoneCentre(zone: ZoneId, attacker: Side, grid: ZoneGrid = ZONE_GRID): Point {
   const { x0, x1, y0, y1 } = zoneBounds(zone, grid);
-  return fromAttackerFrame({ x: (x0 + x1) / 2, y: (y0 + y1) / 2 }, attacker);
+  return toDisplayFrame({ x: (x0 + x1) / 2, y: (y0 + y1) / 2 }, attacker);
 }
 
 export function zoneName(zone: ZoneId): string {

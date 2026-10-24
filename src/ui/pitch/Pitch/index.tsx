@@ -1,13 +1,13 @@
 import type { CSSProperties, ReactNode, Ref } from 'react';
-import { PITCH_H, PITCH_W } from '../../../engine';
+import { MARKING_BOX_EDGES, PITCH_H, PITCH_W } from '../../../engine';
 import styles from './pitch.module.scss';
 
 const BAND_COUNT = 10;
 const BAND_HEIGHT = PITCH_H / BAND_COUNT;
 const LINE_WIDTH = 0.4;
 const LINE_INSET = 1;
-const PENALTY_BOX = { width: 40, depth: 16 };
-const GOAL_BOX = { width: 18, depth: 6 };
+const PENALTY_BOX = { ...MARKING_BOX_EDGES.penalty, depth: 16 };
+const GOAL_BOX = { ...MARKING_BOX_EDGES.sixYard, depth: 6 };
 const CENTRE_RADIUS = 9;
 const NOTICE_PLATE = { width: 52, height: 7, top: 3 };
 const NOTICE_TEXT_SIZE = 2.6;
@@ -23,12 +23,12 @@ export interface PitchProps {
 
 const BANDS = Array.from({ length: BAND_COUNT }, (_, index) => index);
 
-function Box({ top, box }: { top: boolean; box: { width: number; depth: number } }) {
+function Box({ top, box }: { top: boolean; box: { x0: number; x1: number; depth: number } }) {
   return (
     <rect
-      x={(PITCH_W - box.width) / 2}
+      x={box.x0}
       y={top ? LINE_INSET : PITCH_H - LINE_INSET - box.depth}
-      width={box.width}
+      width={box.x1 - box.x0}
       height={box.depth}
     />
   );
