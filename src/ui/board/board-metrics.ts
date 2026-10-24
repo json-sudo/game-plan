@@ -29,6 +29,8 @@ export const BOARD_RULES = {
   tokenMaxPx: 34,
 } as const;
 
+const BODY_GAP_PX = 1;
+
 const PITCH_RATIO = PITCH_W / PITCH_H;
 const THREE_COLUMN_EXTRA = 2 * BOARD_RULES.column + 2 * BOARD_RULES.gap + 2 * BOARD_RULES.margin;
 const TWO_COLUMN_EXTRA = BOARD_RULES.column + BOARD_RULES.gap + 2 * BOARD_RULES.margin;
@@ -47,6 +49,10 @@ function tokenSizeFor(layout: BoardLayout, pitchH: number): number {
   if (layout === 'phone') return BOARD_RULES.phoneTokenPx;
   const scaled = Math.round(pitchH * BOARD_RULES.tokenRatio);
   return Math.min(BOARD_RULES.tokenMaxPx, Math.max(BOARD_RULES.tokenMinPx, scaled));
+}
+
+export function bodyClearance({ tokenPx, ppu }: Pick<BoardMetrics, 'tokenPx' | 'ppu'>): number {
+  return (tokenPx + BODY_GAP_PX) / ppu;
 }
 
 export function boardMetrics(viewportW: number, viewportH: number): BoardMetrics {

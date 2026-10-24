@@ -27,11 +27,12 @@ function applyToLayout(
   mode: Mode,
   action: Action,
   data: DataSet,
+  clearance: number | undefined,
 ): PitchDocument {
   if (mode === 'openPitch' && FM_ONLY_ACTIONS.has(action.type)) return doc;
   if (mode === 'fm' && action.type === 'clearPitch') return doc;
   if (mode === 'fm' && action.type === 'reset') return resetFm(doc);
-  const next = applyAction(doc, action, data);
+  const next = applyAction(doc, action, data, clearance);
   return mode === 'fm' ? wrapSequenceIndex(next) : next;
 }
 
@@ -40,8 +41,11 @@ function applyToTacticLayout(
   mode: Mode,
   action: Action,
   data: DataSet,
+  clearance: number | undefined,
 ): PitchDocument {
-  if (action.type !== 'setSquadSize') return applyToLayout(tactic[mode], mode, action, data);
+  if (action.type !== 'setSquadSize') {
+    return applyToLayout(tactic[mode], mode, action, data, clearance);
+  }
   const placedElsewhere = playersOf(tactic[otherMode(mode)], action.team)
     .filter((player) => !isRemovable(player))
     .map((player) => player.id);
@@ -53,9 +57,10 @@ export function applyTacticAction(
   mode: Mode,
   action: Action,
   data: DataSet = FM26_DATA,
+  clearance?: number,
 ): Tactic {
   const current = tactic[mode];
-  const next = applyToTacticLayout(tactic, mode, action, data);
+  const next = applyToTacticLayout(tactic, mode, action, data, clearance);
   if (next === current) return tactic;
   return syncRoster(tactic, mode, next) ?? tactic;
 }

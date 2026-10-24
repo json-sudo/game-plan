@@ -1,6 +1,7 @@
 import { FM26_DATA } from '../data/fm26';
 import type { DataSet, Point, Side } from '../data/types';
 import type { ZoneId } from '../data/zones';
+import { DEFAULT_BODY_CLEARANCE } from '../engine';
 import type { PitchDocument, SquadSize } from './document';
 import {
   applyFormation,
@@ -38,16 +39,17 @@ export function applyAction(
   doc: PitchDocument,
   action: Action,
   data: DataSet = FM26_DATA,
+  clearance: number = DEFAULT_BODY_CLEARANCE,
 ): PitchDocument {
   switch (action.type) {
     case 'applyFormation':
-      return applyFormation(doc, action.team, action.formationId, data);
+      return applyFormation(doc, action.team, action.formationId, data, clearance);
     case 'applyMatchup':
-      return applyMatchup(doc, data);
+      return applyMatchup(doc, data, clearance);
     case 'clearOpponent':
       return clearOpponent(doc, data);
     case 'applyMatchupChoice':
-      return applyMatchupChoice(doc, action, data);
+      return applyMatchupChoice(doc, action, data, clearance);
     case 'setAttacker':
       return setAttacker(doc, action.attacker, data);
     case 'renameTeam':
@@ -73,6 +75,6 @@ export function applyAction(
     case 'clearPitch':
       return clearPitch(doc);
     case 'reset':
-      return resetPitch(doc, data);
+      return resetPitch(doc, data, clearance);
   }
 }

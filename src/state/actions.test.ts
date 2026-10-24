@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { FM26_DATA } from '../data/fm26';
 import type { Point, Side } from '../data/types';
 import type { ZoneId } from '../data/zones';
-import { PITCH_W, layoutFormation, layoutMatchup, zoneCentre, zoneOf } from '../engine';
+import {
+  DEFAULT_BODY_CLEARANCE,
+  PITCH_W,
+  layoutOpenMatchup,
+  layoutOwnHalf,
+  zoneCentre,
+  zoneOf,
+} from '../engine';
 import { applyAction, type Action } from './actions';
 import {
   createInitialDocument,
@@ -67,7 +74,7 @@ describe('applyFormation', () => {
       formationId: MINE,
     });
     const formation = FM26_DATA.formations.find((f) => f.id === MINE)!;
-    const layout = layoutFormation(formation, 'mine');
+    const layout = layoutOwnHalf(formation, 'mine', DEFAULT_BODY_CLEARANCE);
     const mine = playersOf(doc, 'mine');
     expect(mine).toHaveLength(11);
     for (const slot of formation.slots) {
@@ -88,8 +95,9 @@ describe('applyFormation', () => {
       formationId: OPPONENT,
     });
     const formation = FM26_DATA.formations.find((f) => f.id === OPPONENT)!;
-    const layout = layoutFormation(formation, 'opponent');
+    const layout = layoutOwnHalf(formation, 'opponent', DEFAULT_BODY_CLEARANCE);
     expect(atSlot(doc, 'opponent', 'GK').base).toEqual(round(layout.get('GK')!));
+    expect(atSlot(doc, 'opponent', 'GK').base!.y).toBe(4);
     expect(atSlot(doc, 'opponent', 'GK').base!.y).toBeLessThan(50);
   });
 
@@ -143,7 +151,7 @@ describe('applyMatchup', () => {
       mine: FM26_DATA.formations.find((f) => f.id === MINE)!,
       opponent: FM26_DATA.formations.find((f) => f.id === OPPONENT)!,
     };
-    const layouts = layoutMatchup('mine', formations);
+    const layouts = layoutOpenMatchup(formations, DEFAULT_BODY_CLEARANCE);
     for (const team of ['mine', 'opponent'] as const) {
       for (const [slotId, point] of layouts[team]) {
         expect(atSlot(doc, team, slotId).base).toEqual(round(point));
@@ -163,18 +171,13 @@ describe('applyMatchup', () => {
     expect(applyAction(doc, { type: 'applyMatchup' })).toBe(doc);
   });
 
-  it('uses the current attacker', () => {
+  it('builds the same shared picture whichever team attacks', () => {
     const doc = run(
       matchup(),
       { type: 'setAttacker', attacker: 'opponent' },
       { type: 'applyMatchup' },
     );
-    const formations = {
-      mine: FM26_DATA.formations.find((f) => f.id === MINE)!,
-      opponent: FM26_DATA.formations.find((f) => f.id === OPPONENT)!,
-    };
-    const layouts = layoutMatchup('opponent', formations);
-    expect(atSlot(doc, 'opponent', 'ST').base).toEqual(round(layouts.opponent.get('ST')!));
+    expect(doc.players.map((p) => p.base)).toEqual(matchup().players.map((p) => p.base));
   });
 });
 

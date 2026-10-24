@@ -57,6 +57,7 @@ import { BALL_PIECE_ID } from '../../hooks/usePitchMotion';
 import { tokenKeyCommand } from '../token-keys';
 import { useBoardDrag } from '../use-board-drag';
 import { useBoardMetrics } from '../use-board-metrics';
+import { useBodyClearance } from '../use-body-clearance';
 import { fmPitchNotice, opponentOnPitch, resetState, visualizationControls } from '../fm-pieces';
 import { useShareExport } from '../use-share-export';
 import { useBoardPieces } from '../use-board-pieces';
@@ -83,6 +84,7 @@ export function BoardPhone({ store }: BoardPhoneProps) {
   const viz = useStore(store, selectFmVisualization);
   const view = useBoardPieces(store);
   const metrics = useBoardMetrics();
+  useBodyClearance(store, metrics);
   const [menuOpen, setMenuOpen] = useState(false);
   const [benchOpen, setBenchOpen] = useState(false);
   const [matchupOpen, setMatchupOpen] = useState(false);
