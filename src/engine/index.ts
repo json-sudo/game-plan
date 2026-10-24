@@ -8,9 +8,8 @@ export {
 export { MOTION_DURATIONS_MS, MOTION_EASING, motionDurationMs } from './anim/motion';
 export { eligibleCarrierIds, isRoleAllowedInSlot } from './fm/carrier-eligibility';
 export type { CarrierPlayer, LateralSide } from './fm/carrier-eligibility';
-export { lineShift } from './fm/lineShift';
-export { PITCH_TARGET_MARGIN, ballSideOf, offsetFor, targetFor } from './fm/movement';
-export type { BallSide, MovementTables, TargetInput } from './fm/movement';
+export { formationAnchors } from './fm/formation-anchors';
+export type { Anchor, AnchorInput, SlotLine } from './fm/formation-anchors';
 export type { FmPlayer } from './fm/player';
 export { buildVisualization, visualizationStarters, visualizationsFor } from './fm/visualization';
 export type {

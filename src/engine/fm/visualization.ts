@@ -1,4 +1,4 @@
-import type { FormationDef, FormationSlot, MovementTable, Point, Side } from '../../data/types';
+import type { FormationDef, FormationSlot, Point, Side } from '../../data/types';
 import type { ZoneId } from '../../data/zones';
 import { layoutFormation } from '../layout/formations';
 import { eligibleCarrierIds, type CarrierPlayer, type LateralSide } from './carrier-eligibility';
@@ -21,7 +21,6 @@ export interface VisualizationInput {
   attacker: Side;
   formations: Record<Side, FormationDef | null>;
   roles: Readonly<Record<string, string | undefined>>;
-  movement: MovementTable;
 }
 
 export interface VisualizationFrame {

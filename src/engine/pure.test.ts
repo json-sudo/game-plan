@@ -21,7 +21,7 @@ describe('engine purity', () => {
     for (const name of [
       'zoneOf',
       'eligibleCarrierIds',
-      'targetFor',
+      'formationAnchors',
       'computeZoneShape',
       'positionAt',
     ]) {

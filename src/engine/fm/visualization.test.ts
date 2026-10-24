@@ -54,7 +54,7 @@ function inputFor(
     ...(formations[attacker] ? defaultRoles(formations[attacker], attacker, 'in') : {}),
     ...(formations[defender] ? defaultRoles(formations[defender], defender, 'out') : {}),
   };
-  return { zone, attacker, formations, roles, movement: FM26_DATA.movement };
+  return { zone, attacker, formations, roles };
 }
 
 function landingZonesOf(visualization: Visualization, attacker: Side): ZoneId[] {

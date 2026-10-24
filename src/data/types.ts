@@ -1,5 +1,3 @@
-import type { ZoneId } from './zones';
-
 export type Side = 'mine' | 'opponent';
 export type Possession = 'in' | 'out';
 
@@ -76,31 +74,8 @@ export interface FormationDef {
   slots: readonly FormationSlot[];
 }
 
-export type Offset = readonly [side: number, wide: number, depth: number];
-
-export type Provenance = 'spike' | 'initial';
-
-export interface MovementCell {
-  ball: Offset;
-  far: Offset;
-  from: { ball: Provenance; far: Provenance };
-}
-
-export type RoleMovement = Partial<Record<ZoneId, MovementCell>>;
-export type MovementTable = Partial<Record<string, RoleMovement>>;
-
-export interface LineShiftCell {
-  dy: number;
-  from: Provenance;
-}
-
-export type LineShiftTable = Record<ZoneId, LineShiftCell>;
-
 export interface DataSet {
   version: string;
   roles: readonly RoleDef[];
   formations: readonly FormationDef[];
-  movement: MovementTable;
-  shapeLineShift: LineShiftTable;
-  lineShift: LineShiftTable;
 }

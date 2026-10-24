@@ -29,7 +29,6 @@ function visualizationsFrom(zone: ZoneId, attacker: Side) {
     attacker,
     formations: { mine: FORMATION, opponent: FORMATION },
     roles: { ...rolesFor(FORMATION, attacker, 'in'), ...rolesFor(FORMATION, defender, 'out') },
-    movement: FM26_DATA.movement,
   });
 }
 

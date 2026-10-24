@@ -2,6 +2,15 @@ import type { Family, Point, Side } from '../../data/types';
 import type { Third, ZoneId } from '../../data/zones';
 import { PITCH_W } from '../geometry/pitch';
 import type { FmPlayer } from './player';
+import { applyInteractions, edgeX, type InteractionEntry } from './role-interactions';
+import {
+  HALF_SPACE,
+  depths,
+  profileOf,
+  type Depths,
+  type LateralRule,
+  type RoleProfile,
+} from './role-regions';
 import { laneOf, laneSignOf, thirdOf, toDisplayFrame } from './zones';
 
 export type SlotLine = 'GK' | 'CB' | 'FB' | 'WB' | 'DM' | 'CM' | 'WM' | 'AM' | 'WA' | 'ST';
@@ -19,22 +28,38 @@ export interface AnchorInput {
 
 type OutfieldLine = Exclude<SlotLine, 'GK'>;
 type CentralLine = 'CB' | 'DM' | 'CM' | 'AM' | 'ST';
-type Depths = Record<Third, number>;
+type Sign = -1 | 0 | 1;
 
 interface Columns {
   pair: readonly [number, number];
   triple: readonly [number, number, number];
 }
 
+interface Entry {
+  player: FmPlayer;
+  frameBase: Point;
+  attacking: boolean;
+  slotLine: SlotLine;
+  line: SlotLine;
+  baseSide: Sign;
+  profile: RoleProfile | undefined;
+}
+
+interface Context {
+  ballSign: Sign;
+  splitGroups: ReadonlyMap<Side, readonly string[]>;
+}
+
 const CENTRE_X = PITCH_W / 2;
+const CENTRE_TOLERANCE = 0.5;
 const WIDE_ATTACKER_MAX_EDGE_DISTANCE = 17;
 const KEEPER_SHIFT_SHARE = 0.2;
-const BALL_PLAYING_KEEPER_ROLE = 'ball_playing_goalkeeper_ip';
 const ATTACKING_KEEPER_DEPTH = 96;
-const BALL_PLAYING_KEEPER_DEPTH = 92;
 const DEFENDING_KEEPER_DEPTH = 4;
-
-const depths = (d: number, m: number, f: number): Depths => ({ D: d, M: m, F: f });
+const INSIDE_FULL_BACK = 'inside_full_back_ip';
+const HALF_BACK = 'half_back_ip';
+const DROPPING_DEFENSIVE_MIDFIELDER = 'dropping_defensive_midfielder_oop';
+const INSIDE_FULL_BACK_NEIGHBOUR_X = 29;
 
 const ATTACK_DEPTH: Record<OutfieldLine, Depths> = {
   CB: depths(84, 66, 49),
@@ -141,48 +166,175 @@ function centralX(columns: Columns, count: number, index: number, fallback: numb
   return fallback;
 }
 
-function keeperDepth(attacking: boolean, roleId: string | undefined): number {
-  if (!attacking) return DEFENDING_KEEPER_DEPTH;
-  return roleId === BALL_PLAYING_KEEPER_ROLE ? BALL_PLAYING_KEEPER_DEPTH : ATTACKING_KEEPER_DEPTH;
+function backLineX(
+  columns: Columns,
+  count: number,
+  index: number,
+  insideBacks: { left: boolean; right: boolean },
+): number {
+  if (count === 1) return CENTRE_X;
+  const [low, high] = count === 2 ? columns.pair : [columns.triple[0], columns.triple[2]];
+  const left = insideBacks.left ? Math.max(low, INSIDE_FULL_BACK_NEIGHBOUR_X) : low;
+  const right = insideBacks.right ? Math.min(high, PITCH_W - INSIDE_FULL_BACK_NEIGHBOUR_X) : high;
+  if (count === 2) return index === 0 ? left : right;
+  if (count === 3) return [left, CENTRE_X, right][index];
+  return left + (index * (right - left)) / (count - 1);
+}
+
+function keeperDepth(attacking: boolean, profile: RoleProfile | undefined): number {
+  if (profile && 'D' in profile.y) return profile.y.D;
+  return attacking ? ATTACKING_KEEPER_DEPTH : DEFENDING_KEEPER_DEPTH;
+}
+
+function signOf(delta: number): Sign {
+  if (Math.abs(delta) < CENTRE_TOLERANCE) return 0;
+  return delta < 0 ? -1 : 1;
+}
+
+function effectiveLine(slotLine: SlotLine, roleId: string | undefined, third: Third): SlotLine {
+  if (roleId === HALF_BACK) return 'CB';
+  if (roleId === DROPPING_DEFENSIVE_MIDFIELDER && third === 'F') return 'CB';
+  return slotLine;
+}
+
+function entryOf(attacker: Side, third: Third, player: FmPlayer): Entry {
+  const frameBase = toDisplayFrame(player.base, attacker);
+  const slotLine = slotLineOf(player.family, frameBase.x);
+  return {
+    player,
+    frameBase,
+    attacking: player.team === attacker,
+    slotLine,
+    line: effectiveLine(slotLine, player.roleId, third),
+    baseSide: signOf(frameBase.x - CENTRE_X),
+    profile: profileOf(player.roleId),
+  };
+}
+
+function depthOf(entry: Entry, third: Third): number {
+  const table = entry.attacking ? ATTACK_DEPTH : DEFEND_DEPTH;
+  const rule = entry.profile?.y;
+  if (!rule) return table[entry.line as OutfieldLine][third];
+  if ('D' in rule) return rule[third];
+  const source = rule.line === 'own' ? entry.slotLine : rule.line;
+  const depth = table[source as OutfieldLine][third] + rule.dy;
+  const range = rule.range?.[third];
+  return range ? Math.min(Math.max(depth, range[0]), range[1]) : depth;
+}
+
+function lateralRuleOf(entry: Entry, third: Third): LateralRule {
+  const rule = entry.profile?.x ?? 'slot';
+  return typeof rule === 'object' && 'D' in rule ? rule[third] : rule;
+}
+
+function slotXOf(
+  entry: Entry,
+  entries: readonly Entry[],
+  third: Third,
+  insideBacks: { left: boolean; right: boolean },
+): number {
+  const { player, attacking, line } = entry;
+  if (!isCentral(line)) {
+    const edge = wideX(line as OutfieldLine, attacking, third);
+    return entry.frameBase.x < CENTRE_X ? edge : PITCH_W - edge;
+  }
+  const group = entries
+    .filter((other) => other.player.team === player.team && other.line === line)
+    .sort(byLeftToRight);
+  const index = group.indexOf(entry);
+  const columns = (attacking ? ATTACK_COLUMNS : DEFEND_COLUMNS)[line];
+  if (line === 'CB') {
+    const sides = attacking ? insideBacks : { left: false, right: false };
+    return backLineX(columns, group.length, index, sides);
+  }
+  return centralX(columns, group.length, index, entry.frameBase.x);
+}
+
+function ruleX(entry: Entry, rule: LateralRule, slotX: number, context: Context): number {
+  const { ballSign } = context;
+  if (rule === 'slot') return slotX;
+  if (rule === 'split') {
+    const group = context.splitGroups.get(entry.player.team) ?? [];
+    if (group.length >= 2) {
+      const index = group.indexOf(entry.player.id);
+      return edgeX(index * 2 < group.length - 1 ? -1 : 1, HALF_SPACE);
+    }
+    return ballSign === 0 ? slotX : edgeX(ballSign, HALF_SPACE);
+  }
+  if ('follow' in rule) return ballSign === 0 ? slotX : edgeX(ballSign, rule.follow);
+  if ('edge' in rule) {
+    if (entry.baseSide !== 0) return edgeX(entry.baseSide, rule.edge);
+    if (rule.centre === 'follow' && ballSign !== 0) return edgeX(ballSign, rule.edge);
+    return slotX;
+  }
+  const side = entry.baseSide || ballSign;
+  if (side === 0) return slotX;
+  if (side === ballSign) return edgeX(side, rule.ballEdge);
+  return rule.farEdge === 'slot' ? slotX : edgeX(side, rule.farEdge);
+}
+
+function byLeftToRight(a: Entry, b: Entry): number {
+  if (Math.abs(a.frameBase.x - b.frameBase.x) > 1e-6) return a.frameBase.x - b.frameBase.x;
+  const halfBackDelta =
+    Number(a.player.roleId === HALF_BACK) - Number(b.player.roleId === HALF_BACK);
+  const inwardLast = a.frameBase.x < CENTRE_X ? halfBackDelta : -halfBackDelta;
+  return inwardLast || a.player.id.localeCompare(b.player.id);
 }
 
 export function formationAnchors(input: AnchorInput): Map<string, Anchor> {
   const { attacker, players, zone } = input;
   const third = thirdOf(zone);
-  const entries = players.map((player) => {
-    const frameBase = toDisplayFrame(player.base, attacker);
-    return {
-      player,
-      frameBase,
-      attacking: player.team === attacker,
-      line: slotLineOf(player.family, frameBase.x),
-    };
-  });
+  const entries = players.map((player) => entryOf(attacker, third, player));
+  const insideBacks = {
+    left: entries.some(
+      (e) => e.attacking && e.player.roleId === INSIDE_FULL_BACK && e.baseSide < 0,
+    ),
+    right: entries.some(
+      (e) => e.attacking && e.player.roleId === INSIDE_FULL_BACK && e.baseSide > 0,
+    ),
+  };
+  const context: Context = {
+    ballSign: laneSignOf(zone),
+    splitGroups: new Map<Side, readonly string[]>(
+      (['mine', 'opponent'] as const).map((team) => [
+        team,
+        entries
+          .filter((e) => e.player.team === team && e.profile?.x === 'split')
+          .sort(byLeftToRight)
+          .map((e) => e.player.id),
+      ]),
+    ),
+  };
+
+  const provisional = new Map<string, Point>();
+  for (const entry of entries) {
+    const { player, attacking, line } = entry;
+    if (line === 'GK') {
+      provisional.set(player.id, { x: CENTRE_X, y: keeperDepth(attacking, entry.profile) });
+      continue;
+    }
+    const slotX = slotXOf(entry, entries, third, insideBacks);
+    provisional.set(player.id, {
+      x: ruleX(entry, lateralRuleOf(entry, third), slotX, context),
+      y: depthOf(entry, third),
+    });
+  }
+
+  const interactionEntries: InteractionEntry[] = entries.map((entry) => ({
+    id: entry.player.id,
+    roleId: entry.player.roleId,
+    side: entry.baseSide || context.ballSign,
+    attacking: entry.attacking,
+    line: entry.line,
+  }));
+  const settled = applyInteractions(interactionEntries, provisional, third);
 
   return new Map(
-    entries.map(({ player, frameBase, attacking, line }): [string, Anchor] => {
-      const shift = laneShiftOf(zone, attacking);
-      if (line === 'GK') {
-        const point = {
-          x: CENTRE_X + shift * KEEPER_SHIFT_SHARE,
-          y: keeperDepth(attacking, player.roleId),
-        };
-        return [player.id, { line, point }];
-      }
-      const y = (attacking ? ATTACK_DEPTH : DEFEND_DEPTH)[line][third];
-      if (!isCentral(line)) {
-        const side = frameBase.x < CENTRE_X ? 1 : -1;
-        const edgeX =
-          side === 1 ? wideX(line, attacking, third) : PITCH_W - wideX(line, attacking, third);
-        return [player.id, { line, point: { x: edgeX + shift, y } }];
-      }
-      const group = entries
-        .filter((entry) => entry.player.team === player.team && entry.line === line)
-        .sort((a, b) => a.frameBase.x - b.frameBase.x);
-      const index = group.findIndex((entry) => entry.player.id === player.id);
-      const columns = (attacking ? ATTACK_COLUMNS : DEFEND_COLUMNS)[line];
-      const x = centralX(columns, group.length, index, frameBase.x);
-      return [player.id, { line, point: { x: x + shift, y } }];
+    entries.map((entry): [string, Anchor] => {
+      const shift = laneShiftOf(zone, entry.attacking);
+      const point = settled.get(entry.player.id)!;
+      const x = entry.line === 'GK' ? CENTRE_X + shift * KEEPER_SHIFT_SHARE : point.x + shift;
+      return [entry.player.id, { line: entry.line, point: { x, y: point.y } }];
     }),
   );
 }
