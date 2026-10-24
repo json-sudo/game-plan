@@ -119,6 +119,7 @@ function fmPlayersOf(members: readonly Member[]): FmPlayer[] {
   return members.map((member) => ({
     id: member.id,
     team: member.team,
+    family: member.slot.family,
     base: member.base,
     roleId: member.roleId,
     isKeeper: isKeeper(member),
@@ -137,7 +138,6 @@ function frameFor(
     ball: zoneCentre(zone, input.attacker),
     carrierId,
     zone,
-    movement: input.movement,
   });
   return { positions: Object.fromEntries(positions), ball };
 }

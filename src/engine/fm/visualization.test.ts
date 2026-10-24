@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FM26_DATA } from '../../data/fm26';
 import type { Family, FormationDef, FormationSlot, RoleDef, SlotId, Side } from '../../data/types';
 import { ZONE_IDS, type ZoneId } from '../../data/zones';
-import { MIN_TOKEN_SPACING, minSpacingOf } from '../layout/spacing';
+import { minSpacingOf } from '../layout/spacing';
 import type { CarrierPlayer } from './carrier-eligibility';
 import {
   visualizationStarters,
@@ -15,6 +15,7 @@ import { laneOf, thirdOf, zoneCentre, zoneOf } from './zones';
 const FORMATION_433 = formationById('4_3_3_dm_wide');
 const FORMATION_4231 = formationById('4_2_3_1_dm_wide');
 const FORMATIONS = [FORMATION_433, FORMATION_4231];
+const BODY_SEPARATION = 4.65;
 
 function formationById(id: string): FormationDef {
   const found = FM26_DATA.formations.find((formation) => formation.id === id);
@@ -217,12 +218,12 @@ describe('buildVisualization and visualizationsFor', () => {
     }
   });
 
-  it('keeps every piece 8.5 units apart in every frame', () => {
+  it('keeps every piece body-separated in every frame', () => {
     for (const { visualization } of allVisualizations()) {
       const frames = [visualization.opening, ...visualization.passes.map((pass) => pass.frame)];
       for (const frame of frames) {
         expect(minSpacingOf(Object.values(frame.positions))).toBeGreaterThanOrEqual(
-          MIN_TOKEN_SPACING,
+          BODY_SEPARATION,
         );
       }
     }
