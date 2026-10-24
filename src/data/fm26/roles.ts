@@ -363,6 +363,15 @@ export const ROLES: readonly RoleDef[] = [
       'Follows the Overlapping Centre-Back rules but never overlaps, staying in the wide half-space or flank when the ball is near its side.',
   },
   {
+    id: 'overlapping_centre_back_ip',
+    code: 'i41',
+    name: 'Overlapping Centre-Back',
+    possession: 'in',
+    families: ['D(C)'],
+    description:
+      'Offered only to an outermost centre-back in a formation with at least three centre-backs. Starts in the wide half-space and overlaps along the flank as play advances.',
+  },
+  {
     id: 'centre_forward_oop',
     code: 'o01',
     name: 'Centre Forward',

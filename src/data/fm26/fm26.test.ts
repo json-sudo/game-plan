@@ -51,9 +51,9 @@ describe('data set', () => {
 });
 
 describe('roles', () => {
-  it('has 75 roles, 40 in possession and 35 out of possession', () => {
-    expect(ROLES).toHaveLength(75);
-    expect(ROLES.filter((role) => role.possession === 'in')).toHaveLength(40);
+  it('has 76 roles, 41 in possession and 35 out of possession', () => {
+    expect(ROLES).toHaveLength(76);
+    expect(ROLES.filter((role) => role.possession === 'in')).toHaveLength(41);
     expect(ROLES.filter((role) => role.possession === 'out')).toHaveLength(35);
   });
 
@@ -188,7 +188,7 @@ describe('formations', () => {
 });
 
 // Roles whose positioning targets await the positioning interview.
-const POSITIONING_PENDING_ROLE_IDS = ['wide_centre_back_ip'];
+const POSITIONING_PENDING_ROLE_IDS = ['wide_centre_back_ip', 'overlapping_centre_back_ip'];
 const POSITIONED_ROLES = ROLES.filter((role) => !POSITIONING_PENDING_ROLE_IDS.includes(role.id));
 
 describe('movement table', () => {
