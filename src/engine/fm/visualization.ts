@@ -3,11 +3,12 @@ import type { ZoneId } from '../../data/zones';
 import { layoutFormation } from '../layout/formations';
 import { eligibleCarrierIds, type CarrierPlayer, type LateralSide } from './carrier-eligibility';
 import type { FmPlayer } from './player';
+import { pocketOf } from './pocket';
 import { chooseReceiver } from './receiver';
-import { computeZoneShape } from './shape';
+import { computeZoneShape, type ShapeInput } from './shape';
+import { orderStarters } from './starter-order';
 import { laneOf, thirdOf, toDisplayFrame, zoneCentre, zoneOf } from './zones';
 
-const UNSLOTTED = Number.POSITIVE_INFINITY;
 const SIDES: readonly Side[] = ['mine', 'opponent'];
 const GOALKEEPER = 'GK';
 
@@ -104,14 +105,12 @@ export function visualizationStarters(
   players: readonly CarrierPlayer[],
   slots: readonly FormationSlot[],
 ): string[] {
-  const rank = new Map(slots.map((slot, index) => [slot.id, index]));
-  const slotRank = (player: CarrierPlayer) =>
-    player.slot === null ? UNSLOTTED : (rank.get(player.slot) ?? UNSLOTTED);
   const eligible = new Set(eligibleCarrierIds(zone, players, slots));
-  return players
-    .filter((player) => eligible.has(player.id))
-    .sort((a, b) => slotRank(a) - slotRank(b))
-    .map((player) => player.id);
+  return orderStarters(
+    zone,
+    players.filter((player) => eligible.has(player.id)),
+    slots,
+  ).map((player) => player.id);
 }
 
 function fmPlayersOf(members: readonly Member[]): FmPlayer[] {
@@ -130,11 +129,14 @@ function frameFor(
   members: readonly Member[],
   zone: ZoneId,
   carrierId: string,
+  anchor: Point = zoneCentre(zone, input.attacker),
+  opening?: ShapeInput['opening'],
 ): VisualizationFrame {
   const { positions, ball } = computeZoneShape({
+    opening,
     attacker: input.attacker,
     players: fmPlayersOf(members),
-    ball: zoneCentre(zone, input.attacker),
+    ball: anchor,
     carrierId,
     zone,
   });
@@ -190,7 +192,21 @@ function visualizationWith(
   members: readonly Member[],
   starterId: string,
 ): Visualization {
-  const opening = frameFor(input, members, input.zone, starterId);
+  const starter = members.find((member) => member.id === starterId)!;
+  const starterSide = lateralSideOf(starter.slot);
+  const pocket = pocketOf(input.zone, {
+    roleId: starter.roleId,
+    family: starter.slot.family,
+    side: starterSide,
+  });
+  const opening = frameFor(
+    input,
+    members,
+    input.zone,
+    starterId,
+    toDisplayFrame(pocket, input.attacker),
+    { starterSide },
+  );
   const outfieldIds = (team: Side) =>
     members
       .filter((member) => member.team === team && !isKeeper(member))

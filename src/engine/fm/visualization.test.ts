@@ -123,7 +123,8 @@ describe('visualizationStarters', () => {
     expect(starters('L-F', players)).toEqual(['lw']);
     expect(starters('R-F', players)).toEqual(['rw']);
     expect(starters('C-M', players)).toEqual(['cm']);
-    expect(starters('LH-M', players)).toEqual([]);
+    expect(starters('LH-M', players)).toEqual(['cm']);
+    expect(starters('LH-D', players)).toEqual([]);
   });
 
   it('offers an Overlapping Centre-Back only on the outermost slot of a three-back formation', () => {
@@ -200,7 +201,7 @@ describe('buildVisualization and visualizationsFor', () => {
     const zone: ZoneId = 'C-M';
     const input = inputFor(zone, { mine: FORMATION_433, opponent: FORMATION_433 });
     const [first] = visualizationsFor(input);
-    expect(first.opening.ball).toEqual(zoneCentre(zone, 'mine'));
+    expect(zoneOf(first.opening.ball, 'mine')).toBe(zone);
     expect(first.opening.positions[first.starterId]).toEqual(first.opening.ball);
     expect(Object.keys(first.opening.positions)).toHaveLength(FORMATION_433.slots.length * 2);
     for (const pass of first.passes) {

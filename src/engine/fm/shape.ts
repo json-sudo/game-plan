@@ -1,6 +1,8 @@
 import type { Point, Side } from '../../data/types';
 import type { ZoneId } from '../../data/zones';
+import type { LateralSide } from './carrier-eligibility';
 import { formationAnchors } from './formation-anchors';
+import { applyOpeningResponse } from './opening-response';
 import type { FmPlayer } from './player';
 import { SHAPE_MARGIN, resolveCollisions, type ResolveToken } from './shape-resolve';
 import { toDisplayFrame } from './zones';
@@ -19,6 +21,7 @@ export interface ShapeInput {
   ball: Point;
   carrierId: string | null;
   zone: ZoneId;
+  opening?: { starterSide: LateralSide | undefined };
 }
 
 export interface ZoneShape {
@@ -30,7 +33,17 @@ export function computeZoneShape(input: ShapeInput): ZoneShape {
   const { attacker, players, ball, carrierId, zone } = input;
   const frameBall = toDisplayFrame(ball, attacker);
   const hasCarrier = players.some((player) => player.team === attacker && player.id === carrierId);
-  const anchors = formationAnchors({ attacker, players, zone });
+  const baseAnchors = formationAnchors({ attacker, players, zone });
+  const anchors = input.opening
+    ? applyOpeningResponse(baseAnchors, {
+        attacker,
+        zone,
+        players,
+        carrierId: carrierId ?? '',
+        carrier: frameBall,
+        starterSide: input.opening.starterSide,
+      })
+    : baseAnchors;
   const playerTokens = players.map((player): ResolveToken => {
     const anchor = anchors.get(player.id)!;
     if (player.isKeeper) return { id: player.id, point: anchor.point, fixed: true };
