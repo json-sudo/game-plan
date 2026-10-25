@@ -2,6 +2,7 @@ import type { Point, Side } from '../../data/types';
 import type { Lane, Third, ZoneId } from '../../data/zones';
 import { PITCH_W } from '../geometry/pitch';
 import type { LateralSide } from './carrier-eligibility';
+import { engageCarrier, type Engagement } from './engager';
 import type { Anchor, SlotLine } from './formation-anchors';
 import type { FmPlayer } from './player';
 import { FLANK } from './role-regions';
@@ -107,12 +108,12 @@ function flankSupport(
 export function applyOpeningResponse(
   anchors: ReadonlyMap<string, Anchor>,
   input: OpeningResponseInput,
-): Map<string, Anchor> {
+): Engagement {
   const updates = new Map([
     ...flankSupport(anchors, input),
     ...defenderResponses(anchors, input, isMirrored(input.zone, input.starterSide)),
   ]);
-  return new Map(
+  const responded = new Map(
     [...anchors].map(([id, anchor]): [string, Anchor] => {
       const point = updates.get(id) ?? anchor.point;
       return [
@@ -123,4 +124,10 @@ export function applyOpeningResponse(
       ];
     }),
   );
+  return engageCarrier(responded, {
+    attacker: input.attacker,
+    zone: input.zone,
+    players: input.players,
+    carrier: input.carrier,
+  });
 }

@@ -37,6 +37,7 @@ export interface Pass {
 
 export interface Visualization {
   starterId: string;
+  engagerId: string | null;
   opening: VisualizationFrame;
   passes: Pass[];
 }
@@ -128,11 +129,11 @@ function frameFor(
   input: VisualizationInput,
   members: readonly Member[],
   zone: ZoneId,
-  carrierId: string,
+  carrierId: string | null,
   anchor: Point = zoneCentre(zone, input.attacker),
   opening?: ShapeInput['opening'],
-): VisualizationFrame {
-  const { positions, ball } = computeZoneShape({
+): VisualizationFrame & { engagerId: string | null } {
+  const { positions, ball, engagerId } = computeZoneShape({
     opening,
     attacker: input.attacker,
     players: fmPlayersOf(members),
@@ -140,7 +141,11 @@ function frameFor(
     carrierId,
     zone,
   });
-  return { positions: Object.fromEntries(positions), ball };
+  return { positions: Object.fromEntries(positions), ball, engagerId };
+}
+
+export function shapeWithoutStarter(input: VisualizationInput): VisualizationFrame {
+  return displayFrameOf(frameFor(input, membersOf(input), input.zone, null), input.attacker);
 }
 
 function displayFrameOf(frame: VisualizationFrame, attacker: Side): VisualizationFrame {
@@ -225,6 +230,7 @@ function visualizationWith(
   });
   return {
     starterId,
+    engagerId: opening.engagerId,
     opening: displayFrameOf(opening, input.attacker),
     passes: passes.map((pass) => ({ ...pass, frame: displayFrameOf(pass.frame, input.attacker) })),
   };

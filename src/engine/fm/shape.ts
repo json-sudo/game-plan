@@ -27,6 +27,7 @@ export interface ShapeInput {
 export interface ZoneShape {
   positions: Map<string, Point>;
   ball: Point;
+  engagerId: string | null;
 }
 
 export function computeZoneShape(input: ShapeInput): ZoneShape {
@@ -34,7 +35,7 @@ export function computeZoneShape(input: ShapeInput): ZoneShape {
   const frameBall = toDisplayFrame(ball, attacker);
   const hasCarrier = players.some((player) => player.team === attacker && player.id === carrierId);
   const baseAnchors = formationAnchors({ attacker, players, zone });
-  const anchors = input.opening
+  const { anchors, engagerId } = input.opening
     ? applyOpeningResponse(baseAnchors, {
         attacker,
         zone,
@@ -43,10 +44,11 @@ export function computeZoneShape(input: ShapeInput): ZoneShape {
         carrier: frameBall,
         starterSide: input.opening.starterSide,
       })
-    : baseAnchors;
+    : { anchors: baseAnchors, engagerId: null };
   const playerTokens = players.map((player): ResolveToken => {
     const anchor = anchors.get(player.id)!;
-    if (player.isKeeper) return { id: player.id, point: anchor.point, fixed: true };
+    if (player.isKeeper || player.id === engagerId)
+      return { id: player.id, point: anchor.point, fixed: true };
     if (player.team === attacker && player.id === carrierId) {
       return { id: player.id, point: frameBall, fixed: true };
     }
@@ -76,5 +78,6 @@ export function computeZoneShape(input: ShapeInput): ZoneShape {
       players.map((player) => [player.id, toDisplayFrame(settled.get(player.id)!, attacker)]),
     ),
     ball,
+    engagerId,
   };
 }
