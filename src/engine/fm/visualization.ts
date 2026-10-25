@@ -4,18 +4,13 @@ import { layoutFormation } from '../layout/formations';
 import { eligibleCarrierIds, type CarrierPlayer, type LateralSide } from './carrier-eligibility';
 import type { FmPlayer } from './player';
 import { pocketOf } from './pocket';
-import { chooseReceiver } from './receiver';
+import { planPasses, type PlanContext } from './pass-plan';
 import { computeZoneShape, type ShapeInput } from './shape';
 import { orderStarters } from './starter-order';
-import { laneOf, thirdOf, toDisplayFrame, zoneCentre, zoneOf } from './zones';
+import { toDisplayFrame, zoneCentre } from './zones';
 
 const SIDES: readonly Side[] = ['mine', 'opponent'];
 const GOALKEEPER = 'GK';
-
-const OPEN_MIN_PASSES = 4;
-const OPEN_MAX_PASSES = 6;
-const FINAL_FLANK_PASSES = 2;
-const FINAL_CENTRE_PASSES = 1;
 
 export interface VisualizationInput {
   zone: ZoneId;
@@ -48,20 +43,6 @@ interface Member {
   slot: FormationSlot;
   base: Point;
   roleId: string | undefined;
-}
-
-interface ChainContext {
-  input: VisualizationInput;
-  members: readonly Member[];
-  teammateIds: readonly string[];
-  opponentIds: readonly string[];
-}
-
-interface ChainStep {
-  carrierId: string;
-  passerId: string | null;
-  frame: VisualizationFrame;
-  passes: readonly Pass[];
 }
 
 function lateralSideOf(slot: FormationSlot): LateralSide | undefined {
@@ -157,39 +138,20 @@ function displayFrameOf(frame: VisualizationFrame, attacker: Side): Visualizatio
   };
 }
 
-function isChainComplete(startZone: ZoneId, landingZone: ZoneId, count: number): boolean {
-  if (thirdOf(startZone) === 'F') {
-    return count >= (laneOf(startZone) === 'C' ? FINAL_CENTRE_PASSES : FINAL_FLANK_PASSES);
-  }
-  if (count >= OPEN_MAX_PASSES) return true;
-  return count >= OPEN_MIN_PASSES && thirdOf(landingZone) === 'F';
-}
-
-function extendChain(context: ChainContext, step: ChainStep): Pass[] {
-  const { input, members, teammateIds, opponentIds } = context;
-  const receiverId = chooseReceiver({
-    attacker: input.attacker,
-    carrierId: step.carrierId,
-    passerId: step.passerId,
-    teammateIds,
-    opponentIds,
-    positions: step.frame.positions,
-  });
-  if (receiverId === null) return [...step.passes];
-  const landingZone = zoneOf(step.frame.positions[receiverId], input.attacker);
-  const pass: Pass = {
-    carrierId: step.carrierId,
-    receiverId,
-    frame: frameFor(input, members, landingZone, receiverId),
+function targetFrameFor(
+  input: VisualizationInput,
+  members: readonly Member[],
+): PlanContext['targetFor'] {
+  const cache = new Map<string, Record<string, Point>>();
+  return (zone, receiverId, at) => {
+    const key = `${zone}|${receiverId}|${at.x.toFixed(2)},${at.y.toFixed(2)}`;
+    const cached = cache.get(key);
+    if (cached) return cached;
+    const frame = frameFor(input, members, zone, receiverId, toDisplayFrame(at, input.attacker));
+    const { positions } = displayFrameOf(frame, input.attacker);
+    cache.set(key, positions);
+    return positions;
   };
-  const passes = [...step.passes, pass];
-  if (isChainComplete(input.zone, landingZone, passes.length)) return passes;
-  return extendChain(context, {
-    carrierId: receiverId,
-    passerId: step.carrierId,
-    frame: pass.frame,
-    passes,
-  });
 }
 
 function visualizationWith(
@@ -212,27 +174,28 @@ function visualizationWith(
     toDisplayFrame(pocket, input.attacker),
     { starterSide },
   );
-  const outfieldIds = (team: Side) =>
+  const idsOf = (team: Side, keepers: boolean) =>
     members
-      .filter((member) => member.team === team && !isKeeper(member))
+      .filter((member) => member.team === team && (keepers || !isKeeper(member)))
       .map((member) => member.id);
-  const context: ChainContext = {
-    input,
-    members,
-    teammateIds: outfieldIds(input.attacker),
-    opponentIds: outfieldIds(input.attacker === 'mine' ? 'opponent' : 'mine'),
+  const defender: Side = input.attacker === 'mine' ? 'opponent' : 'mine';
+  const context: PlanContext = {
+    startZone: input.zone,
+    teammateIds: idsOf(input.attacker, false),
+    defenderIds: idsOf(defender, true),
+    targetFor: targetFrameFor(input, members),
   };
-  const passes = extendChain(context, {
-    carrierId: starterId,
-    passerId: null,
-    frame: opening,
-    passes: [],
-  });
+  const openingFrame = displayFrameOf(opening, input.attacker);
+  const passes = planPasses(context, openingFrame.positions, starterId);
   return {
     starterId,
     engagerId: opening.engagerId,
-    opening: displayFrameOf(opening, input.attacker),
-    passes: passes.map((pass) => ({ ...pass, frame: displayFrameOf(pass.frame, input.attacker) })),
+    opening: openingFrame,
+    passes: passes.map(({ carrierId, receiverId, positions }) => ({
+      carrierId,
+      receiverId,
+      frame: { positions: { ...positions }, ball: positions[receiverId] },
+    })),
   };
 }
 

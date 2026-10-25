@@ -9,9 +9,9 @@ import { toDisplayFrame } from './zones';
 
 export { SHAPE_MARGIN };
 
-const PLAYER_RADIUS = 2.2;
+export const PLAYER_RADIUS = 2.2;
 const BODY_GAP = 0.25;
-const BODY_DISTANCE = 2 * PLAYER_RADIUS + BODY_GAP;
+export const BODY_DISTANCE = 2 * PLAYER_RADIUS + BODY_GAP;
 const LOOSE_BALL_SPACING = 6;
 const BALL_ID = 'ball';
 

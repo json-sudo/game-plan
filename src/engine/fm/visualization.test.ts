@@ -10,7 +10,8 @@ import {
   type Visualization,
   type VisualizationInput,
 } from './visualization';
-import { laneOf, thirdOf, zoneCentre, zoneOf } from './zones';
+import { MAX_RECEIVER_TRAVEL } from './pass-plan';
+import { laneOf, thirdOf, zoneOf } from './zones';
 
 const FORMATION_433 = formationById('4_3_3_dm_wide');
 const FORMATION_4231 = formationById('4_2_3_1_dm_wide');
@@ -58,13 +59,7 @@ function inputFor(
 }
 
 function landingZonesOf(visualization: Visualization, attacker: Side): ZoneId[] {
-  return visualization.passes.map((pass, index) => {
-    const previous =
-      index === 0
-        ? visualization.opening.positions
-        : visualization.passes[index - 1].frame.positions;
-    return zoneOf(previous[pass.receiverId], attacker);
-  });
+  return visualization.passes.map((pass) => zoneOf(pass.frame.ball, attacker));
 }
 
 const FOUR_BACK: readonly FormationSlot[] = [
@@ -209,12 +204,14 @@ describe('buildVisualization and visualizationsFor', () => {
     }
   });
 
-  it('places the ball in the zone the receiver was standing in before the pass', () => {
+  it('plans each destination near the receiver, never at a zone centre', () => {
     const input = inputFor('L-D', { mine: FORMATION_433, opponent: FORMATION_433 });
     for (const visualization of visualizationsFor(input)) {
-      const landings = landingZonesOf(visualization, 'mine');
+      const frames = [visualization.opening, ...visualization.passes.map((pass) => pass.frame)];
       visualization.passes.forEach((pass, index) => {
-        expect(pass.frame.ball).toEqual(zoneCentre(landings[index], 'mine'));
+        const from = frames[index].positions[pass.receiverId];
+        const to = pass.frame.ball;
+        expect(Math.hypot(to.x - from.x, to.y - from.y)).toBeLessThanOrEqual(MAX_RECEIVER_TRAVEL);
       });
     }
   });

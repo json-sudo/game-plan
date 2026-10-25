@@ -18,7 +18,6 @@ export type {
   VisualizationFrame,
   VisualizationInput,
 } from './fm/visualization';
-export { chooseReceiver } from './fm/receiver';
 export {
   MARKING_BOX_EDGES,
   ZONE_GRID,
