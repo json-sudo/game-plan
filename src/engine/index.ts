@@ -6,6 +6,13 @@ export {
   transitionAt,
 } from './anim/interpolate';
 export { MOTION_DURATIONS_MS, MOTION_EASING, motionDurationMs } from './anim/motion';
+export {
+  ATTACHMENT_OFFSET,
+  PASS_SETTLE_MS,
+  attachedBall,
+  buildTimeline,
+  sampleTimeline,
+} from './anim/timeline';
 export { eligibleCarrierIds, isRoleAllowedInSlot } from './fm/carrier-eligibility';
 export type { CarrierPlayer, LateralSide } from './fm/carrier-eligibility';
 export { formationAnchors } from './fm/formation-anchors';

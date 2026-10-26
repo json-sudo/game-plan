@@ -19,10 +19,15 @@ import type { SetupCursor } from '../setup/setup-model';
 export function fmWantedPieces(
   doc: PitchDocument,
   viz: FmVisualization | null,
-  frame = 0,
 ): Map<string, Point> {
   if (!doc.scenario || !viz) return new Map();
-  const { positions } = viz.frames[frame];
+  return piecesAt(doc, viz.frames[0].positions);
+}
+
+export function piecesAt(
+  doc: PitchDocument,
+  positions: Readonly<Record<string, Point>>,
+): Map<string, Point> {
   return new Map(
     doc.players.flatMap((player) => {
       const point = positions[`${player.team}:${player.slot}`];

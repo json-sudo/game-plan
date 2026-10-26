@@ -12,6 +12,7 @@ export interface PitchMotionOptions {
   cause: readonly unknown[];
   retarget?: unknown;
   enterFrom?: ReadonlyMap<string, Point>;
+  snap?: boolean;
   onSettled?: () => void;
 }
 
@@ -40,6 +41,7 @@ export function usePitchMotion({
   cause,
   retarget,
   enterFrom,
+  snap,
   onSettled,
 }: PitchMotionOptions): PitchMotion {
   const { x, y } = ball;
@@ -51,6 +53,7 @@ export function usePitchMotion({
     draggingId,
     restartKey: retarget,
     enterFrom,
+    snap,
     onSettled,
   });
   return useMemo(() => {

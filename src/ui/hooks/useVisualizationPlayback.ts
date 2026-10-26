@@ -1,81 +1,75 @@
-import { useCallback, useEffect, useState } from 'react';
-import { MOTION_DURATIONS_MS, motionDurationMs } from '../../engine';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { buildTimeline, sampleTimeline } from '../../engine';
+import type { Scene } from '../../engine/anim/timeline';
 import type { FmVisualization } from '../../state/visualization';
 import { prefersReducedMotion } from './usePieceMotion';
 
-type Step =
-  | { kind: 'waiting' }
-  | { kind: 'pass'; pass: number }
-  | { kind: 'glide'; pass: number }
-  | { kind: 'hold' }
-  | { kind: 'back' };
-
 export interface VisualizationPlayback {
-  piecesFrame: number;
-  ballFrame: number;
+  scene: Scene | null;
+  running: boolean;
   onSettled: () => void;
 }
 
-const WAITING: Step = { kind: 'waiting' };
-const FIRST_PASS: Step = { kind: 'pass', pass: 1 };
-
-function stepDelayMs(step: Step): number {
-  const reduced = prefersReducedMotion();
-  if (step.kind === 'hold') return MOTION_DURATIONS_MS.cadence;
-  return motionDurationMs(step.kind === 'pass' ? 'piece' : 'phase', reduced);
+interface Clock {
+  elapsedMs: number;
+  reduced: boolean;
+  running: boolean;
 }
 
-function nextStep(step: Step, passes: number): Step {
-  switch (step.kind) {
-    case 'pass':
-      return { kind: 'glide', pass: step.pass };
-    case 'glide':
-      return step.pass < passes ? { kind: 'pass', pass: step.pass + 1 } : { kind: 'hold' };
-    case 'hold':
-      return { kind: 'back' };
-    default:
-      return FIRST_PASS;
-  }
-}
-
-function framesOf(step: Step, last: number): { piecesFrame: number; ballFrame: number } {
-  switch (step.kind) {
-    case 'pass':
-      return { piecesFrame: step.pass - 1, ballFrame: step.pass };
-    case 'glide':
-      return { piecesFrame: step.pass, ballFrame: step.pass };
-    case 'hold':
-      return { piecesFrame: last, ballFrame: last };
-    default:
-      return { piecesFrame: 0, ballFrame: 0 };
-  }
-}
+const WAITING: Clock = { elapsedMs: 0, reduced: false, running: false };
 
 export function useVisualizationPlayback(
   viz: FmVisualization | null,
   restartKey: number,
 ): VisualizationPlayback {
   const [source, setSource] = useState({ viz, restartKey });
-  const [step, setStep] = useState<Step>(WAITING);
+  const [clock, setClock] = useState<Clock>(WAITING);
   const passes = viz ? viz.frames.length - 1 : 0;
 
   if (source.viz !== viz || source.restartKey !== restartKey) {
     setSource({ viz, restartKey });
-    setStep(WAITING);
+    setClock(WAITING);
   }
 
+  const timeline = useMemo(
+    () =>
+      viz
+        ? buildTimeline({
+            starterId: viz.starterId,
+            frames: viz.frames.map((f) => f.positions),
+            passes: viz.passes,
+          })
+        : null,
+    [viz],
+  );
+
   useEffect(() => {
-    if (step.kind === 'waiting') return;
-    const timer = setTimeout(
-      () => setStep((current) => nextStep(current, passes)),
-      stepDelayMs(step),
-    );
-    return () => clearTimeout(timer);
-  }, [step, passes]);
+    if (!clock.running) return;
+    let handle = 0;
+    let startedAt: number | null = null;
+    const frame = (timestamp: number) => {
+      startedAt ??= timestamp;
+      setClock((current) => ({ ...current, elapsedMs: timestamp - startedAt! }));
+      handle = requestAnimationFrame(frame);
+    };
+    handle = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(handle);
+  }, [clock.running]);
 
   const onSettled = useCallback(() => {
-    if (passes > 0) setStep((current) => (current.kind === 'waiting' ? FIRST_PASS : current));
+    if (passes > 0) {
+      setClock((current) =>
+        current.running
+          ? current
+          : { elapsedMs: 0, reduced: prefersReducedMotion(), running: true },
+      );
+    }
   }, [passes]);
 
-  return { ...framesOf(step, passes), onSettled };
+  const scene = useMemo(
+    () => (timeline ? sampleTimeline(timeline, clock.elapsedMs, clock.reduced) : null),
+    [timeline, clock.elapsedMs, clock.reduced],
+  );
+
+  return { scene, running: clock.running, onSettled };
 }

@@ -11,6 +11,7 @@ interface PieceMotionOptions {
   draggingId?: string | null;
   restartKey?: unknown;
   enterFrom?: ReadonlyMap<string, Point>;
+  snap?: boolean;
   onSettled?: () => void;
 }
 
@@ -38,6 +39,7 @@ export function usePieceMotion({
   draggingId = null,
   restartKey,
   enterFrom,
+  snap = false,
   onSettled,
 }: PieceMotionOptions): ReadonlyMap<string, Point> {
   const [rendered, setRendered] = useState<ReadonlyMap<string, Point>>(() =>
@@ -55,6 +57,10 @@ export function usePieceMotion({
       renderedRef.current = positions;
       setRendered(positions);
     };
+    if (snap) {
+      settle(new Map(targets));
+      return;
+    }
     const moving = Array.from(targets).some(([id, target]) => {
       const start = from.get(id)!;
       return start.x !== target.x || start.y !== target.y;
@@ -80,7 +86,8 @@ export function usePieceMotion({
     };
     handle = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(handle);
-  }, [targets, kind, draggingId, restartKey, enterFrom]);
+  }, [targets, kind, draggingId, restartKey, enterFrom, snap]);
 
+  if (snap) return targets;
   return visiblePositions(rendered, targets, draggingId, enterFrom);
 }
