@@ -53,29 +53,45 @@ function rankOf(player: FmPlayer, anchor: Anchor, carrier: Point): number {
   return screening * 1000 + distance(anchor.point, carrier) - pressing;
 }
 
+function attackWeightX(anchors: ReadonlyMap<string, Anchor>, input: EngagerInput): number {
+  const attackers = input.players.filter(
+    (player) => player.team === input.attacker && !player.isKeeper,
+  );
+  return (
+    attackers.reduce((sum, player) => sum + anchors.get(player.id)!.point.x, 0) /
+    Math.max(attackers.length, 1)
+  );
+}
+
 function chooseEngager(
   anchors: ReadonlyMap<string, Anchor>,
   input: EngagerInput,
   defenders: readonly FmPlayer[],
+  weightX: number,
 ): FmPlayer | null {
   const third = thirdOf(input.zone);
   const suitable = defenders.filter((player) =>
     isSuitable(player, anchors.get(player.id)!.line, third),
   );
   const pool = suitable.length > 0 ? suitable : defenders.filter((p) => p.family !== 'D(C)');
+  const towardWeight = (player: FmPlayer) => Math.abs(anchors.get(player.id)!.point.x - weightX);
   return (
     [...pool].sort(
       (a, b) =>
         rankOf(a, anchors.get(a.id)!, input.carrier) -
-          rankOf(b, anchors.get(b.id)!, input.carrier) || a.id.localeCompare(b.id),
+          rankOf(b, anchors.get(b.id)!, input.carrier) ||
+        towardWeight(a) - towardWeight(b) ||
+        a.id.localeCompare(b.id),
     )[0] ?? null
   );
 }
 
-function engageTarget(anchor: Point, carrier: Point): Point {
+function engageTarget(anchor: Point, carrier: Point, weightX: number): Point {
   const away = anchor.x - carrier.x;
   const preferred =
-    Math.abs(away) >= SIDE_TOLERANCE ? Math.sign(away) : Math.sign(CENTRE_X - carrier.x) || 1;
+    Math.abs(away) >= SIDE_TOLERANCE
+      ? Math.sign(away)
+      : Math.sign(CENTRE_X - carrier.x) || Math.sign(weightX - carrier.x) || 1;
   const fits = (sign: number) => {
     const x = carrier.x + sign * ENGAGE_OFFSET;
     return x >= FLANK && x <= PITCH_W - FLANK;
@@ -113,9 +129,10 @@ export function engageCarrier(
   const defenders = input.players.filter(
     (player) => player.team !== input.attacker && !player.isKeeper,
   );
-  const engager = chooseEngager(anchors, input, defenders);
+  const weightX = attackWeightX(anchors, input);
+  const engager = chooseEngager(anchors, input, defenders, weightX);
   if (!engager) return { anchors: new Map(anchors), engagerId: null };
-  const target = engageTarget(anchors.get(engager.id)!.point, input.carrier);
+  const target = engageTarget(anchors.get(engager.id)!.point, input.carrier, weightX);
   const placed = new Map(anchors).set(engager.id, {
     ...anchors.get(engager.id)!,
     point: target,
