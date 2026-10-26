@@ -2,6 +2,9 @@ export interface PieceScale {
   ppu: number;
   tokenPx: number;
   hitPx: number;
+  ballRatio?: number;
+  strokePx?: number;
+  textScale?: number;
 }
 
 // A mid-size desktop board, used where no measured board scale is passed (galleries, isolated pieces).
@@ -39,7 +42,14 @@ const NAME_GLYPH_WIDTH_PX = 6;
 const LABEL_FONT_TWO_PX = 12;
 const LABEL_FONT_LONG_PX = 11;
 
-export function pieceUnits({ ppu, tokenPx, hitPx }: PieceScale): PieceUnits {
+export function pieceUnits({
+  ppu,
+  tokenPx,
+  hitPx,
+  ballRatio = BALL_SCALE,
+  strokePx = RING_PX,
+  textScale = 1,
+}: PieceScale): PieceUnits {
   const px = (value: number) => value / ppu;
   const radius = px(tokenPx / 2);
   return {
@@ -47,16 +57,17 @@ export function pieceUnits({ ppu, tokenPx, hitPx }: PieceScale): PieceUnits {
     hitRadius: px(hitPx / 2),
     haloRadius: radius + px(HALO_GAP_PX),
     haloWidth: px(HALO_WIDTH_PX),
-    bodyStroke: px(RING_PX),
-    roleFont: px(ROLE_FONT_PX),
+    bodyStroke: px(strokePx),
+    roleFont: px(ROLE_FONT_PX * textScale),
     roleGap: px(ROLE_GAP_PX),
-    nameFont: px(NAME_FONT_PX),
+    nameFont: px(NAME_FONT_PX * textScale),
     nameRise: px(NAME_RISE_PX),
     nameGlyphWidth: px(NAME_GLYPH_WIDTH_PX),
     namePlateHeight: px(NAME_PLATE_HEIGHT_PX),
     arrowRing: radius + px(RING_PX),
     arrowStart: radius + px(ARROW_START_PX),
-    ballRadius: px((tokenPx / 2) * BALL_SCALE),
-    labelFont: (label) => px(label.length === 2 ? LABEL_FONT_TWO_PX : LABEL_FONT_LONG_PX),
+    ballRadius: px((tokenPx / 2) * ballRatio),
+    labelFont: (label) =>
+      px((label.length === 2 ? LABEL_FONT_TWO_PX : LABEL_FONT_LONG_PX) * textScale),
   };
 }

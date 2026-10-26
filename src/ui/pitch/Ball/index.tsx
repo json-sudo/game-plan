@@ -73,7 +73,11 @@ export function Ball({
       <g transform={`scale(${r})`}>
         <BallArt />
       </g>
-      <circle className={styles.ring} r={r} style={{ strokeWidth: px(1.5) }} />
+      <circle
+        className={styles.ring}
+        r={r}
+        style={{ strokeWidth: scale.strokePx === undefined ? px(1.5) : units.bodyStroke }}
+      />
     </g>
   );
 }

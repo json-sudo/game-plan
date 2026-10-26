@@ -47,6 +47,7 @@ import { Instrument } from '../../instrument/Instrument';
 import { SequenceControls } from '../../instrument/SequenceControls';
 import { ZoneMap } from '../../instrument/ZoneMap';
 import { Ball } from '../../pitch/Ball';
+import { fmPieceScale } from '../../pitch/fm-glyph';
 import { pieceKeyStep } from '../../pitch/piece-keys';
 import { Pitch } from '../../pitch/Pitch';
 import { PitchFrame } from '../../pitch/PitchFrame';
@@ -98,7 +99,9 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
 
   const drag = useBoardDrag(store);
 
-  const pieceScale = { ppu: metrics.ppu, tokenPx: metrics.tokenPx, hitPx: DESKTOP_HIT_PX };
+  const pieceScale = fm
+    ? fmPieceScale(metrics.ppu, DESKTOP_HIT_PX)
+    : { ppu: metrics.ppu, tokenPx: metrics.tokenPx, hitPx: DESKTOP_HIT_PX };
   const ballAtCentre = samePoint(doc.ball, BALL_START);
   const onBallKey = (event: ReactKeyboardEvent<SVGGElement>) => {
     const next = pieceKeyStep(doc.ball, event.key, event.shiftKey);
