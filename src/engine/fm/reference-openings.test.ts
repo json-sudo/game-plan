@@ -1,12 +1,10 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { FM26_DATA } from '../../data/fm26';
 import type { FormationDef, Point } from '../../data/types';
 import type { ZoneId } from '../../data/zones';
 import { visualizationsFor, type VisualizationInput } from './visualization';
+import referenceJson from './fixtures/reference-openings.json';
 
-const REFERENCE_PATH =
-  '/Users/json-sudo/Documents/projects/vault/game-plan/specs/v2/vis-fix/specs/visualization/reference-openings.json';
 const ORDINARY_TOLERANCE = 3;
 const CARRIER_TOLERANCE = 1;
 const KEEPER_TOLERANCE = 1;
@@ -24,7 +22,7 @@ interface ReferenceFile {
   openings: Record<string, ReferenceOpening>;
 }
 
-const reference = JSON.parse(readFileSync(REFERENCE_PATH, 'utf8')) as ReferenceFile;
+const reference = referenceJson as ReferenceFile;
 
 function formationById(id: string): FormationDef {
   const found = FM26_DATA.formations.find((formation) => formation.id === id);
