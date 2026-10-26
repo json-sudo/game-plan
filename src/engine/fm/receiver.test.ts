@@ -1,96 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { chooseReceiver, type ReceiverInput } from './receiver';
+import { receiverScore } from './receiver';
 
-function receiverInput(overrides: Partial<ReceiverInput>): ReceiverInput {
-  return {
-    attacker: 'mine',
-    carrierId: 'carrier',
-    passerId: null,
-    teammateIds: [],
-    opponentIds: [],
-    positions: {},
-    ...overrides,
-  };
-}
+const CARRIER = { x: 38, y: 50 };
 
-describe('chooseReceiver', () => {
-  it('picks the most progressive teammate when nobody is close to an opponent', () => {
-    const positions = {
-      carrier: { x: 38, y: 50 },
-      forward: { x: 30, y: 30 },
-      level: { x: 60, y: 50 },
-    };
-    expect(
-      chooseReceiver(receiverInput({ positions, teammateIds: ['carrier', 'forward', 'level'] })),
-    ).toBe('forward');
+describe('receiverScore', () => {
+  it('prefers the more progressive candidate when nobody is close to an opponent', () => {
+    expect(receiverScore(CARRIER, { x: 38, y: 35 }, [])).toBeGreaterThan(
+      receiverScore(CARRIER, { x: 38, y: 45 }, []),
+    );
   });
 
-  it('picks a level teammate over a pressured forward one', () => {
-    const positions = {
-      carrier: { x: 38, y: 50 },
-      level: { x: 46, y: 50 },
-      forward: { x: 38, y: 40 },
-      defender: { x: 38, y: 40 },
-    };
-    expect(
-      chooseReceiver(
-        receiverInput({
-          positions,
-          teammateIds: ['level', 'forward'],
-          opponentIds: ['defender'],
-        }),
-      ),
-    ).toBe('level');
+  it('penalises a candidate under pressure', () => {
+    const defender = { x: 38, y: 38 };
+    expect(receiverScore(CARRIER, { x: 38, y: 36 }, [defender])).toBeLessThan(
+      receiverScore(CARRIER, { x: 38, y: 36 }, []),
+    );
   });
 
-  it('picks a backward teammate when it scores best', () => {
-    const positions = {
-      carrier: { x: 38, y: 50 },
-      behind: { x: 38, y: 51 },
-      forward: { x: 38, y: 40 },
-      defender: { x: 38, y: 40 },
-    };
-    expect(
-      chooseReceiver(
-        receiverInput({
-          positions,
-          teammateIds: ['behind', 'forward'],
-          opponentIds: ['defender'],
-        }),
-      ),
-    ).toBe('behind');
-  });
-
-  it('breaks ties by player id', () => {
-    const positions = {
-      carrier: { x: 38, y: 50 },
-      b: { x: 20, y: 40 },
-      a: { x: 56, y: 40 },
-    };
-    expect(chooseReceiver(receiverInput({ positions, teammateIds: ['b', 'a'] }))).toBe('a');
-  });
-
-  it('never returns the passer unless the passer is the only option', () => {
-    const positions = {
-      carrier: { x: 38, y: 50 },
-      passer: { x: 38, y: 30 },
-      other: { x: 60, y: 60 },
-    };
-    expect(
-      chooseReceiver(
-        receiverInput({ positions, passerId: 'passer', teammateIds: ['passer', 'other'] }),
-      ),
-    ).toBe('other');
-    expect(
-      chooseReceiver(receiverInput({ positions, passerId: 'passer', teammateIds: ['passer'] })),
-    ).toBe('passer');
-  });
-
-  it('returns null when there is no teammate to pass to', () => {
-    expect(
-      chooseReceiver(
-        receiverInput({ positions: { carrier: { x: 38, y: 50 } }, teammateIds: ['carrier'] }),
-      ),
-    ).toBeNull();
+  it('scores a backward candidate below a forward one at equal distance', () => {
+    expect(receiverScore(CARRIER, { x: 38, y: 60 }, [])).toBeLessThan(
+      receiverScore(CARRIER, { x: 38, y: 40 }, []),
+    );
   });
 });

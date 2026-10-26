@@ -58,6 +58,7 @@ const SECOND_STRIKER = 'second_striker_ip';
 
 const STRIKER_FAMILIES: readonly Family[] = ['ST'];
 const CENTRAL_FAMILIES: readonly Family[] = ['M(C)', 'AM(C)'];
+const CENTRAL_MIDFIELD_FAMILIES: readonly Family[] = ['M(C)'];
 const WING_BACK_FAMILIES: readonly Family[] = ['WB(L)', 'WB(R)'];
 const SECOND_STRIKER_FAMILIES: readonly Family[] = ['AM(C)'];
 const WIDE_DEFENDER_FAMILIES: readonly Family[] = ['D(L)', 'D(R)', 'WB(L)', 'WB(R)'];
@@ -117,6 +118,7 @@ const CARRIER_RULES: Record<Third, Record<LaneKind, readonly CarrierRule[]>> = {
         side: 'zone',
       },
       { roles: [CHANNEL_MIDFIELDER], families: CENTRAL_FAMILIES, side: 'any' },
+      { roles: [CENTRAL_MIDFIELDER], families: CENTRAL_MIDFIELD_FAMILIES, side: 'any' },
       {
         families: MIDDLE_HALF_SPACE_FALLBACK_FAMILIES,
         side: 'zone',
@@ -149,6 +151,7 @@ const CARRIER_RULES: Record<Third, Record<LaneKind, readonly CarrierRule[]>> = {
         families: CENTRAL_FAMILIES,
         side: 'any',
       },
+      { roles: [CENTRAL_MIDFIELDER], families: CENTRAL_MIDFIELD_FAMILIES, side: 'any' },
       { families: STRIKER_FAMILIES, side: 'any' },
       { roles: [SECOND_STRIKER, ATTACKING_MIDFIELDER, ADVANCED_PLAYMAKER], side: 'any' },
       { roles: [INSIDE_FORWARD, INSIDE_WINGER, PLAYMAKING_WINGER], side: 'zone' },

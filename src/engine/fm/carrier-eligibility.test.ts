@@ -201,8 +201,18 @@ describe('eligibleCarrierIds - middle third', () => {
       'lpw',
       'liw',
       'lch',
+      'cm',
     ]);
-    expect(idsFor('RH-M', everyone)).toEqual(['rfb', 'rwcm', 'lch']);
+    expect(idsFor('RH-M', everyone)).toEqual(['rfb', 'rwcm', 'lch', 'cm']);
+  });
+
+  it('makes an ordinary Central Midfielder eligible on both half-spaces of the middle and final third', () => {
+    const left = player('left-cm', 'central_midfielder_ip', 'M(C)', 'MCL', 'left');
+    const right = player('right-cm', 'central_midfielder_ip', 'M(C)', 'MCR', 'right');
+    for (const zone of ['LH-M', 'RH-M', 'LH-F', 'RH-F'] as const) {
+      expect(idsFor(zone, [left, right])).toEqual(['left-cm', 'right-cm']);
+    }
+    expect(idsFor('LH-D', [left, right])).toEqual([]);
   });
 
   it('offers a central Channel Midfielder in either half-space', () => {

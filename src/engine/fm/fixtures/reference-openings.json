@@ -1,0 +1,1598 @@
+{
+  "schemaVersion": 1,
+  "status": "Reviewed reference shapes retained unchanged; implementation tolerances and generalization are defined in placement-contract.md",
+  "coordinateSystem": "active attacker upward; width 76.19; height 100; ball is possession anchor, not glyph centre",
+  "formations": {
+    "mine": "4_3_3_dm_wide",
+    "opponent": "4_2_3_1_dm_wide"
+  },
+  "roles": {
+    "mine:GK": "no_nonsense_goalkeeper_ip",
+    "mine:DCR": "centre_back_ip",
+    "mine:DCL": "centre_back_ip",
+    "mine:DR": "full_back_ip",
+    "mine:DL": "full_back_ip",
+    "mine:DM": "defensive_midfielder_ip",
+    "mine:MCR": "central_midfielder_ip",
+    "mine:MCL": "central_midfielder_ip",
+    "mine:AMCR": "inside_forward_ip",
+    "mine:AMCL": "inside_forward_ip",
+    "mine:ST": "centre_forward_ip",
+    "opponent:GK": "goalkeeper_oop",
+    "opponent:DL": "full_back_oop",
+    "opponent:DCL": "centre_back_oop",
+    "opponent:DCR": "centre_back_oop",
+    "opponent:DR": "full_back_oop",
+    "opponent:DML": "screening_defensive_midfielder_oop",
+    "opponent:DMR": "screening_defensive_midfielder_oop",
+    "opponent:AML": "tracking_winger_oop",
+    "opponent:AMC": "attacking_midfielder_oop",
+    "opponent:AMR": "tracking_winger_oop",
+    "opponent:ST": "centre_forward_oop"
+  },
+  "openMatchupA": {
+    "positions": {
+      "mine:GK": {
+        "x": 38.095,
+        "y": 96
+      },
+      "mine:DL": {
+        "x": 10,
+        "y": 55
+      },
+      "mine:DCL": {
+        "x": 25,
+        "y": 66
+      },
+      "mine:DCR": {
+        "x": 51.19,
+        "y": 66
+      },
+      "mine:DR": {
+        "x": 66.19,
+        "y": 55
+      },
+      "mine:DM": {
+        "x": 38.095,
+        "y": 59
+      },
+      "mine:MCL": {
+        "x": 24,
+        "y": 44
+      },
+      "mine:MCR": {
+        "x": 52.19,
+        "y": 44
+      },
+      "mine:AMCL": {
+        "x": 10,
+        "y": 36
+      },
+      "mine:ST": {
+        "x": 38.095,
+        "y": 30
+      },
+      "mine:AMCR": {
+        "x": 66.19,
+        "y": 36
+      },
+      "opponent:GK": {
+        "x": 38.095,
+        "y": 4
+      },
+      "opponent:DR": {
+        "x": 16,
+        "y": 24
+      },
+      "opponent:DCR": {
+        "x": 30,
+        "y": 24
+      },
+      "opponent:DCL": {
+        "x": 46.19,
+        "y": 24
+      },
+      "opponent:DL": {
+        "x": 60.19,
+        "y": 24
+      },
+      "opponent:DMR": {
+        "x": 27,
+        "y": 36
+      },
+      "opponent:DML": {
+        "x": 49.19,
+        "y": 36
+      },
+      "opponent:AMR": {
+        "x": 16,
+        "y": 44
+      },
+      "opponent:AMC": {
+        "x": 40,
+        "y": 44
+      },
+      "opponent:AML": {
+        "x": 60.19,
+        "y": 44
+      },
+      "opponent:ST": {
+        "x": 44,
+        "y": 58
+      }
+    },
+    "ballPolicy": "unchanged on Apply; centre on Reset"
+  },
+  "openings": {
+    "L-F": {
+      "positions": {
+        "mine:GK": {
+          "x": 37.495,
+          "y": 96
+        },
+        "mine:DL": {
+          "x": 9,
+          "y": 39
+        },
+        "mine:DCL": {
+          "x": 22,
+          "y": 49
+        },
+        "mine:DCR": {
+          "x": 48.19,
+          "y": 49
+        },
+        "mine:DR": {
+          "x": 63.19,
+          "y": 39
+        },
+        "mine:DM": {
+          "x": 35.095,
+          "y": 45
+        },
+        "mine:MCL": {
+          "x": 21,
+          "y": 32
+        },
+        "mine:MCR": {
+          "x": 49.19,
+          "y": 32
+        },
+        "mine:AMCL": {
+          "x": 9,
+          "y": 23
+        },
+        "mine:ST": {
+          "x": 35.095,
+          "y": 21
+        },
+        "mine:AMCR": {
+          "x": 59.19,
+          "y": 23
+        },
+        "opponent:GK": {
+          "x": 37.095,
+          "y": 4
+        },
+        "opponent:DR": {
+          "x": 13,
+          "y": 15
+        },
+        "opponent:DCR": {
+          "x": 25,
+          "y": 12
+        },
+        "opponent:DCL": {
+          "x": 41.19,
+          "y": 12
+        },
+        "opponent:DL": {
+          "x": 54.19,
+          "y": 14
+        },
+        "opponent:DMR": {
+          "x": 21,
+          "y": 25
+        },
+        "opponent:DML": {
+          "x": 45.19,
+          "y": 25
+        },
+        "opponent:AMR": {
+          "x": 12,
+          "y": 30
+        },
+        "opponent:AMC": {
+          "x": 33.095,
+          "y": 34
+        },
+        "opponent:AML": {
+          "x": 54.19,
+          "y": 30
+        },
+        "opponent:ST": {
+          "x": 39,
+          "y": 40
+        }
+      },
+      "starter": "mine:AMCL",
+      "ball": {
+        "x": 9,
+        "y": 23
+      },
+      "zone": "L-F"
+    },
+    "L-M": {
+      "positions": {
+        "mine:GK": {
+          "x": 37.495,
+          "y": 96
+        },
+        "mine:DL": {
+          "x": 9,
+          "y": 61
+        },
+        "mine:DCL": {
+          "x": 22,
+          "y": 66
+        },
+        "mine:DCR": {
+          "x": 48.19,
+          "y": 66
+        },
+        "mine:DR": {
+          "x": 63.19,
+          "y": 55
+        },
+        "mine:DM": {
+          "x": 35.095,
+          "y": 59
+        },
+        "mine:MCL": {
+          "x": 22,
+          "y": 46
+        },
+        "mine:MCR": {
+          "x": 49.19,
+          "y": 44
+        },
+        "mine:AMCL": {
+          "x": 9,
+          "y": 49
+        },
+        "mine:ST": {
+          "x": 35.095,
+          "y": 30
+        },
+        "mine:AMCR": {
+          "x": 63.19,
+          "y": 36
+        },
+        "opponent:GK": {
+          "x": 37.095,
+          "y": 4
+        },
+        "opponent:DR": {
+          "x": 11,
+          "y": 24
+        },
+        "opponent:DCR": {
+          "x": 25,
+          "y": 24
+        },
+        "opponent:DCL": {
+          "x": 41.19,
+          "y": 24
+        },
+        "opponent:DL": {
+          "x": 55.19,
+          "y": 24
+        },
+        "opponent:DMR": {
+          "x": 23,
+          "y": 33
+        },
+        "opponent:DML": {
+          "x": 44.19,
+          "y": 36
+        },
+        "opponent:AMR": {
+          "x": 15,
+          "y": 40
+        },
+        "opponent:AMC": {
+          "x": 35,
+          "y": 44
+        },
+        "opponent:AML": {
+          "x": 55.19,
+          "y": 44
+        },
+        "opponent:ST": {
+          "x": 43,
+          "y": 57
+        }
+      },
+      "starter": "mine:AMCL",
+      "ball": {
+        "x": 9,
+        "y": 49
+      },
+      "zone": "L-M"
+    },
+    "L-D": {
+      "positions": {
+        "mine:GK": {
+          "x": 37.495,
+          "y": 96
+        },
+        "mine:DL": {
+          "x": 9,
+          "y": 79
+        },
+        "mine:DCL": {
+          "x": 22,
+          "y": 84
+        },
+        "mine:DCR": {
+          "x": 48.19,
+          "y": 84
+        },
+        "mine:DR": {
+          "x": 63.19,
+          "y": 74
+        },
+        "mine:DM": {
+          "x": 35.095,
+          "y": 71
+        },
+        "mine:MCL": {
+          "x": 21,
+          "y": 63
+        },
+        "mine:MCR": {
+          "x": 49.19,
+          "y": 63
+        },
+        "mine:AMCL": {
+          "x": 9,
+          "y": 54
+        },
+        "mine:ST": {
+          "x": 35.095,
+          "y": 48
+        },
+        "mine:AMCR": {
+          "x": 63.19,
+          "y": 54
+        },
+        "opponent:GK": {
+          "x": 37.095,
+          "y": 4
+        },
+        "opponent:DR": {
+          "x": 11,
+          "y": 42
+        },
+        "opponent:DCR": {
+          "x": 25,
+          "y": 42
+        },
+        "opponent:DCL": {
+          "x": 41.19,
+          "y": 42
+        },
+        "opponent:DL": {
+          "x": 55.19,
+          "y": 42
+        },
+        "opponent:DMR": {
+          "x": 22,
+          "y": 54
+        },
+        "opponent:DML": {
+          "x": 44.19,
+          "y": 54
+        },
+        "opponent:AMR": {
+          "x": 14,
+          "y": 70
+        },
+        "opponent:AMC": {
+          "x": 33.095,
+          "y": 63
+        },
+        "opponent:AML": {
+          "x": 55.19,
+          "y": 61
+        },
+        "opponent:ST": {
+          "x": 32,
+          "y": 76
+        }
+      },
+      "starter": "mine:DL",
+      "ball": {
+        "x": 9,
+        "y": 79
+      },
+      "zone": "L-D"
+    },
+    "LH-F": {
+      "positions": {
+        "mine:GK": {
+          "x": 37.795,
+          "y": 96
+        },
+        "mine:DL": {
+          "x": 8.5,
+          "y": 39
+        },
+        "mine:DCL": {
+          "x": 23.5,
+          "y": 49
+        },
+        "mine:DCR": {
+          "x": 49.69,
+          "y": 49
+        },
+        "mine:DR": {
+          "x": 64.69,
+          "y": 39
+        },
+        "mine:DM": {
+          "x": 36.595,
+          "y": 45
+        },
+        "mine:MCL": {
+          "x": 22,
+          "y": 27
+        },
+        "mine:MCR": {
+          "x": 50.69,
+          "y": 32
+        },
+        "mine:AMCL": {
+          "x": 12.5,
+          "y": 23
+        },
+        "mine:ST": {
+          "x": 36.595,
+          "y": 21
+        },
+        "mine:AMCR": {
+          "x": 60.69,
+          "y": 23
+        },
+        "opponent:GK": {
+          "x": 37.495,
+          "y": 4
+        },
+        "opponent:DR": {
+          "x": 14,
+          "y": 14
+        },
+        "opponent:DCR": {
+          "x": 27,
+          "y": 12
+        },
+        "opponent:DCL": {
+          "x": 43.19,
+          "y": 12
+        },
+        "opponent:DL": {
+          "x": 56.19,
+          "y": 14
+        },
+        "opponent:DMR": {
+          "x": 29,
+          "y": 21
+        },
+        "opponent:DML": {
+          "x": 47.19,
+          "y": 25
+        },
+        "opponent:AMR": {
+          "x": 14,
+          "y": 30
+        },
+        "opponent:AMC": {
+          "x": 39,
+          "y": 35
+        },
+        "opponent:AML": {
+          "x": 56.19,
+          "y": 30
+        },
+        "opponent:ST": {
+          "x": 41,
+          "y": 40
+        }
+      },
+      "starter": "mine:MCL",
+      "ball": {
+        "x": 22,
+        "y": 27
+      },
+      "zone": "LH-F"
+    },
+    "LH-M": {
+      "positions": {
+        "mine:GK": {
+          "x": 37.795,
+          "y": 96
+        },
+        "mine:DL": {
+          "x": 8.5,
+          "y": 55
+        },
+        "mine:DCL": {
+          "x": 23.5,
+          "y": 66
+        },
+        "mine:DCR": {
+          "x": 49.69,
+          "y": 66
+        },
+        "mine:DR": {
+          "x": 64.69,
+          "y": 55
+        },
+        "mine:DM": {
+          "x": 36.595,
+          "y": 59
+        },
+        "mine:MCL": {
+          "x": 22,
+          "y": 49
+        },
+        "mine:MCR": {
+          "x": 50.69,
+          "y": 44
+        },
+        "mine:AMCL": {
+          "x": 8.5,
+          "y": 36
+        },
+        "mine:ST": {
+          "x": 36.595,
+          "y": 30
+        },
+        "mine:AMCR": {
+          "x": 64.69,
+          "y": 36
+        },
+        "opponent:GK": {
+          "x": 37.495,
+          "y": 4
+        },
+        "opponent:DR": {
+          "x": 13,
+          "y": 24
+        },
+        "opponent:DCR": {
+          "x": 27,
+          "y": 24
+        },
+        "opponent:DCL": {
+          "x": 43.19,
+          "y": 24
+        },
+        "opponent:DL": {
+          "x": 57.19,
+          "y": 24
+        },
+        "opponent:DMR": {
+          "x": 24,
+          "y": 36
+        },
+        "opponent:DML": {
+          "x": 46.19,
+          "y": 36
+        },
+        "opponent:AMR": {
+          "x": 13,
+          "y": 44
+        },
+        "opponent:AMC": {
+          "x": 37,
+          "y": 44
+        },
+        "opponent:AML": {
+          "x": 57.19,
+          "y": 44
+        },
+        "opponent:ST": {
+          "x": 43,
+          "y": 58
+        }
+      },
+      "starter": "mine:MCL",
+      "ball": {
+        "x": 22,
+        "y": 49
+      },
+      "zone": "LH-M"
+    },
+    "LH-D": {
+      "positions": {
+        "mine:GK": {
+          "x": 37.795,
+          "y": 96
+        },
+        "mine:DL": {
+          "x": 8.5,
+          "y": 74
+        },
+        "mine:DCL": {
+          "x": 22,
+          "y": 82
+        },
+        "mine:DCR": {
+          "x": 49.69,
+          "y": 84
+        },
+        "mine:DR": {
+          "x": 64.69,
+          "y": 74
+        },
+        "mine:DM": {
+          "x": 36.595,
+          "y": 71
+        },
+        "mine:MCL": {
+          "x": 22.5,
+          "y": 63
+        },
+        "mine:MCR": {
+          "x": 50.69,
+          "y": 63
+        },
+        "mine:AMCL": {
+          "x": 8.5,
+          "y": 54
+        },
+        "mine:ST": {
+          "x": 36.595,
+          "y": 48
+        },
+        "mine:AMCR": {
+          "x": 64.69,
+          "y": 54
+        },
+        "opponent:GK": {
+          "x": 37.495,
+          "y": 4
+        },
+        "opponent:DR": {
+          "x": 13,
+          "y": 42
+        },
+        "opponent:DCR": {
+          "x": 27,
+          "y": 42
+        },
+        "opponent:DCL": {
+          "x": 43.19,
+          "y": 42
+        },
+        "opponent:DL": {
+          "x": 57.19,
+          "y": 42
+        },
+        "opponent:DMR": {
+          "x": 24,
+          "y": 54
+        },
+        "opponent:DML": {
+          "x": 46.19,
+          "y": 54
+        },
+        "opponent:AMR": {
+          "x": 13,
+          "y": 61
+        },
+        "opponent:AMC": {
+          "x": 35.095,
+          "y": 63
+        },
+        "opponent:AML": {
+          "x": 57.19,
+          "y": 61
+        },
+        "opponent:ST": {
+          "x": 29,
+          "y": 75
+        }
+      },
+      "starter": "mine:DCL",
+      "ball": {
+        "x": 22,
+        "y": 82
+      },
+      "zone": "LH-D"
+    },
+    "C-F": {
+      "positions": {
+        "mine:GK": {
+          "x": 38.095,
+          "y": 96
+        },
+        "mine:DL": {
+          "x": 10,
+          "y": 39
+        },
+        "mine:DCL": {
+          "x": 25,
+          "y": 49
+        },
+        "mine:DCR": {
+          "x": 51.19,
+          "y": 49
+        },
+        "mine:DR": {
+          "x": 66.19,
+          "y": 39
+        },
+        "mine:DM": {
+          "x": 38.095,
+          "y": 45
+        },
+        "mine:MCL": {
+          "x": 24,
+          "y": 32
+        },
+        "mine:MCR": {
+          "x": 52.19,
+          "y": 32
+        },
+        "mine:AMCL": {
+          "x": 14,
+          "y": 23
+        },
+        "mine:ST": {
+          "x": 38.095,
+          "y": 21
+        },
+        "mine:AMCR": {
+          "x": 62.19,
+          "y": 23
+        },
+        "opponent:GK": {
+          "x": 38.095,
+          "y": 4
+        },
+        "opponent:DR": {
+          "x": 17,
+          "y": 14
+        },
+        "opponent:DCR": {
+          "x": 30,
+          "y": 12
+        },
+        "opponent:DCL": {
+          "x": 46.19,
+          "y": 12
+        },
+        "opponent:DL": {
+          "x": 59.19,
+          "y": 14
+        },
+        "opponent:DMR": {
+          "x": 26,
+          "y": 25
+        },
+        "opponent:DML": {
+          "x": 50.19,
+          "y": 25
+        },
+        "opponent:AMR": {
+          "x": 17,
+          "y": 30
+        },
+        "opponent:AMC": {
+          "x": 38.095,
+          "y": 34
+        },
+        "opponent:AML": {
+          "x": 59.19,
+          "y": 30
+        },
+        "opponent:ST": {
+          "x": 44,
+          "y": 40
+        }
+      },
+      "starter": "mine:ST",
+      "ball": {
+        "x": 38.095,
+        "y": 21
+      },
+      "zone": "C-F"
+    },
+    "C-M": {
+      "positions": {
+        "mine:GK": {
+          "x": 38.095,
+          "y": 96
+        },
+        "mine:DL": {
+          "x": 10,
+          "y": 55
+        },
+        "mine:DCL": {
+          "x": 25,
+          "y": 66
+        },
+        "mine:DCR": {
+          "x": 51.19,
+          "y": 66
+        },
+        "mine:DR": {
+          "x": 66.19,
+          "y": 55
+        },
+        "mine:DM": {
+          "x": 38.095,
+          "y": 59
+        },
+        "mine:MCL": {
+          "x": 34,
+          "y": 51
+        },
+        "mine:MCR": {
+          "x": 52.19,
+          "y": 44
+        },
+        "mine:AMCL": {
+          "x": 10,
+          "y": 36
+        },
+        "mine:ST": {
+          "x": 38.095,
+          "y": 30
+        },
+        "mine:AMCR": {
+          "x": 66.19,
+          "y": 36
+        },
+        "opponent:GK": {
+          "x": 38.095,
+          "y": 4
+        },
+        "opponent:DR": {
+          "x": 16,
+          "y": 24
+        },
+        "opponent:DCR": {
+          "x": 30,
+          "y": 24
+        },
+        "opponent:DCL": {
+          "x": 46.19,
+          "y": 24
+        },
+        "opponent:DL": {
+          "x": 60.19,
+          "y": 24
+        },
+        "opponent:DMR": {
+          "x": 27,
+          "y": 36
+        },
+        "opponent:DML": {
+          "x": 49.19,
+          "y": 36
+        },
+        "opponent:AMR": {
+          "x": 16,
+          "y": 44
+        },
+        "opponent:AMC": {
+          "x": 40,
+          "y": 44
+        },
+        "opponent:AML": {
+          "x": 60.19,
+          "y": 44
+        },
+        "opponent:ST": {
+          "x": 44,
+          "y": 58
+        }
+      },
+      "starter": "mine:MCL",
+      "ball": {
+        "x": 34,
+        "y": 51
+      },
+      "zone": "C-M"
+    },
+    "C-D": {
+      "positions": {
+        "mine:GK": {
+          "x": 38.095,
+          "y": 96
+        },
+        "mine:DL": {
+          "x": 10,
+          "y": 74
+        },
+        "mine:DCL": {
+          "x": 32,
+          "y": 82
+        },
+        "mine:DCR": {
+          "x": 51.19,
+          "y": 84
+        },
+        "mine:DR": {
+          "x": 66.19,
+          "y": 74
+        },
+        "mine:DM": {
+          "x": 38.095,
+          "y": 71
+        },
+        "mine:MCL": {
+          "x": 24,
+          "y": 63
+        },
+        "mine:MCR": {
+          "x": 52.19,
+          "y": 63
+        },
+        "mine:AMCL": {
+          "x": 10,
+          "y": 54
+        },
+        "mine:ST": {
+          "x": 38.095,
+          "y": 48
+        },
+        "mine:AMCR": {
+          "x": 66.19,
+          "y": 54
+        },
+        "opponent:GK": {
+          "x": 38.095,
+          "y": 4
+        },
+        "opponent:DR": {
+          "x": 16,
+          "y": 42
+        },
+        "opponent:DCR": {
+          "x": 30,
+          "y": 42
+        },
+        "opponent:DCL": {
+          "x": 46.19,
+          "y": 42
+        },
+        "opponent:DL": {
+          "x": 60.19,
+          "y": 42
+        },
+        "opponent:DMR": {
+          "x": 27,
+          "y": 54
+        },
+        "opponent:DML": {
+          "x": 49.19,
+          "y": 54
+        },
+        "opponent:AMR": {
+          "x": 16,
+          "y": 61
+        },
+        "opponent:AMC": {
+          "x": 38.095,
+          "y": 63
+        },
+        "opponent:AML": {
+          "x": 60.19,
+          "y": 61
+        },
+        "opponent:ST": {
+          "x": 43,
+          "y": 77
+        }
+      },
+      "starter": "mine:DCL",
+      "ball": {
+        "x": 32,
+        "y": 82
+      },
+      "zone": "C-D"
+    },
+    "RH-F": {
+      "positions": {
+        "mine:GK": {
+          "x": 38.394999999999996,
+          "y": 96
+        },
+        "mine:DR": {
+          "x": 67.69,
+          "y": 39
+        },
+        "mine:DCR": {
+          "x": 52.69,
+          "y": 49
+        },
+        "mine:DCL": {
+          "x": 26.5,
+          "y": 49
+        },
+        "mine:DL": {
+          "x": 11.5,
+          "y": 39
+        },
+        "mine:DM": {
+          "x": 39.595,
+          "y": 45
+        },
+        "mine:MCR": {
+          "x": 54.19,
+          "y": 27
+        },
+        "mine:MCL": {
+          "x": 25.5,
+          "y": 32
+        },
+        "mine:AMCR": {
+          "x": 63.69,
+          "y": 23
+        },
+        "mine:ST": {
+          "x": 39.595,
+          "y": 21
+        },
+        "mine:AMCL": {
+          "x": 15.5,
+          "y": 23
+        },
+        "opponent:GK": {
+          "x": 38.695,
+          "y": 4
+        },
+        "opponent:DL": {
+          "x": 62.19,
+          "y": 14
+        },
+        "opponent:DCL": {
+          "x": 49.19,
+          "y": 12
+        },
+        "opponent:DCR": {
+          "x": 33,
+          "y": 12
+        },
+        "opponent:DR": {
+          "x": 20,
+          "y": 14
+        },
+        "opponent:DML": {
+          "x": 47.19,
+          "y": 21
+        },
+        "opponent:DMR": {
+          "x": 29,
+          "y": 25
+        },
+        "opponent:AML": {
+          "x": 62.19,
+          "y": 30
+        },
+        "opponent:AMC": {
+          "x": 37.19,
+          "y": 35
+        },
+        "opponent:AMR": {
+          "x": 20,
+          "y": 30
+        },
+        "opponent:ST": {
+          "x": 35.19,
+          "y": 40
+        }
+      },
+      "starter": "mine:MCR",
+      "ball": {
+        "x": 54.19,
+        "y": 27
+      },
+      "zone": "RH-F"
+    },
+    "RH-M": {
+      "positions": {
+        "mine:GK": {
+          "x": 38.394999999999996,
+          "y": 96
+        },
+        "mine:DR": {
+          "x": 67.69,
+          "y": 55
+        },
+        "mine:DCR": {
+          "x": 52.69,
+          "y": 66
+        },
+        "mine:DCL": {
+          "x": 26.5,
+          "y": 66
+        },
+        "mine:DL": {
+          "x": 11.5,
+          "y": 55
+        },
+        "mine:DM": {
+          "x": 39.595,
+          "y": 59
+        },
+        "mine:MCR": {
+          "x": 54.19,
+          "y": 49
+        },
+        "mine:MCL": {
+          "x": 25.5,
+          "y": 44
+        },
+        "mine:AMCR": {
+          "x": 67.69,
+          "y": 36
+        },
+        "mine:ST": {
+          "x": 39.595,
+          "y": 30
+        },
+        "mine:AMCL": {
+          "x": 11.5,
+          "y": 36
+        },
+        "opponent:GK": {
+          "x": 38.695,
+          "y": 4
+        },
+        "opponent:DL": {
+          "x": 63.19,
+          "y": 24
+        },
+        "opponent:DCL": {
+          "x": 49.19,
+          "y": 24
+        },
+        "opponent:DCR": {
+          "x": 33,
+          "y": 24
+        },
+        "opponent:DR": {
+          "x": 19,
+          "y": 24
+        },
+        "opponent:DML": {
+          "x": 52.19,
+          "y": 36
+        },
+        "opponent:DMR": {
+          "x": 30,
+          "y": 36
+        },
+        "opponent:AML": {
+          "x": 63.19,
+          "y": 44
+        },
+        "opponent:AMC": {
+          "x": 39.19,
+          "y": 44
+        },
+        "opponent:AMR": {
+          "x": 19,
+          "y": 44
+        },
+        "opponent:ST": {
+          "x": 33.19,
+          "y": 58
+        }
+      },
+      "starter": "mine:MCR",
+      "ball": {
+        "x": 54.19,
+        "y": 49
+      },
+      "zone": "RH-M"
+    },
+    "RH-D": {
+      "positions": {
+        "mine:GK": {
+          "x": 38.394999999999996,
+          "y": 96
+        },
+        "mine:DR": {
+          "x": 67.69,
+          "y": 74
+        },
+        "mine:DCR": {
+          "x": 54.19,
+          "y": 82
+        },
+        "mine:DCL": {
+          "x": 26.5,
+          "y": 84
+        },
+        "mine:DL": {
+          "x": 11.5,
+          "y": 74
+        },
+        "mine:DM": {
+          "x": 39.595,
+          "y": 71
+        },
+        "mine:MCR": {
+          "x": 53.69,
+          "y": 63
+        },
+        "mine:MCL": {
+          "x": 25.5,
+          "y": 63
+        },
+        "mine:AMCR": {
+          "x": 67.69,
+          "y": 54
+        },
+        "mine:ST": {
+          "x": 39.595,
+          "y": 48
+        },
+        "mine:AMCL": {
+          "x": 11.5,
+          "y": 54
+        },
+        "opponent:GK": {
+          "x": 38.695,
+          "y": 4
+        },
+        "opponent:DL": {
+          "x": 63.19,
+          "y": 42
+        },
+        "opponent:DCL": {
+          "x": 49.19,
+          "y": 42
+        },
+        "opponent:DCR": {
+          "x": 33,
+          "y": 42
+        },
+        "opponent:DR": {
+          "x": 19,
+          "y": 42
+        },
+        "opponent:DML": {
+          "x": 52.19,
+          "y": 54
+        },
+        "opponent:DMR": {
+          "x": 30,
+          "y": 54
+        },
+        "opponent:AML": {
+          "x": 63.19,
+          "y": 61
+        },
+        "opponent:AMC": {
+          "x": 41.095,
+          "y": 63
+        },
+        "opponent:AMR": {
+          "x": 19,
+          "y": 61
+        },
+        "opponent:ST": {
+          "x": 47.19,
+          "y": 75
+        }
+      },
+      "starter": "mine:DCR",
+      "ball": {
+        "x": 54.19,
+        "y": 82
+      },
+      "zone": "RH-D"
+    },
+    "R-F": {
+      "positions": {
+        "mine:GK": {
+          "x": 38.695,
+          "y": 96
+        },
+        "mine:DR": {
+          "x": 67.19,
+          "y": 39
+        },
+        "mine:DCR": {
+          "x": 54.19,
+          "y": 49
+        },
+        "mine:DCL": {
+          "x": 28,
+          "y": 49
+        },
+        "mine:DL": {
+          "x": 13,
+          "y": 39
+        },
+        "mine:DM": {
+          "x": 41.095,
+          "y": 45
+        },
+        "mine:MCR": {
+          "x": 55.19,
+          "y": 32
+        },
+        "mine:MCL": {
+          "x": 27,
+          "y": 32
+        },
+        "mine:AMCR": {
+          "x": 67.19,
+          "y": 23
+        },
+        "mine:ST": {
+          "x": 41.095,
+          "y": 21
+        },
+        "mine:AMCL": {
+          "x": 17,
+          "y": 23
+        },
+        "opponent:GK": {
+          "x": 39.095,
+          "y": 4
+        },
+        "opponent:DL": {
+          "x": 63.19,
+          "y": 15
+        },
+        "opponent:DCL": {
+          "x": 51.19,
+          "y": 12
+        },
+        "opponent:DCR": {
+          "x": 35,
+          "y": 12
+        },
+        "opponent:DR": {
+          "x": 22,
+          "y": 14
+        },
+        "opponent:DML": {
+          "x": 55.19,
+          "y": 25
+        },
+        "opponent:DMR": {
+          "x": 31,
+          "y": 25
+        },
+        "opponent:AML": {
+          "x": 64.19,
+          "y": 30
+        },
+        "opponent:AMC": {
+          "x": 43.095,
+          "y": 34
+        },
+        "opponent:AMR": {
+          "x": 22,
+          "y": 30
+        },
+        "opponent:ST": {
+          "x": 37.19,
+          "y": 40
+        }
+      },
+      "starter": "mine:AMCR",
+      "ball": {
+        "x": 67.19,
+        "y": 23
+      },
+      "zone": "R-F"
+    },
+    "R-M": {
+      "positions": {
+        "mine:GK": {
+          "x": 38.695,
+          "y": 96
+        },
+        "mine:DR": {
+          "x": 67.19,
+          "y": 61
+        },
+        "mine:DCR": {
+          "x": 54.19,
+          "y": 66
+        },
+        "mine:DCL": {
+          "x": 28,
+          "y": 66
+        },
+        "mine:DL": {
+          "x": 13,
+          "y": 55
+        },
+        "mine:DM": {
+          "x": 41.095,
+          "y": 59
+        },
+        "mine:MCR": {
+          "x": 54.19,
+          "y": 46
+        },
+        "mine:MCL": {
+          "x": 27,
+          "y": 44
+        },
+        "mine:AMCR": {
+          "x": 67.19,
+          "y": 49
+        },
+        "mine:ST": {
+          "x": 41.095,
+          "y": 30
+        },
+        "mine:AMCL": {
+          "x": 13,
+          "y": 36
+        },
+        "opponent:GK": {
+          "x": 39.095,
+          "y": 4
+        },
+        "opponent:DL": {
+          "x": 65.19,
+          "y": 24
+        },
+        "opponent:DCL": {
+          "x": 51.19,
+          "y": 24
+        },
+        "opponent:DCR": {
+          "x": 35,
+          "y": 24
+        },
+        "opponent:DR": {
+          "x": 21,
+          "y": 24
+        },
+        "opponent:DML": {
+          "x": 53.19,
+          "y": 33
+        },
+        "opponent:DMR": {
+          "x": 32,
+          "y": 36
+        },
+        "opponent:AML": {
+          "x": 61.19,
+          "y": 40
+        },
+        "opponent:AMC": {
+          "x": 41.19,
+          "y": 44
+        },
+        "opponent:AMR": {
+          "x": 21,
+          "y": 44
+        },
+        "opponent:ST": {
+          "x": 33.19,
+          "y": 57
+        }
+      },
+      "starter": "mine:AMCR",
+      "ball": {
+        "x": 67.19,
+        "y": 49
+      },
+      "zone": "R-M"
+    },
+    "R-D": {
+      "positions": {
+        "mine:GK": {
+          "x": 38.695,
+          "y": 96
+        },
+        "mine:DR": {
+          "x": 67.19,
+          "y": 79
+        },
+        "mine:DCR": {
+          "x": 54.19,
+          "y": 84
+        },
+        "mine:DCL": {
+          "x": 28,
+          "y": 84
+        },
+        "mine:DL": {
+          "x": 13,
+          "y": 74
+        },
+        "mine:DM": {
+          "x": 41.095,
+          "y": 71
+        },
+        "mine:MCR": {
+          "x": 55.19,
+          "y": 63
+        },
+        "mine:MCL": {
+          "x": 27,
+          "y": 63
+        },
+        "mine:AMCR": {
+          "x": 67.19,
+          "y": 54
+        },
+        "mine:ST": {
+          "x": 41.095,
+          "y": 48
+        },
+        "mine:AMCL": {
+          "x": 13,
+          "y": 54
+        },
+        "opponent:GK": {
+          "x": 39.095,
+          "y": 4
+        },
+        "opponent:DL": {
+          "x": 65.19,
+          "y": 42
+        },
+        "opponent:DCL": {
+          "x": 51.19,
+          "y": 42
+        },
+        "opponent:DCR": {
+          "x": 35,
+          "y": 42
+        },
+        "opponent:DR": {
+          "x": 21,
+          "y": 42
+        },
+        "opponent:DML": {
+          "x": 54.19,
+          "y": 54
+        },
+        "opponent:DMR": {
+          "x": 32,
+          "y": 54
+        },
+        "opponent:AML": {
+          "x": 62.19,
+          "y": 70
+        },
+        "opponent:AMC": {
+          "x": 43.095,
+          "y": 63
+        },
+        "opponent:AMR": {
+          "x": 21,
+          "y": 61
+        },
+        "opponent:ST": {
+          "x": 44.19,
+          "y": 76
+        }
+      },
+      "starter": "mine:DR",
+      "ball": {
+        "x": 67.19,
+        "y": 79
+      },
+      "zone": "R-D"
+    }
+  }
+}

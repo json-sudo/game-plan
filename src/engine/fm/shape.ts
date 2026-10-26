@@ -1,15 +1,17 @@
 import type { Point, Side } from '../../data/types';
 import type { ZoneId } from '../../data/zones';
+import type { LateralSide } from './carrier-eligibility';
 import { formationAnchors } from './formation-anchors';
+import { applyOpeningResponse } from './opening-response';
 import type { FmPlayer } from './player';
 import { SHAPE_MARGIN, resolveCollisions, type ResolveToken } from './shape-resolve';
 import { toDisplayFrame } from './zones';
 
 export { SHAPE_MARGIN };
 
-const PLAYER_RADIUS = 2.2;
+export const PLAYER_RADIUS = 2.2;
 const BODY_GAP = 0.25;
-const BODY_DISTANCE = 2 * PLAYER_RADIUS + BODY_GAP;
+export const BODY_DISTANCE = 2 * PLAYER_RADIUS + BODY_GAP;
 const LOOSE_BALL_SPACING = 6;
 const BALL_ID = 'ball';
 
@@ -19,21 +21,34 @@ export interface ShapeInput {
   ball: Point;
   carrierId: string | null;
   zone: ZoneId;
+  opening?: { starterSide: LateralSide | undefined };
 }
 
 export interface ZoneShape {
   positions: Map<string, Point>;
   ball: Point;
+  engagerId: string | null;
 }
 
 export function computeZoneShape(input: ShapeInput): ZoneShape {
   const { attacker, players, ball, carrierId, zone } = input;
   const frameBall = toDisplayFrame(ball, attacker);
   const hasCarrier = players.some((player) => player.team === attacker && player.id === carrierId);
-  const anchors = formationAnchors({ attacker, players, zone });
+  const baseAnchors = formationAnchors({ attacker, players, zone });
+  const { anchors, engagerId } = input.opening
+    ? applyOpeningResponse(baseAnchors, {
+        attacker,
+        zone,
+        players,
+        carrierId: carrierId ?? '',
+        carrier: frameBall,
+        starterSide: input.opening.starterSide,
+      })
+    : { anchors: baseAnchors, engagerId: null };
   const playerTokens = players.map((player): ResolveToken => {
     const anchor = anchors.get(player.id)!;
-    if (player.isKeeper) return { id: player.id, point: anchor.point, fixed: true };
+    if (player.isKeeper || player.id === engagerId)
+      return { id: player.id, point: anchor.point, fixed: true };
     if (player.team === attacker && player.id === carrierId) {
       return { id: player.id, point: frameBall, fixed: true };
     }
@@ -63,5 +78,6 @@ export function computeZoneShape(input: ShapeInput): ZoneShape {
       players.map((player) => [player.id, toDisplayFrame(settled.get(player.id)!, attacker)]),
     ),
     ball,
+    engagerId,
   };
 }
