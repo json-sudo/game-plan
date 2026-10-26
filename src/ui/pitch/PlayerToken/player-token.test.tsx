@@ -133,4 +133,21 @@ describe('PlayerToken fixed', () => {
     expect(onKeyDown).not.toHaveBeenCalled();
     expect(token).toHaveAttribute('data-fixed', 'true');
   });
+
+  it('truncates a long custom name, keeps the role in the tooltip and the full name accessible', () => {
+    renderToken({ fixed: true, role: 'Winger', name: FULL_NAME, title: 'DM · Winger' });
+    const token = screen.getByRole('img', { name: new RegExp(FULL_NAME) });
+    expect(screen.getByText('Abcdefghijkl…')).toBeInTheDocument();
+    expect(token.querySelector('title')).toHaveTextContent('DM · Winger');
+  });
+
+  it('attaches no pointer, click or key handlers to the token element', () => {
+    const { container } = renderToken({ fixed: true, onPointerDown: vi.fn<() => void>() });
+    const token = container.querySelector('g[data-fixed]')!;
+    const reactProps = Object.keys(token).find((key) => key.startsWith('__reactProps'))!;
+    const props = (token as unknown as Record<string, Record<string, unknown>>)[reactProps];
+    expect(props.onPointerDown).toBeUndefined();
+    expect(props.onClick).toBeUndefined();
+    expect(props.onKeyDown).toBeUndefined();
+  });
 });

@@ -6,7 +6,7 @@ import { selectDisplayPositions, selectFmVisualization } from '../../state/selec
 import type { PitchStore } from '../../state/store';
 import { BALL_PIECE_ID, usePitchMotion } from '../hooks/usePitchMotion';
 import { useVisualizationPlayback } from '../hooks/useVisualizationPlayback';
-import { fmWantedPieces, goalLinePieces } from './fm-pieces';
+import { fmWantedPieces, goalLinePieces, piecesAt } from './fm-pieces';
 
 export interface BoardPiecesView {
   pieces: ReadonlyMap<string, Point>;
@@ -42,9 +42,10 @@ export function useBoardPieces(store: StoreApi<PitchStore>): BoardPiecesView {
 
   const playing = viz && present ? viz : null;
   const playback = useVisualizationPlayback(playing, restartCount);
+  const scene = playback.scene;
   const playingPieces = useMemo(
-    () => (playing ? fmWantedPieces(doc, playing, playback.piecesFrame) : null),
-    [doc, playing, playback.piecesFrame],
+    () => (scene ? piecesAt(doc, scene.positions) : null),
+    [doc, scene],
   );
 
   const enterFrom = useMemo(
@@ -59,14 +60,15 @@ export function useBoardPieces(store: StoreApi<PitchStore>): BoardPiecesView {
 
   const ballDrag = drag?.target.kind === 'ball' ? drag.point : null;
   const draggingId = drag ? (drag.target.kind === 'ball' ? BALL_PIECE_ID : drag.target.id) : null;
-  const ball = playing ? playing.frames[playback.ballFrame].ball : doc.ball;
+  const ball = scene ? scene.ball : doc.ball;
   const motion = usePitchMotion({
     pieces,
     ball: ballDrag ?? ball,
     draggingId,
-    cause: [doc.scenario, viz, leaving, playback.piecesFrame],
+    cause: [doc.scenario, viz, leaving],
     retarget: restartCount,
     enterFrom,
+    snap: playback.running,
     onSettled: leaving ? () => setPresented(null) : playback.onSettled,
   });
   return {

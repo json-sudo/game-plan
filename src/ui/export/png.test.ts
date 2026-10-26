@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { styledLightClone } from './png';
 
 afterEach(() => {
@@ -18,5 +18,22 @@ describe('styledLightClone', () => {
     expect(copy.getAttribute('xmlns')).toBe('http://www.w3.org/1999/xhtml');
     expect(document.documentElement.dataset.theme).toBe('dark');
     node.remove();
+  });
+
+  it('computes styles under the light theme even when the app is dark', () => {
+    document.documentElement.dataset.theme = 'dark';
+    const node = document.createElement('div');
+    document.body.appendChild(node);
+    const seen: (string | undefined)[] = [];
+    const original = window.getComputedStyle.bind(window);
+    const spy = vi.spyOn(window, 'getComputedStyle').mockImplementation((element) => {
+      seen.push(document.documentElement.dataset.theme);
+      return original(element);
+    });
+    styledLightClone(node);
+    spy.mockRestore();
+    node.remove();
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((theme) => theme === 'light')).toBe(true);
   });
 });

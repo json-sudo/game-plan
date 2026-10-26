@@ -1,5 +1,6 @@
 import type { Point, Side } from '../../data/types';
 import type { ZoneId } from '../../data/zones';
+import { PITCH_W } from '../geometry/pitch';
 import type { LateralSide } from './carrier-eligibility';
 import { formationAnchors } from './formation-anchors';
 import { applyOpeningResponse } from './opening-response';
@@ -14,6 +15,7 @@ const BODY_GAP = 0.25;
 export const BODY_DISTANCE = 2 * PLAYER_RADIUS + BODY_GAP;
 const LOOSE_BALL_SPACING = 6;
 const BALL_ID = 'ball';
+const CENTRE_X = PITCH_W / 2;
 
 export interface ShapeInput {
   attacker: Side;
@@ -64,7 +66,7 @@ export function computeZoneShape(input: ShapeInput): ZoneShape {
   );
   const tokenOrder = (a: ResolveToken, b: ResolveToken) =>
     Number(attackerIds.has(b.id)) - Number(attackerIds.has(a.id)) ||
-    a.point.x - b.point.x ||
+    Math.abs(b.point.x - CENTRE_X) - Math.abs(a.point.x - CENTRE_X) ||
     a.point.y - b.point.y ||
     a.id.localeCompare(b.id);
   const looseBall: ResolveToken[] = hasCarrier

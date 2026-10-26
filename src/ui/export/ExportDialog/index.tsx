@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  EXPORT_CANCEL_LABEL,
+  CANCEL_LABEL,
   EXPORT_DOWNLOAD_LABEL,
   EXPORT_FILE_NAME,
   EXPORT_NOTE,
@@ -57,7 +57,7 @@ export function ExportDialog({ frame, onClose }: ExportDialogProps) {
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            {EXPORT_CANCEL_LABEL}
+            {CANCEL_LABEL}
           </Button>
           <Button variant="primary" icon="download" disabled={!imageUrl} onClick={download}>
             {EXPORT_DOWNLOAD_LABEL}

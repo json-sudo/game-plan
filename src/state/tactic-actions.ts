@@ -6,7 +6,6 @@ import {
   formationOf,
   playersOf,
   replaceTeamPlayers,
-  roundPoint,
   type PitchDocument,
   type Player,
   type SquadSize,
@@ -92,7 +91,7 @@ function starterOf(player: Player, starter: Player, at: Point): Player {
     family: starter.family,
     slot: starter.slot,
     isKeeper: starter.isKeeper,
-    base: roundPoint(at),
+    base: { x: at.x, y: at.y },
     ...(player.customName ? { customName: player.customName } : {}),
   };
 }

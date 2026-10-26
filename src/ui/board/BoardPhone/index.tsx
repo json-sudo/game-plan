@@ -49,6 +49,7 @@ import { SetupSheet } from '../../setup/SetupSheet';
 import { MatchupSheet } from '../../setup/MatchupSheet';
 import { setupCursor } from '../../setup/setup-model';
 import { Ball } from '../../pitch/Ball';
+import { fmPieceScale } from '../../pitch/fm-glyph';
 import { pieceKeyStep } from '../../pitch/piece-keys';
 import { Pitch } from '../../pitch/Pitch';
 import { PitchFrame } from '../../pitch/PitchFrame';
@@ -159,7 +160,9 @@ export function BoardPhone({ store }: BoardPhoneProps) {
     },
   ];
 
-  const pieceScale = { ppu: metrics.ppu, tokenPx: metrics.tokenPx, hitPx: PHONE_HIT_PX };
+  const pieceScale = fm
+    ? fmPieceScale(metrics.ppu, PHONE_HIT_PX)
+    : { ppu: metrics.ppu, tokenPx: metrics.tokenPx, hitPx: PHONE_HIT_PX };
   const ballAtCentre = doc.ball.x === BALL_START.x && doc.ball.y === BALL_START.y;
   const onBallKey = (event: KeyboardEvent<SVGGElement>) => {
     const next = pieceKeyStep(doc.ball, event.key, event.shiftKey);

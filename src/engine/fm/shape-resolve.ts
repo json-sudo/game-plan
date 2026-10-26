@@ -9,6 +9,7 @@ const SEARCH_STEP = 0.5;
 const RANK_GAP = 1;
 const CENTRE_X = PITCH_W / 2;
 const EPSILON = 1e-9;
+const CROWD_RADIUS = 10;
 
 export interface ResolveToken {
   id: string;
@@ -56,6 +57,15 @@ function inBounds(point: Point): boolean {
   );
 }
 
+function prefersLeftOrder(token: ResolveToken, placed: ReadonlyMap<string, Point>): boolean {
+  const lean = token.point.x - CENTRE_X;
+  if (Math.abs(lean) > EPSILON) return lean < 0;
+  const crowd = [...placed.values()]
+    .filter((other) => Math.hypot(other.x - token.point.x, other.y - token.point.y) <= CROWD_RADIUS)
+    .reduce((sum, other) => sum + (other.x - CENTRE_X), 0);
+  return crowd <= 0;
+}
+
 export function resolveCollisions(
   tokens: readonly ResolveToken[],
   options: ResolveOptions,
@@ -86,7 +96,7 @@ export function resolveCollisions(
   for (const token of tokens.filter((item) => !item.fixed)) {
     const found = SEARCH_ORDERS.reduce<Point | null>((result, orders) => {
       if (result) return result;
-      const order = token.point.x <= CENTRE_X ? orders.left : orders.right;
+      const order = prefersLeftOrder(token, placed) ? orders.left : orders.right;
       const offset = order.find((candidate) =>
         isFree(token, { x: token.point.x + candidate.x, y: token.point.y + candidate.y }),
       );

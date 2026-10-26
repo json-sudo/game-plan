@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Point } from '../../data/types';
 import { MOTION_DURATIONS_MS } from '../../engine';
 import type { MotionKind } from '../../engine/anim/motion';
+import { stubSwitchableReducedMotion } from '../../test-utils/reduced-motion';
 import { usePieceMotion } from './usePieceMotion';
 
 type Frame = (timestamp: number) => void;
@@ -121,6 +122,23 @@ describe('usePieceMotion', () => {
     stepTo(MOTION_DURATIONS_MS.reduced - 1);
     expect(result.current.get('p')).not.toEqual(B);
     stepTo(MOTION_DURATIONS_MS.reduced);
+    expect(result.current.get('p')).toEqual(B);
+  });
+
+  it('finishes within 200 ms without a jump when reduced motion switches on mid-transition', () => {
+    const setReduced = stubSwitchableReducedMotion();
+    const { result, rerender } = setup({ targets: new Map([['p', A]]), kind: 'phase' });
+    rerender({ targets: new Map([['p', B]]), kind: 'phase' });
+    stepTo(0);
+    stepTo(300);
+    const before = result.current.get('p')!;
+    setReduced(true);
+    expect(result.current.get('p')).toEqual(before);
+    stepTo(1000);
+    expect(result.current.get('p')).toEqual(before);
+    stepTo(1000 + MOTION_DURATIONS_MS.reduced - 1);
+    expect(result.current.get('p')).not.toEqual(B);
+    stepTo(1000 + MOTION_DURATIONS_MS.reduced);
     expect(result.current.get('p')).toEqual(B);
   });
 

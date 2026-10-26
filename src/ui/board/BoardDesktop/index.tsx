@@ -26,13 +26,16 @@ import { canSetSquadSize } from '../../../state/tactic-actions';
 import { selectCanUndo, selectFmVisualization } from '../../../state/selectors';
 import type { PitchStore } from '../../../state/store';
 import { TopBar } from '../../chrome/TopBar';
+import { Button } from '../../controls/Button';
 import {
   BALL_TOOLTIP,
   CLEAR_FM_REASON,
+  COPY_FM_POSITIONS_LABEL,
   PITCH_LABEL,
   SIDE_COLUMN_LABEL,
   SETUP_COLUMN_LABEL,
   TOKEN_TOOLTIP,
+  VISUALIZATION_ZONE_FIRST_REASON,
 } from '../../copy';
 import { useShareExport } from '../use-share-export';
 import { SetupFlow } from '../../setup/SetupFlow';
@@ -47,6 +50,7 @@ import { Instrument } from '../../instrument/Instrument';
 import { SequenceControls } from '../../instrument/SequenceControls';
 import { ZoneMap } from '../../instrument/ZoneMap';
 import { Ball } from '../../pitch/Ball';
+import { fmPieceScale } from '../../pitch/fm-glyph';
 import { pieceKeyStep } from '../../pitch/piece-keys';
 import { Pitch } from '../../pitch/Pitch';
 import { PitchFrame } from '../../pitch/PitchFrame';
@@ -87,7 +91,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
   const compactBar = useBelowBreakpoint(TOP_BAR_COMPACT_MAX_WIDTH);
   const fm = ui.mode === 'fm';
   const reset = resetState(doc, fm);
-  const shareExport = useShareExport(store);
+  const shareExport = useShareExport(store, view.pieces);
   const ballZone = zoneOf(doc.ball, doc.attacker);
   const hasAttackerFormation = formationOf(FM26_DATA, doc.teams[doc.attacker].formationId) !== null;
 
@@ -98,7 +102,9 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
 
   const drag = useBoardDrag(store);
 
-  const pieceScale = { ppu: metrics.ppu, tokenPx: metrics.tokenPx, hitPx: DESKTOP_HIT_PX };
+  const pieceScale = fm
+    ? fmPieceScale(metrics.ppu, DESKTOP_HIT_PX)
+    : { ppu: metrics.ppu, tokenPx: metrics.tokenPx, hitPx: DESKTOP_HIT_PX };
   const ballAtCentre = samePoint(doc.ball, BALL_START);
   const onBallKey = (event: ReactKeyboardEvent<SVGGElement>) => {
     const next = pieceKeyStep(doc.ball, event.key, event.shiftKey);
@@ -271,6 +277,14 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
                 onRestart={() => store.getState().restartVisualization()}
                 onAnother={() => store.getState().showAnotherVisualization()}
               />
+              <Button
+                variant="secondary"
+                disabled={!doc.scenario}
+                disabledReason={VISUALIZATION_ZONE_FIRST_REASON}
+                onClick={shareExport.requestCopy}
+              >
+                {COPY_FM_POSITIONS_LABEL}
+              </Button>
             </Instrument>
           ) : (
             <>
