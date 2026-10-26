@@ -110,6 +110,45 @@ function moveScene({ paths, carrierFrom, carrierTo }: Move, progress: number): S
   };
 }
 
+export function remapElapsedMs(
+  timeline: Timeline,
+  elapsedMs: number,
+  from: boolean,
+  to: boolean,
+): number {
+  if (timeline.moves.length === 0 || from === to) return elapsedMs;
+  const fromSegments = segmentsOf(timeline, from);
+  const toSegments = segmentsOf(timeline, to);
+  const total = timelineDurationMs(timeline, from);
+  let remaining = ((elapsedMs % total) + total) % total;
+  let mapped = 0;
+  const last = fromSegments.length - 1;
+  for (let index = 0; ; index += 1) {
+    const duration = fromSegments[index].durationMs;
+    if (remaining < duration || index === last) {
+      return mapped + (remaining / duration) * toSegments[index].durationMs;
+    }
+    remaining -= duration;
+    mapped += toSegments[index].durationMs;
+  }
+}
+
+export function blendScenes(from: Scene, to: Scene, progress: number): Scene {
+  const mix = (a: Point, b: Point): Point => ({
+    x: a.x + (b.x - a.x) * progress,
+    y: a.y + (b.y - a.y) * progress,
+  });
+  return {
+    positions: Object.fromEntries(
+      Object.entries(to.positions).map(([id, point]) => [
+        id,
+        mix(from.positions[id] ?? point, point),
+      ]),
+    ),
+    ball: mix(from.ball, to.ball),
+  };
+}
+
 export function sampleTimeline(timeline: Timeline, elapsedMs: number, reduced: boolean): Scene {
   if (timeline.moves.length === 0) return holdScene(timeline, 0);
   const segments = segmentsOf(timeline, reduced);

@@ -1,7 +1,10 @@
 import { act, renderHook } from '@testing-library/react';
+import { useMemo } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MOTION_DURATIONS_MS, PASS_SETTLE_MS, attachedBall } from '../../engine';
 import type { FmVisualization } from '../../state/visualization';
+import { stubSwitchableReducedMotion } from '../../test-utils/reduced-motion';
+import { usePitchMotion } from './usePitchMotion';
 import { useVisualizationPlayback } from './useVisualizationPlayback';
 
 const { phase: MOVE, cadence: HOLD, reduced: REDUCED } = MOTION_DURATIONS_MS;
@@ -36,6 +39,31 @@ function stubReducedMotion(reduced: boolean) {
     addEventListener: () => undefined,
     removeEventListener: () => undefined,
   }));
+}
+
+const NO_BALL = { x: 0, y: 0 };
+
+function setupBoard(viz: FmVisualization) {
+  return renderHook(
+    (props: { viz: FmVisualization; restartKey: number }) => {
+      const playback = useVisualizationPlayback(props.viz, props.restartKey);
+      const pieces = useMemo(
+        () => new Map(Object.entries(playback.scene?.positions ?? {})),
+        [playback.scene],
+      );
+      const motion = usePitchMotion({
+        pieces,
+        ball: playback.scene?.ball ?? NO_BALL,
+        draggingId: null,
+        cause: [props.viz],
+        retarget: props.restartKey,
+        snap: playback.running,
+        onSettled: playback.onSettled,
+      });
+      return { playback, motion, viz: props.viz };
+    },
+    { initialProps: { viz, restartKey: 0 } },
+  );
 }
 
 function setup(viz: FmVisualization | null, restartKey = 0) {
@@ -122,6 +150,60 @@ describe('useVisualizationPlayback', () => {
     rerender({ viz: visualization(), restartKey: 1 });
     expect(result.current.running).toBe(false);
     expect(result.current.scene?.positions).toEqual(OPENING);
+  });
+
+  describe.each([
+    ['a new sequence (zone, role, formation, opponent or attacker change)', true, 0],
+    ['Restart', false, 1],
+  ])('with %s mid-pass', (_name, newViz, restartKey) => {
+    it('continues from the sampled positions and leaves one active loop', () => {
+      const { result, rerender } = setupBoard(visualization());
+      start({ current: result.current.playback });
+      advance(MOVE / 2);
+      const mid = result.current.motion.pieces.get('b')!;
+      expect(mid).not.toEqual(OPENING.b);
+      expect(mid).not.toEqual(FIRST.b);
+
+      rerender({ viz: newViz ? visualization() : result.current.viz, restartKey });
+      expect(result.current.playback.running).toBe(false);
+      expect(result.current.motion.pieces.get('b')).toEqual(mid);
+      advance(FRAME_MS * 2);
+      const travelling = result.current.motion.pieces.get('b')!;
+      expect(Math.hypot(travelling.x - mid.x, travelling.y - mid.y)).toBeLessThan(5);
+
+      advance(MOVE + SAFE_MS);
+      expect(result.current.motion.pieces.get('b')).toEqual(OPENING.b);
+      advance(FRAME_MS);
+      expect(result.current.playback.running).toBe(true);
+      expect(vi.getTimerCount()).toBe(1);
+    });
+  });
+
+  it('does not jump when reduced motion switches on mid-pass and finishes within 200 ms', () => {
+    const setReduced = stubSwitchableReducedMotion();
+    const { result } = setup(visualization());
+    start(result);
+    advance(MOVE / 2);
+    const before = result.current.scene!;
+    setReduced(true);
+    expect(result.current.scene?.positions).toEqual(before.positions);
+    expect(result.current.scene?.ball).toEqual(before.ball);
+    advance(FRAME_MS);
+    expect(Math.abs(result.current.scene!.positions.b.x - before.positions.b.x)).toBeLessThan(2);
+    advance(REDUCED + FRAME_MS);
+    const settled = result.current.scene!;
+    expect(settled.positions.b.x).toBeGreaterThanOrEqual(before.positions.b.x);
+    expect(settled.positions).toEqual(FIRST);
+  });
+
+  it('does not jump when reduced motion switches off mid-pass', () => {
+    const setReduced = stubSwitchableReducedMotion(true);
+    const { result } = setup(visualization());
+    start(result);
+    advance(REDUCED / 2);
+    const before = result.current.scene!;
+    setReduced(false);
+    expect(result.current.scene?.positions).toEqual(before.positions);
   });
 
   it('runs no clock without a visualization or without passes', () => {

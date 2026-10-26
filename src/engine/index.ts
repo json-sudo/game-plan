@@ -10,7 +10,9 @@ export {
   ATTACHMENT_OFFSET,
   PASS_SETTLE_MS,
   attachedBall,
+  blendScenes,
   buildTimeline,
+  remapElapsedMs,
   sampleTimeline,
 } from './anim/timeline';
 export { eligibleCarrierIds, isRoleAllowedInSlot } from './fm/carrier-eligibility';

@@ -87,3 +87,38 @@ test('during playback the ball stays attached to the carrier outside passes and 
   const travelled = new Set(samples.map((sample) => `${sample.ball.x},${sample.ball.y}`));
   expect(travelled.size).toBeGreaterThan(20);
 });
+
+const MIN_SAMPLES_PER_MOVE = 3;
+
+function movementRuns(samples: Sample[], key: (sample: Sample) => string): number[] {
+  const runs: number[] = [];
+  let run = 0;
+  samples.forEach((sample, index) => {
+    const moving = index > 0 && key(samples[index - 1]) !== key(sample);
+    if (moving) run += 1;
+    else if (run > 0) {
+      runs.push(run);
+      run = 0;
+    }
+  });
+  return runs;
+}
+
+test('with reduced motion emulated, the ball and players pass through intermediate positions', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await startPlayback(page);
+  const samples = await collectSamples(page);
+
+  const ballRuns = movementRuns(samples, (sample) => `${sample.ball.x},${sample.ball.y}`);
+  const playerRuns = movementRuns(samples, (sample) =>
+    sample.attackers.map((player) => `${player.x},${player.y}`).join('|'),
+  );
+
+  for (const runs of [ballRuns, playerRuns]) {
+    expect(runs.length).toBeGreaterThan(1);
+    expect(runs.every((length) => length >= MIN_SAMPLES_PER_MOVE)).toBe(true);
+  }
+  expect(samples.every((sample) => sample.balls === 1)).toBe(true);
+});

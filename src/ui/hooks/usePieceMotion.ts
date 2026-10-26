@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { Point } from '../../data/types';
 import { isTransitionDone, motionDurationMs, positionsAt, progressAt } from '../../engine';
 import { easeProgress, type MotionKind } from '../../engine/anim/motion';
@@ -17,6 +17,17 @@ interface PieceMotionOptions {
 
 export function prefersReducedMotion(): boolean {
   return typeof matchMedia === 'function' && matchMedia(REDUCED_MOTION_QUERY).matches;
+}
+
+function subscribeReducedMotion(listener: () => void): () => void {
+  if (typeof matchMedia !== 'function') return () => undefined;
+  const query = matchMedia(REDUCED_MOTION_QUERY);
+  query.addEventListener('change', listener);
+  return () => query.removeEventListener('change', listener);
+}
+
+export function useReducedMotion(): boolean {
+  return useSyncExternalStore(subscribeReducedMotion, prefersReducedMotion, () => false);
 }
 
 function visiblePositions(
@@ -45,6 +56,7 @@ export function usePieceMotion({
   const [rendered, setRendered] = useState<ReadonlyMap<string, Point>>(() =>
     visiblePositions(new Map(), targets, null, enterFrom),
   );
+  const reduced = useReducedMotion();
   const renderedRef = useRef(rendered);
   const settledRef = useRef(onSettled);
   useEffect(() => {
@@ -71,7 +83,6 @@ export function usePieceMotion({
       return;
     }
 
-    const reduced = prefersReducedMotion();
     const duration = motionDurationMs(kind, reduced);
     let handle = 0;
     let startedAt: number | null = null;
@@ -86,7 +97,7 @@ export function usePieceMotion({
     };
     handle = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(handle);
-  }, [targets, kind, draggingId, restartKey, enterFrom, snap]);
+  }, [targets, kind, draggingId, restartKey, enterFrom, snap, reduced]);
 
   if (snap) return targets;
   return visiblePositions(rendered, targets, draggingId, enterFrom);
