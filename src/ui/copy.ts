@@ -107,7 +107,7 @@ export const SHARE_COPIED = 'Link copied';
 export const SHARE_HINT = 'Paste it in your group chat.';
 export const SHARE_DONE_LABEL = 'Done';
 export const EXPORT_NOTE = '1080 × 1350 PNG. Reads at group-chat size.';
-export const EXPORT_CANCEL_LABEL = 'Cancel';
+export const CANCEL_LABEL = 'Cancel';
 export const EXPORT_DOWNLOAD_LABEL = 'Download PNG';
 export const EXPORT_PREVIEW_LABEL = 'Preview of the exported image';
 export const EXPORT_FOOTER = 'Game Plan';
@@ -148,6 +148,7 @@ export const DRIBBLE_LABELS = {
 } as const;
 
 export const COPY_FM_POSITIONS_LABEL = 'Copy FM positions';
+export const COPY_FM_POSITIONS_CONFIRM_LABEL = 'Replace pieces';
 export const COPY_FM_POSITIONS_CONFIRMATION =
   'This will replace any pieces currently placed on the Open pitch.';
 

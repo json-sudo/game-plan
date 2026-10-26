@@ -26,13 +26,16 @@ import { canSetSquadSize } from '../../../state/tactic-actions';
 import { selectCanUndo, selectFmVisualization } from '../../../state/selectors';
 import type { PitchStore } from '../../../state/store';
 import { TopBar } from '../../chrome/TopBar';
+import { Button } from '../../controls/Button';
 import {
   BALL_TOOLTIP,
   CLEAR_FM_REASON,
+  COPY_FM_POSITIONS_LABEL,
   PITCH_LABEL,
   SIDE_COLUMN_LABEL,
   SETUP_COLUMN_LABEL,
   TOKEN_TOOLTIP,
+  VISUALIZATION_ZONE_FIRST_REASON,
 } from '../../copy';
 import { useShareExport } from '../use-share-export';
 import { SetupFlow } from '../../setup/SetupFlow';
@@ -88,7 +91,7 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
   const compactBar = useBelowBreakpoint(TOP_BAR_COMPACT_MAX_WIDTH);
   const fm = ui.mode === 'fm';
   const reset = resetState(doc, fm);
-  const shareExport = useShareExport(store);
+  const shareExport = useShareExport(store, view.pieces);
   const ballZone = zoneOf(doc.ball, doc.attacker);
   const hasAttackerFormation = formationOf(FM26_DATA, doc.teams[doc.attacker].formationId) !== null;
 
@@ -274,6 +277,14 @@ export function BoardDesktop({ store }: BoardDesktopProps) {
                 onRestart={() => store.getState().restartVisualization()}
                 onAnother={() => store.getState().showAnotherVisualization()}
               />
+              <Button
+                variant="secondary"
+                disabled={!doc.scenario}
+                disabledReason={VISUALIZATION_ZONE_FIRST_REASON}
+                onClick={shareExport.requestCopy}
+              >
+                {COPY_FM_POSITIONS_LABEL}
+              </Button>
             </Instrument>
           ) : (
             <>
